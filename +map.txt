@@ -34,6 +34,13 @@
 	+map/<layer> <map name>
 		Display <layer> for <map name>
 
+-- Administration --------------------------------------------------------------
+
+	+map/info
+	+map/info <name>
+	+map/set/<item> <map>.<layer>.<section>=<value>
+	+map/set/lock <map>.<layer>=<lock|items>
+
 
 ================================================================================
 == STORAGE FORMATS =============================================================
