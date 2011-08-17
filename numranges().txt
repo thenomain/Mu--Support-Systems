@@ -1,0 +1,73 @@
+FUNCTION: numranges()
+
+	numranges(<list>[, <idelim>[, <odelim>[, <midrange delim>]]]): Take a range of numbers and group them in logical ranges, assumes ranges are numbers separated by 1.  Defaults: idelim and midrange delim as ' ', odelim as '|'.
+
+--
+
+0: list of numbers
+1: optional input delimiter (default space)
+2: optional output delimiter (default |)
+3: optional 'mid-range' delimiter, between <low> and <high> (default space)
+
+output: groups of <low> [<high>]
+	groups separated by output delim
+	<low> and <high> separated by midrange delim
+
+qn: number list, sorted from %0 and 
+ql: built list
+qo: output delimiter, defaults |
+
+--
+
+&ufunc.numranges functions=
+
+localize(
+@@ o: output delimiter, n: sort numeric & remove duplicates, l: priming read
+	[setq(o, if(t(%2), %2, |))]
+	[setq(n, setunion(%0, , %1, , n))]
+	[setq(l, first(%qn))]
+
+@@ Run through the list - rest(%qn) because we've already primed 
+@@ the first grouping with the first value
+@@ (the @@ as the output delimiter means "null".)
+	[iter(rest(%qn), 
+		case(1, 
+@@ .. if: the current number (%i0) is text, then: ignore it
+			not(isnum(%i0)), , 
+@@ .. if: the current number (%i0) = the grouping's max + 1 ...
+			eq(%i0, inc(last(last(%ql, %qo)))), 
+@@ .. then: simply change the max in the last group
+@@ .. (edit last group and slam it back onto the list)
+@@ .. (first item doesn't get a | separator)
+			setq(l, 
+				[extract(%ql, 1, dec(words(%ql, %qo)), %qo)]
+				[if(dec(words(%ql, %qo)), %qo, )]
+				[first(last(%ql, %qo))] %i0
+			), 
+@@ .. else: control break: <existing list>|<new low>
+			setq(l, %ql%qo%i0)
+		), , @@
+	)]
+
+@@ Display the completed list (other massaging would go here)
+	[if(t(%3), edit(%ql, %b, %3), %ql)]
+)
+
+--
+
+&ufunc.numranges functions=localize([setq(o, if(t(%2), %2, |))][setq(n, setunion(%0, , %1, , n))][setq(l, first(%qn))][iter(rest(%qn), case(1, not(isnum(%i0)), , eq(%i0, inc(last(last(%ql, %qo)))), setq(l, [extract(%ql, 1, dec(words(%ql, %qo)), %qo)][if(dec(words(%ql, %qo)), %qo, )][first(last(%ql, %qo))] %i0), setq(l, %ql%qo%i0)), , @@)][if(t(%3), edit(%ql, %b, %3), %ql)])
+
+--
+
+Rhost:
+	@edit functions/ufunc.numranges={%i0}, {itext(0)}
+	@edit functions/ufunc.numranges={, @@}, {, @@()}
+
+--
+
+think numranges(lnum(1,500))
+think numranges(1 2 5 7 8 9, , , -)
+think numranges(7 5 2 8 9 1, , , -)
+think numranges(1.2.3.4.5.6.7.8.9.10, .)
+
+

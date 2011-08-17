@@ -1,0 +1,74 @@
+@@ &f_titlestr #107=iter(lcstr(%0), capstr(%i0))
+
+You will notice that u(#107/xxx) features promanently.  Because %!, for some reason, will not work on the data list calls.  Suffice it to say, edit the #107 to your function-holding object before adding it.
+
+Also note this uses registers, so use the /preserve switch when adding it to your user-defined functions.
+
+Called as: titlestr(<text>[, <exception words>])
+
+---
+
+&f_titlestr #107=
+@@ 0: what to title
+@@ 1: list of additional exception words
+@@ 
+@@ qe: exception item
+
+	iter(
+		lcstr(%0), 
+		case(
+			1, 
+@@ if it's a function, leave it lower case (even if it matches an exception)
+			t(regmatch(%i0, u(#107/d_titlestr-regexp))), 
+			%i0, 
+@@ if it ends with punctuation, recurse without it
+			t(
+				setr(
+					e, 
+					grab(u(#107/d_titlestr-punctuation), escape(right(%i0, 1)))
+				)
+			), 
+			[ulocal(#107/f_titlestr, strtrunc(%i0, dec(strlen(%i0))), %1)]%qe, 
+@@ if it's in the exception list or passed, restore it
+			t(setr(e, grab([u(#107/d_titlestr-exception)] %1, %i0))), 
+			%qe, 
+@@ if it's in the notitle list and not the first element, leave it lower case
+			and(t(match(u(#107/d_titlestr-notitle), %i0)), neq(inum(0), 1)), 
+			%i0, 
+@@ if it starts with punctuation, recurse the rest
+			t(
+				setr(
+					e, 
+					grab(
+						u(#107/d_titlestr-punctuation), 
+						escape(strtrunc(%i0, 1))
+					)
+				)
+			), 
+			%qe[ulocal(#107/f_titlestr, rest(%i0, %qe), %1)], 
+@@ else, capitalize
+			capstr(%i0)
+		)
+	)
+
+&d_titlestr-exception #107=iPod von BBS OOC IC
+&d_titlestr-notitle #107=a an the at by for in of on to up and as but it or nor
+&d_titlestr-punctuation #107=. , ? ! ; : ( ) < > { } * / - + " '
+&d_titlestr-regexp #107=\[^[escape(u(d_titlestr-punctuation))]\].*\\(.*\\)
+
+
+---
+
+&f_titlestr #107=iter(lcstr(%0), case(1, t(regmatch(%i0, u(#107/d_titlestr-regexp))), %i0, t(setr(e, grab(u(#107/d_titlestr-punctuation), escape(right(%i0, 1))))), [ulocal(#107/f_titlestr, strtrunc(%i0, dec(strlen(%i0))), %1)]%qe, t(setr(e, grab([u(#107/d_titlestr-exception)] %1, %i0))), %qe, and(t(match(u(#107/d_titlestr-notitle), %i0)), neq(inum(0), 1)), %i0, t(setr(e, grab(u(#107/d_titlestr-punctuation), escape(strtrunc(%i0, 1))))), %qe[ulocal(#107/f_titlestr, rest(%i0, %qe), %1)], capstr(%i0)))
+
+---
+
+Help File
+
+&HELP~FUNCTIONS~TITLESTR() +help database=Some Text, Capitalized~[ansi(h, titlestr%(<text>%[%, <exceptions>%]%))]%r%rReturns <text> with the basic rules of capitalization for titles. Some exception words are built in, but others may be added with a list of <exceptions>, which will be replaced exactly as typed.%r%rThe system will do its best to follow all rules regardless of punctuation or character prefixes (within reason). Functions are always left lower-case, regardless of the <exceptions>. %r%rExamples:%r%b think titlestr(a day in the ooc room) %r%b think titlestr(we set upon%%, then devoured%%, mayor mccheeze, McCheeze) %r%b think titlestr(we are not (yet) there) %r%b think titlestr(think(again): a love story)
+
+
+
+
+
+

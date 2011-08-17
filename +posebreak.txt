@@ -1,0 +1,144 @@
+posebreak: insert text before poses
+
+--------------------------------------------------------------------------------
+-- Help Entry ------------------------------------------------------------------
+(basic format)
+
+This command allows you to insert a linebreak or text of your choice before a number of pose formats, but not side-effect functions.
+
+  +posebreak: Returns if it's off or on, or on with a special 
+  +posebreak on: Turns posebreak on
+  +posebreak off: Turns posebreak off
+  +posebreak <text>: Uses <text> as your posebreak text, and turns it on
+  +posebreak clear: Clears your posebreak text
+
+You can set or clear your own posebreak text with:
+  &posebreak me=<text>
+
+The <text> is not parsed, but you can get color, if you'd like, the old-fashioned way:
+  @force me=+posebreak %[ansi(g, --- --- ---)%]
+
+
+--------------------------------------------------------------------------------
+-- Help Entry (formatted) ------------------------------------------------------
+
+This command allows you to insert a linebreak or text of your choice before a number of pose formats, but not  side-effect functions. %r %r%b +posebreak: Returns if it's off or on, or on with a special %r%b +posebreak on: Turns posebreak on %r%b +posebreak off: Turns posebreak off %r%b +posebreak <text>: Uses <text> as your posebreak text, and turns it on %r%b +posebreak clear: Clears your posebreak text %r %rYou can set or clear your own posebreak text with: %r%b &posebreak me=<text> %r %rThe <text> is not parsed, but you can get color, if you'd like, the old-fashioned way: %r%b @force me=+posebreak %[ansi(g, --- --- ---)%]
+
+-- Formatted for our +help system --
+
+&help~ooc_commands~+posebreak #909=Insert Text Before Poses~[ansi(h, +posebreak %[on|off|clear|<text>%])]%r%rThis command allows you to insert a linebreak or text of your choice before a number of pose formats, but not  side-effect functions. %r %r%b +posebreak: Returns if it's off or on, or on with a special %r%b +posebreak on: Turns posebreak on %r%b +posebreak off: Turns posebreak off %r%b +posebreak <text>: Uses <text> as your posebreak text, and turns it on %r%b +posebreak clear: Clears your posebreak text %r %rYou can set or clear your own posebreak text with: %r%b &posebreak me=<text> %r %rThe <text> is not parsed, but you can get color, if you'd like, the old-fashioned way: %r%b @force me=+posebreak %[ansi(g, --- --- ---)%]
+
+
+--------------------------------------------------------------------------------
+-- Hook Object Setup -----------------------------------------------------------
+
+If you have a hook object set up already, good.  If not:
+	@create @hook object <ho>
+	@set @hook object=inherit
+	@set @hook object=safe
+
+(Remember the dbref: you'll be putting it in your .conf file)
+
+&b_pose @hook object=[u(f.posebreak, pose)]
+&b_pose/nospace @hook object=[u(f.posebreak)]
+&b_npose @hook object=[u(f.posebreak)]
+&b_say @hook object=[u(f.posebreak)]
+&b_nsay @hook object=[u(f.posebreak)]
+&b_@emit @hook object=[u(f.posebreak)]
+&b_\ @hook object=[u(f.posebreak)]
+&b_@remit @hook object=[u(f.posebreak)]
+
+@@ pemit and oemit omitted because it would trigger false positives 
+@@ without extra code
+@@ \ is the \ and \\ alias to @emit. : and ; aliases are already accounted for
+
+&f.posebreak @hook object=
+	[iter(
+		filter(fil.posebreak, lcon(loc(%#), connect)), 
+		pemit(%i0, default(%i0/posebreak, %b))
+	)]
+
+@@ Filter: _posebreak is set and the "allow" is passed
+
+&fil.posebreak @hook object=
+	and(
+		u(%0/_posebreak), 
+		udefault(f.posebreak-allow, 1, %0)
+	)
+
+@@ Our example says: Allow if not in the OOC Zone; i.e., ignore in OOC room
+@@ (our OOC rooms are all for the zone master object #88)
+
+&f.posebreak-allow #336=not(strmatch(zone(loc(%0)), #68))
+
+
+--------------------------------------------------------------------------------
+--- .conf file setup -----------------------------------------------------------
+
+The following must go in the <gamename>.conf file, followed with a @restart
+
+hook_obj must be set to just the numeric portion of the hook object's dbref
+
+# -- hook functions ---
+hook_obj 667
+#
+# .. +pagebreak directives
+hook_cmd pose before
+hook_cmd npose before
+hook_cmd : before
+hook_cmd ; before
+hook_cmd say before
+hook_cmd nsay before
+hook_cmd " before
+hook_cmd @emit before
+hook_cmd \ before
+hook_cmd @remit before
+# .. pemit and oemit omitted due to false matches
+
+
+--------------------------------------------------------------------------------
+--- posebreak commands ---------------------------------------------------------
+
+Here, "Global OOC Commands" is wherever you're putting global functions.  If you have SGP installed, you'll have this object already.
+
+&c.posebreak Global OOC Commands=$+posebreak*:@pemit %#=
+	[setq(0, trim(%0))]
+	[null(
+		case(
+			%q0, 
+			on, set(%#, _posebreak:1), 
+			off, set(%#, _posebreak:), 
+			clear, set(%#, posebreak:), 
+			[if(
+				t(words(%q0)), 
+				[set(%#, posebreak:%q0)]
+				[set(%#, _posebreak:1)]
+			)]
+		)
+	)]
+	Posebreak is: 
+	[if(
+		t(get(%#/_posebreak)), 
+		default(%#/posebreak, On), 
+		Off
+	)]
+
+
+================================================================================
+== CODE: COMPILED ==============================================================
+
+Here's all the above code compiled in an almost-copy-paste format.
+
+
+@create @hook object <ho>
+@set @hook object=inherit
+@set @hook object=safe
+
+&f.posebreak @hook object=[iter(filter(fil.posebreak, lcon(loc(%#), connect)), pemit(%i0, default(%i0/posebreak, %b)))]
+
+&fil.posebreak @hook object=and(u(%0/_posebreak), udefault(f.posebreak-allow, 1, %0))
+
+&f.posebreak-allow @hook object=not(strmatch(zone(loc(%0)), #88))
+
+
+&c.posebreak Global OOC Commands=$+posebreak*:@pemit %#=[setq(0, trim(%0))][null(case(%q0, on, set(%#, _posebreak:1), off, set(%#, _posebreak:), clear, set(%#, posebreak:), [if(t(words(%q0)), [set(%#, posebreak:%q0)][set(%#, _posebreak:1)])]))]Posebreak is: [if(t(get(%#/_posebreak)), default(%#/posebreak, On), Off)]

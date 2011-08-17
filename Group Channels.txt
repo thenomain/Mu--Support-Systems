@@ -1,0 +1,403 @@
+
+
+a: 
+@ccreate %0.
+@create %0 Channal Object <%0CO>
+@cset/object %0=%0CO
+@cset/header %0=[ansi(%1, \[, %2, %0, %1, \])]
+@cset/log %0=200
+@set %0CO=lock:xxx
+@lock %0CO=lock/1
+
+  These are the topics for the MUX comsystem:
+
+  User Commands:            @clist, addcom, alias, allcom, comlist, comtitle,
+                            clearcom, delcom
+
+  Administrative Commands:  @cboot, @ccharge, @cchown, @ccreate, @cdestroy,
+                            @cemit, @clist, @coflags, @cpflags, @cset, @cwho
+
+  Functions:                channels(), chanobj(), comalias(), comtitle(),
+                            cwho()
+
+  General Information:      channel object, comsys examples
+
+
++chan/delete will need to do:
+@cdestroy %0
+@destroy %0CO
+
+=-=--==--=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Cobalt says, “50 characters long.”
+
+
+Group: <one word>
+
+
+================================================================================
+== DATA ========================================================================
+
+
+&d.channel-pocket gcm=#1853
+
+&d.group-types gcm=Motley Pack
+
+&d.channel.prefix gcm=Group:%b
+
+&d.channel.lock gcm=[u(#1853/f.chan.lock, %#, v(d.group-name))]
+&f.chan.lock gcm=or(isstaff(%0), u(f.play.belongs-to-group?, %0, %1))
+@@ @set gcm/f.chan.lock=vis
+
+@@ &d.channel.lock gcm=[or(isstaff(%0), u(f.play.belongs-to-group?, %0, %1))]
+
+
+
+&d.channel.header gcm=[ansi(ch, \[, n, %0, ch, \])]
+
+
+
+&d.output.line gcm=[setq(m, u(f.search.members, get([u(f.chan.get-dbref, %0)]/d.group-name)))][if(t(%qm), %b [ansi(g, %0)] - [itemize(iter(%qm, name(%i0), , |), |)], %b [ansi(r, %0)] - (no members))]
+
+
+
+&d.object.name gcm=%1 Channel Object <%0>
+
+
+
+================================================================================
+== LOOKUP/VALIDATION FUNCTIONS =================================================
+
+>>>> NOTE:  THIS SYSTEM IS NOT YET +SHEET-LOCATION AWARE <<<<
+
+
+&f.sheet-loc gcm=xxx
+
+
+&f.obj.name-ok? gcm=valid(name, u(d.object.name, %0, %1))
+
+&f.chan.get-dbref gcm=chanobj(%0)
+
+&f.chan.name-ok? gcm=and(valid(attrname, %0), eq(words(%0), 1), lte(strlen(%0), sub(20, strlen(u(d.channel.prefix)))))
+
+&f.chan.exists? gcm=strmatch(channels(), *%0*)
+
+&f.chan.group-exists? gcm=t(u(f.search.members, %0))
+
+
+
+@@ &f.chan.group-has-chan? gcm=t(search(eobject=and(strmatch(name(##), xxx*), strmatch(xxx, %0))))
+
+
+
+&f.play.belongs-to-group? gcm=lor(iter(v(d.group-types), strmatch(u(%0/_bio.%i0), %1)))
+
+&f.search.members gcm=search(eplayer=and(lor(u(f.play.belongs-to-group?, ##, %0)), gt(isapproved(##), 0)))
+
+&f.list.channels gcm=[setq(c, channels())][setq(p, u(d.channel.prefix))][iter(matchall(%qc, first(%qp)), extract(%qc, %i0, inc(words(%qp))), , |)]
+
+
+================================================================================
+== CHANNELS (mistress code) ====================================================
+
+&c.channels gcm=$+chan*:@pemit %#=
+	[setq(0, if(strmatch(%0, %b*), trim(%0), rest(%0)))]
+	[setq(1, rest(first(%0), /))]
+
+	[case(1, 
+		t(%q1), u(c.channels.switch, %q0, %q1), 
+		t(%q0), u(c.channels.specific, %q0), 
+		u(c.channels.default)
+	)]
+
+--
+
+&c.channels gcm=$+chan*:@pemit %#=[setq(0, if(strmatch(%0, %b*), trim(%0), rest(%0)))][setq(1, rest(first(%0), /))][case(1, t(%q1), u(c.channels.switch, %q0, %q1), t(%q0), u(c.channels.specific, %q0), u(c.channels.default))]
+
+
+
+================================================================================
+== CHANNELS: SWITCH PROCESS ====================================================
+
+&c.channels.switch gcm=
+	[setq(0, grab(lattr(%!/c.channels/%1*), /%1*))]
+	[if(
+		hasattr(%!, c.channels/%q0), 
+		u(c.channels/%q0, %0), 
+		[alert(channels)] No such switch. 
+			Valid matches are: [itemize(iter(lattr(%!/c.channels/*), lcstr(last(%i0, /))))]
+	)]
+
+--
+
+&c.channels.switch gcm=[setq(0, grab(lattr(%!/c.channels/%1*), /%1*))][if(hasattr(%!, c.channels/%q0), u(c.channels/%q0, %0), [alert(channels)]: No such switch. Valid matches are: [itemize(iter(lattr(%!/c.channels/*), lcstr(last(%i0, /))))])]
+
+
+
+================================================================================
+== CHANNELS: Default ===========================================================
+
+&c.channels.default gcm=
+	[case(0, 
+		isstaff(%#), [alert(channels)] Staff Only., 
+		[header(Channels List)]%r
+
+		[iter(setr(c, u(f.list.channels)), u(d.output.line, %i0), |, %r)]%r
+
+		[footer([words(%qc, |)] channels)]
+	)]
+
+--
+
+&c.channels.default gcm=[case(0, isstaff(%#), [alert(channels)] Staff Only., [header(Channels List)]%r[iter(setr(c, u(f.list.channels)), u(d.output.line, %i0), |, %r)]%r[footer([words(%qc, |)] channels)])]
+
+
+================================================================================
+== CHANNELS: Specific ==========================================================
+
+&c.channels.specific gcm=[u(c.channels.default)]
+
+
+================================================================================
+== CHANNELS/ADD ================================================================
+
+0: <one-word channel name>=<group name>
+
+
+&c.channels/add gcm=$+chan/a* *=*:@pemit %#=
+	[case(0, 
+		isstaff(%#), [alert(channels)] Staff Only., 
+
+		u(f.chan.name-ok?, %1), [alert(channels)] Bad channel name. (Character or length.), 
+
+		not(u(f.chan.exists?, [u(d.channel.prefix)]%1)), 
+		[alert(channels)] Channel '[u(d.channel.prefix)]%1' already exists., 
+
+		u(f.chan.group-exists?, %2), 
+		[alert(channels)] Nobody in that group., 
+
+		u(f.obj.name-ok?, %1, %2), 
+		[alert(channels)] Something about '[u(d.object.name, %0, %1)]' is a bad channel object name., 
+
+		[header(Creating Channel)]%r
+		%b Triggering...
+		[trigger(%!/tr.channel.new, %#, %1, %2)]
+		
+	)]
+
+--
+
+&c.channels/add gcm=$+channels/a* *=*:@pemit %#=[case(0, isstaff(%#), [alert(channels)] Staff Only., u(f.chan.name-ok?, %1), [alert(channels)] Bad channel name. (Character or length.), not(u(f.chan.exists?, [u(d.channel.prefix)]%1)), [alert(channels)] Channel already exists., u(f.chan.group-exists?, %2), [alert(channels)] Nobody in that group., u(f.obj.name-ok?, %1, %2), [alert(channels)] Something about '[u(d.object.name, %0, %1)]' is a bad object name., [header(Creating Channel)]%r%b Triggering...[trigger(%!/tr.channel.new, %#, %1, %2)])]
+
+
+================================================================================
+== TRIGGER: NEW CHANNEL ========================================================
+
+&tr.channel.new gcm=
+	@eval [setq(e, )][setq(c, [u(d.channel.prefix)]%1)][setq(o, u(d.object.name, %1, %2))];
+
+	@ccreate %qc; 
+
+	@pemit %0=%b * Channel '%qc' ... [if(t(f.chan.exists?, %qc), ansi(g, exists), [ansi(r, error)][setq(e, %qe|Channel not created)])]; 
+
+	@pemit %0=%b * Creating '%qo' ... [setq(d, create(%qo, 100))][if(t(%qd), ansi(g, %qd), [ansi(r, error)][setq(e, %qe|Object not created)])].; 
+
+	&d.group-name %qd=%2; 
+	@cset/object %qc=%qd; 
+	
+
+	&d.lock %qd=[v(d.channel.lock)]; 
+	@lock %qd=d.lock/1; 
+	@cpflags %qc=!join; 
+	@coflags %qc=!join; 
+
+	@cset/header %qc=[u(d.channel.header, %1)]; 
+	@cset/log %qc=200; 
+	@desc %qd=A channel for %2; 
+
+	@eval [if(not(t(chanobj(%qc))), setq(e, %qe|Object not properly associated with channel))][if(not(elock(%qd, #1)), setq(e, %qe|Object lock does not appear to be working))]; 
+
+	@pemit %0=[setq(e, trim(%qe, b, |))][if(t(words(%qe, |)), %b [ansi(r, ERRORS)] (no @mail sent): %r[iter(%qe, %b %b >> %i0, |, %r)]%r%b You may want to:%r%b %b @clist/full %qc %r%b %b @cdestroy %qc %r%b %b @destroy <channel object> %r[footer([words(%qe, |)] errors)], %b [ansi(g, Looks Good!)] But you should probably check with:%r%b %b @clist/full %qc%r[footer()])]; 
+
+	@if t(%qd)={@teleport %qd=[u(d.channel-pocket)]}; 
+	
+	@if not(t(%qe))={@trigger/quiet %!/tr.mail.confirm=%qc, %2, %0}
+
+
+--
+
+&tr.channel.new gcm=@eval [setq(e, )][setq(c, [u(d.channel.prefix)]%1)][setq(o, u(d.object.name, %1, %2))]; @ccreate %qc; @pemit %0=%b * Channel '%qc' ... [if(t(f.chan.exists?, %qc), ansi(g, exists), [ansi(r, error)][setq(e, %qe|Channel not created)])]; @pemit %0=%b * Creating '%qo' ... [setq(d, create(%qo, 100))][if(t(%qd), ansi(g, %qd), [ansi(r, error)][setq(e, %qe|Object not created)])].; &d.group-name %qd=%2; @cset/object %qc=%qd; &d.lock %qd=[v(d.channel.lock)]; @lock %qd=d.lock/1; @cpflags %qc=!join; @coflags %qc=!join; @cset/header %qc=[u(d.channel.header, %1)]; @cset/log %qc=200; @desc %qd=A channel for %2; @eval [if(not(t(chanobj(%qc))), setq(e, %qe|Object not properly associated with channel))][if(not(elock(%qd, #1)), setq(e, %qe|Object lock does not appear to be working))]; @pemit %0=[setq(e, trim(%qe, b, |))][if(t(words(%qe, |)), %b [ansi(r, ERRORS)] (no @mail sent): %r[iter(%qe, %b %b >> %i0, |, %r)]%r%b You may want to:%r%b %b @clist/full %qc %r%b %b @cdestroy %qc %r%b %b @destroy <channel object> %r[footer([words(%qe, |)] errors)], %b [ansi(g, Looks Good!)] But you should probably check with:%r%b %b @clist/full %qc%r[footer()])]; @if t(%qd)={@teleport %qd=[u(d.channel-pocket)]}; @if not(t(%qe))={@trigger/quiet %!/tr.mail.confirm=%qc, %2, %0}
+
+
+
+================================================================================
+== TRIGGER: CONFIRMATION EMAIL =================================================
+
+&tr.mail.confirm gcm=
+	@eval [setq(w, u(f.search.members, %1))]; 
+	@if t(%qw)={
+		@mail/quick %qw/New Group Channel=
+		Hey there! Your IC group, %1, now has a channel, '%0'.  You are not automatically added to the channel, so you may need to type a command like:%r%r%taddcom [lcstr(last(%0))]=%0%r%rNew members will not get this message, so be sure to tell them!  Thanks - The Darkwater Staff; 
+
+		@pemit %2=[alert(channels)] @mailed [itemize(iter(%qw, name(%i0), , |), |)]
+	}, 
+	{
+		@pemit %2=[alert(channels)] Nobody in the group '%1'.  No mail sent.
+	}
+
+--
+
+&tr.mail.confirm gcm=@eval [setq(w, u(f.search.members, %1))]; @if t(%qw)={@mail/quick %qw/New Group Channel=Hey there! Your IC group, %1, now has a channel, '%0'.  You are not automatically added to the channel, so you may need to type a command like:%r%r%taddcom [lcstr(last(%0))]=%0%r%rNew members will not get this message, so be sure to tell them!  Thanks - The Darkwater Staff; @pemit %2=[alert(channels)] @mailed [itemize(iter(%qw, name(%i0), , |), |)]}, {@pemit %2=[alert(channels)] Nobody in the group '%1'.  No mail sent.}
+
+
+================================================================================
+== CHANNELS/REMOVE =============================================================
+
++channels/delete <name>[=YES]
+
+0: <one-word channel name>
+
+c: channel name (intially %0, later verified)
+v: verification ("YES")
+n: group name
+m: members of that group
+
+
+&c.channels/remove gcm=
+	[setq(c, first(%0, =))]
+	[setq(v, rest(%0, =))]
+
+@@ is the channel name what was entered? Only search items in the correct pocket
+	[setq(c, 
+		search(eobject=
+			and(
+				strmatch(loc(##), v(d.channel-pocket)), 
+@@ .. it's okay if someone types 'Group: <name>' or '<name>'.
+				or(
+					strmatch(name(##), [u(d.channel.prefix)]%qn), 
+					strmatch(name(##), %qn)
+				)
+			)
+		)
+	)]
+
+	[setq(n, get(%qc/d.group-name))]
+
+	[case(0,
+		isstaff(%#), [alert(channels)] Staff only, 
+		neq(words(%qc), 0), [alert(channels)] Can't find that group or channel, 
+		gt(words(%qc), 1), [alert(channels)] Somehow found more than one channel with that name, 
+
+		[header(Deleting Channel)]%r
+		%b Triggering...
+		[trigger(%!/tr.channel.delete, %#, <obj dbref>, <chan name>, <group name>)]
+
+	)]
+
+
+================================================================================
+== TRIGGER: DELETE CHANNEL =====================================================
+
+0: trigererer's dbref
+1: channel object dbref (validated)
+2: channel name
+3: group name
+
+w: who is using this channel?
+o: channel object name
+
+
+&tr.channel.delete gcm=
+	@eval [setq(e, )][setq(w, cwho(%2, all))][setq(o, name(%1))];
+
+@@ .. destroy channel
+
+	@cdestroy %2; 
+
+	@pemit %0=%b * Channel '%qc' ... [if(t(f.chan.exists?, %qc), [ansi(r, error)][setq(e, %qe|Channel still exists)], ansi(g, removed))]; 
+
+@@ .. destroy channel object
+
+	@destroy %1
+
+	@pemit %0=%b * Destroying '%qo' ... [if(or(hasflag(%1, going), not(t(num(%1)))), ansi(g, destroyed), [ansi(r, error)][setq(e, %qe|Object '%1' not destroyed)])]; 
+	
+@@ .. report errors
+
+	@pemit %0=[setq(e, trim(%qe, b, |))][if(t(words(%qe, |)), %b [ansi(r, ERRORS)] (no @mail sent): %r[iter(%qe, %b %b >> %i0, |, %r)]%r%b You may want to:%r%b %b @clist/full %qc %r%b %b @cdestroy %2 %r%b %b @destroy %1  %r%b %b @mail %qw=Deleted Group Channel %r[footer([words(%qe, |)] errors)], %b [ansi(g, Looks Good!)] But you should probably check with:%r%b %b @clist/full %2%r[footer()])]; 
+
+@@ .. mail anyone on the channel if a successful delete
+
+	@if not(t(%qe))={@trigger/quiet %!/tr.mail.deleted=%2, %3, %0}
+
+
+
+================================================================================
+== TRIGGER: DELETION EMAIL =================================================
+
+0: Channel name
+1: Group name
+2: Who was on the channel
+3: dbref of triggerer
+
+
+&tr.mail.deleted gcm=
+
+	@if t(%2)={
+		@mail/quick %2/Removed Group Channel=
+		Hey there! We have removed the group channel for your IC group, %1.  The channel name was '%0'.  If you feel this was in error, please +request its recreation to staff.  Thanks - The Darkwater Staff; 
+
+		@pemit %3=[alert(channels)] @mailed [itemize(iter(%2, name(%i0), , |), |)]
+	}, 
+	{
+		@pemit %3=[alert(channels)] Nobody on the channel for '%1'.  No mail sent.
+	}
+
+--
+
+&tr.mail.deleted gcm=@if t(%2)={@mail/quick %2/Removed Group Channel=Hey there! We have removed the group channel for your IC group, %1.  The channel name was '%0'.  If you feel this was in error, please +request its recreation to staff.  Thanks - The Darkwater Staff; @pemit %3=[alert(channels)] @mailed [itemize(iter(%2, name(%i0), , |), |)]}, {@pemit %3=[alert(channels)] Nobody on the channel for '%1'.  No mail sent.}
+
+
+
+================================================================================
+== STAFF HELP: Entry ===========================================================
+
+
+&shelp~staff_commands~+channels #102=IC Group Channels~Surprise surprise, this isn't done yet! For this command, +chan is all you need, but I'll be spelling out +channels on the whole thing.%r%r+channels: Who has a channel, who's in that  group.  No guarantee that they're on the channel.  Groups with nobody in them come up red.%r%r+channel/add <shortname>=<group name>: "Shortname" is a single-word name for the channel.  "Group Name" is the group found on the Motley or Pack stat.  This command will create the channel and @mail everyone who matches that Motley/Pack name.  Nobody is auto-added.  Extensive error-checking is done to make sure that this is okay.%r%re.g.: +channels/add KikTami=Kik Tami
+
+
+
+
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+MORE NOTES 
+
+>>>>   @mail/quick <player-list>/<subject> = <message>
+
+
++channels/add KikTami=Kik Tami
+
+@clist/full Group: KikTami
+addcom kik=Group: KikTami
+kik Test test
+
+
+
+delcom kik
+@dest [chanobj(Group: KikTami)]
+@cdestroy Group: KikTami
+
+
+
+
+
+think search(eplayer=strmatch(u(##/_bio.motley), Watery Tarts))
+
+think [setq(g, Watery Tarts)][search(eplayer=and(strmatch(u(##/_bio.motley), %qg), gt(isapproved(##), 0)))]
+
+think [setq(g, Watery Tarts)][search(eplayer=and(lor(iter(v(d.group-types), strmatch(u(##/_bio.%i0), %qg))), gt(isapproved(##), 0)))]
+
+
+think [setq(g, Kik Tami)][search(eplayer=lor(u(gcm/f.belongs-to-group, ##, %qg)))]
+
+think [setq(g, Watery Tarts)][search(eplayer=and(lor(u(gcm/f.belongs-to-group, ##, %qg)), gt(isapproved(##), 0)))]

@@ -1,0 +1,1609 @@
+AETHER'S FACTION SYSTEM
+
+Updated for TinyMUX and a non-Mistress-based system.
+
+--> Aether's Factions Object <afo> created as object #2883
+
+Requires the following user-defined functions:
+	isstaff()	 - nothing new under the sun
+	isfaction()  - created in this very code
+	alert()		 - generic error message/command header (TR: msg(<ansi>,<txt>))
+	header()	 - generic output header
+	footer()	 - generic output footer
+	isapproved() - does what it says on the tin
+	pmatch+()	 - this one might slip in there, so watch out for it
+
+Requires the following considerations:
+	create() 	 - must be wiz-okay
+
+Stores on the Player:
+	_faction-member: <X>!<#dbref>|...
+	X: H if ooc administrator, N if normal member, either/or
+
+Stores on the Faction Object:
+	d_created-by: dbref of the staffer who created the faction
+	information: if exists, a summary of the faction, set by faction heads
+	member-<dbref>[-<rank>]: <dbref>[/<title>]
+
+
+================================================================================== Pseudo-Mistress Set-Up ======================================================
+
+Calls:
+	c.<name>.default: When '+<name>' is typed
+	c.<name>.specific: When '+<name> <more>' is typed
+	c.<name>/<switch>: When '+<name>/<switch> [<more>]' is typed
+
+0: All input
+qn: Name of the command for finding 'c.<name>.default', et al. (portability)
+
+
+&c.faction afo=$+faction*:@pemit %#=
+	[setq(n, faction)]
+	[switch(%0, 
+@@ Without 's' ending
+		, u(c.%qn.default), 
+		/*, u(c.%qn.switch, first(%0), rest(%0)), 
+		%b*, u(c.%qn.specific, trim(%0)), 
+
+@@ With 's' ending
+		s, u(c.%qn.default), 
+		s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), 
+		s%b*, u(c.%qn.specific, trim(rest(%0))), 
+
+@@ No match
+		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
+	)]
+
+--
+
+&c.faction afo=$+faction*:@pemit %#=[setq(n, faction)][switch(%0, , u(c.%qn.default), /*, u(c.%qn.switch, first(%0), rest(%0)), %b*, u(c.%qn.specific, trim(%0)), s, u(c.%qn.default), s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), s%b*, u(c.%qn.specific, trim(rest(%0))), Error: I don't know what you mean. Please see [ansi(h, +help %qn)])]
+
+
+--------------------------------------------------------------------------------
+-- c.faction.switch ------------------------------------------------------------
+
+Handles all /switches, which is to say it makes sure they exist and passes them on.
+
+0: /<switch>
+1: [<more>], stuff to pass to c.<name>/<switch>, if any
+qn: Name of the command, global register set in &c.<name> (above)
+
+&c.faction.switch afo=udefault(first(sort(lattr(%!/c.%qn*%0*))), [alert(secure(%qn))] No such switch., %1)
+
+
+--------------------------------------------------------------------------------
+-- c.faction.default -----------------------------------------------------------
+
++faction -> +faction/list
+
+&c.faction.default afo=u(c.faction/list)
+
+
+--------------------------------------------------------------------------------
+-- c.faction.specific ----------------------------------------------------------
+
+Set it up so that you're searching for any word in a multi-word faction i.e., A faction named 'Jane's House of Horrors' will match on 'Jane', 'House', 'Horrors' or even 'Of'.  'grab' always grabs the FIRST match. Does partial name matches, too.  So '+faction hou' might get it, too. 
+
+Warning: This MAY be the only function that has 'middle name matching' on factions.  If you want the long story as to the confusion, it's long. In general, assume only where you're sure you can fix a problem.
+
+0: faction name
+
+q0: List of ' <name>:<dbref>|...' that the user can-see
+q1: Single matching '<name>:<dbref>'
+uses: isstaff(), isfaction?()
+
+&c.faction.specific afo=
+
+@@ The Partial/In-Name Match
+	[setq(0, 
+		iter(
+			filter(fil.see-faction, lcon(%!), , , %#), 
+			%b[name(%i0)]:%i0, 
+			, |
+		)
+	)]
+	[setq(1, trim(grab(%q0, * %0*:*, |)))]
+
+	[case(0, 
+		t(%q1), I can't find any faction by that name., 
+		u(f.display.roster, last(%q1, :))
+	)]
+
+--
+
+&c.faction.specific afo=[setq(0, iter(filter(fil.see-faction, lcon(%!), , , %#), %b[name(%i0)]:%i0, , |))][setq(1, trim(grab(%q0, * %0*:*, |)))][case(0, t(%q1), I can't find any faction by that name., u(f.display.roster, last(%q1, :)))]
+
+
+================================================================================
+== +faction/create =============================================================
+
+Creates an object within the faction code object that stores all the faction information. Removing a faction is simply deleting the object. Making a faction secret is simply setting it dark.
+
+Creating a faction may *only* be done by a Wizard.
+
+
+0: <name>[ = <faction head>]
+
+qn: name of faction
+qh: 1 if trying to set a faction head, 0 otherwise
+qc: character dbref of initial faction head
+qo: dbref of created faction object
+
+
+&c.faction/create afo=
+	[setq(n, trim(before(%0, =)))]
+	[setq(h, comp(trim(after(%0, =)), ))]
+	[setq(c, pmatch(trim(after(%0, =))))]
+
+	[case(0, 
+
+		isstaff(%#), 
+		[alert(+faction)] You can't create factions., 
+
+		or(not(%qh), isdbref(%qc)), 
+		[alert(+faction)] That player does not exist., 
+
+		or(not(%qh), isapproved(%qc, approved)), 
+		[alert(+faction)] That player is not approved., 
+
+		valid(%qn, thingname), 
+		[alert(+faction)] That's not a good name for a faction., 
+
+		not(isdbref(num(%qn))), 
+		[alert(+faction)] A faction already exists with that name%, or close., 
+
+@@ No Errors: Make That Faction
+		[setq(o, create(%qn, 10))]
+		[set(%qo, d_created-by:%#)]
+
+@@ .. did you try to make a faction head?
+		[if(%qh, 
+@@ .. .. yes
+			[set(%qc, _faction-member:[setunion(H!%qo, u(%qc/_faction-member), |)])]
+			[u(f.member.add, %qc, %qo)]
+			[alert(+faction)] Faction '%qn' created with faction head [name(%qc)]., 
+@@ .. .. no
+			[alert(+faction)] Faction '%qn' created without a faction head. Staff only may set several faction elements.
+		)]
+	)]
+
+
+--
+
+&c.faction/create afo=[setq(n, trim(before(%0, =)))][setq(h, comp(trim(after(%0, =)), ))][setq(c, pmatch(trim(after(%0, =))))][case(0, isstaff(%#), [alert(+faction)] You can't create factions., or(not(%qh), isdbref(%qc)), [alert(+faction)] That player does not exist., or(not(%qh), isapproved(%qc, approved)), [alert(+faction)] That player is not approved., valid(%qn, thingname), [alert(+faction)] That's not a good name for a faction., not(isdbref(num(%qn))), [alert(+faction)] A faction already exists with that name%, or close., [setq(o, create(%qn, 10))][set(%qo, d_created-by:%#)][if(%qh, [set(%qc, _faction-member:[setunion(H!%qo, u(%qc/_faction-member), |)])][u(f.member.add, %qc, %qo)][alert(+faction)] Faction '%qn' created with faction head [name(%qc)]., [alert(+faction)] Faction '%qn' created without a faction head. Staff only may set several faction elements.)])]
+
+
+
+
+================================================================================
+== +faction/destroy ============================================================
+
+Clears everyone from the faction and destroys it. Staff-only.
+
+0: <faction name>[=YES]
+
+f: faction dbref
+y: true if =YES was entered
+l: list of members
+
+d: attribute list
+r: rank, if any
+t: title, if any
+
+&c.faction/destroy afo=
+	[setq(f, num(trim(first(%0, =))))]
+	[setq(y, not(comp(rest(%0, =), YES)))]
+
+	[case(0, 
+		isstaff(%#), [alert(+faction)] Staff only., 
+
+		isdbref(%qf), [alert(+faction)] Could not find that faction., 
+		
+		not(hasflag(%qf, going)), [alert(+faction)] Faction is already destroyed., 
+
+		%qy, [alert(+faction)] If you're absolutely sure%, type: +faction/destroy [name(%qf)]=YES, 
+
+		[setq(l, u(f.faction.roster, %qf))]
+
+		[header(+faction/destroy: [name(%qf)] (%qf))]%r
+
+		[iter(%ql, 
+			[setq(d, first(lattr(%qf/member-%i0*)))]
+			[setq(r, extract(%qd, 3, 1, -))]
+			[setq(t, rest(get(%qf/%qd), /))]
+
+@@ .. report
+			%b [name(%i0)] - 
+			Title: [if(t(%qt), %qt, none)] - 
+			Rank: [if(t(%qt), %qr, none)]
+@@ .. remove character
+			[u(f.member.remove, %i0, %qf)], 
+			, %r
+		)]%r %r
+		%b Information: [udefault(%qf/information, (Not Set))]%r %r
+		%b Created By: [name(get(%qf/d_created-by))] ([get(%qf/d_created-by)])%r
+		[footer([words(%ql)] members removed)]
+		[destroy(%qf)]
+	)]
+
+--
+
+&c.faction/destroy afo=[setq(f, num(trim(first(%0, =))))][setq(y, not(comp(rest(%0, =), YES)))][case(0, isstaff(%#), [alert(+faction)] Staff only., isdbref(%qf), [alert(+faction)] Could not find that faction., not(hasflag(%qf, going)), [alert(+faction)] Faction is already destroyed., %qy, [alert(+faction)] If you're absolutely sure%, type: +faction/destroy [name(%qf)]=YES, [setq(l, u(f.faction.roster, %qf))][header(+faction/destroy: [name(%qf)] (%qf))]%r[iter(%ql, [setq(d, first(lattr(%qf/member-%i0*)))][setq(r, extract(%qd, 3, 1, -))][setq(t, rest(get(%qf/%qd), /))]%b [name(%i0)] - Title: [if(t(%qt), %qt, none)] - Rank: [if(t(%qt), %qr, none)][u(f.member.remove, %i0, %qf)], , %r)]%r %r%b Information: [udefault(%qf/information, (Not Set))]%r %r%b Created By: [name(get(%qf/d_created-by))] ([get(%qf/d_created-by)])%r[footer([words(%ql)] members removed)][destroy(%qf)])]
+
+
+================================================================================
+== +faction/undestroy ==========================================================
+
+Because the factions are objects, they will be marked 'going' until the system cleanup kicks in.  Unset the 'going' flag.
+
+NOTE TO SELF: locate() is better than num(), as you control where you look
+
+0: <faction name>
+
+f: faction dbref
+e: possible error from 'set'
+
+
+&c.faction/undestroy afo=
+	[setq(f, locate(%!, %0, i))]
+
+	[case(0, 
+		isstaff(%#), [alert(+faction)] Staff only., 
+
+		comp(%qf, #-1), [alert(+faction)] Could not find that faction., 
+
+		comp(%qf, #-2), [alert(+faction)] Too many factions matched., 
+
+		hasflag(%qf, GOING), 
+		[alert(+faction)] Faction '[name(%qf)]' is not being destroyed., 
+
+@@ set !going, check for error
+		[not(strlen(setr(e, set(%qf, !GOING))))], 
+		[alert(+faction)] !Going Failed: %qe, 
+
+		[msg(h, +faction)][name(%qf)] saved from deletion.	
+	)]		
+
+---
+
+&c.faction/undestroy afo=[setq(f, locate(%!, %0, i))][case(0, isstaff(%#), [alert(+faction)] Staff only., comp(%qf, #-1), [alert(+faction)] Could not find that faction., comp(%qf, #-2), [alert(+faction)] Too many factions matched., hasflag(%qf, GOING), [alert(+faction)] Faction '[name(%qf)]' is not being destroyed., [not(strlen(setr(e, set(%qf, !GOING))))], [alert(+faction)] !Going Failed: %qe, [msg(h, +faction)][name(%qf)] saved from deletion.)]	
+
+
+
+================================================================================
+== +faction/list ===============================================================
+
+ql: list of factions to show
+
+&c.faction/list afo=
+	[header(Factions)]%r
+
+	[setq(l, 
+		iter(
+			sortby(f.sortby.factions.type, 
+				filter(fil.see-faction, lcon(%!), , , %#)
+			)
+			, 
+
+			[if(hasflag(%i0, DARK), 
+				ansi(xh, %[ %qn %]), 
+				u(f.name.faction, %i0)
+			)], 
+			, |
+		)
+	)]
+
+	[columns(%ql, 38, |, 2)]
+
+	[footer(words(%ql, |))]
+
+--
+
+&c.faction/list afo=[header(Factions)]%r[setq(l, iter(sortby(f.sortby.factions.type, filter(fil.see-faction, lcon(%!), , , %#)), [if(hasflag(%i0, DARK), ansi(xh, %[ [u(f.name.faction, %i0)] %]), u(f.name.faction, %i0))], , |))][columns(%ql, 38, |, 2)][footer(words(%ql, |))]
+
+
+================================================================================
+== Display: Roster =============================================================
+
+0: roster dbref
+
+qp: player dbref
+qr: rank, if any
+qt: title, if any
+qs: permissions list
+
+&f.display.roster afo=
+	[header([name(%0)][if(isstaff(%#), %b%(%0%))])]%r
+	%b [ljust(Name, 25)] [ljust(Title, 45)] Rank%r
+	%b[ansi(g, repeat(-, 77))]%r
+
+@@ >> each line, sorted by rank
+	[iter(
+		setr(m, sortby(f.sortby.rank, lattr(%0/member-*))), 
+		[setq(p, extract(%i0, 2, 1, -))]
+		[setq(r, extract(%i0, 3, 1, -))]
+		[setq(t, after(get(%0/%i0),  /))]
+
+		[if(u(f.factionhead?, %qp, %0), >, %b)] 
+		[ljust(name(%qp), 25)] 
+		[strtrunc(%qt,  45)] 
+		[center(%qr, 4)], 
+		, %r
+	)]%r
+
+@@ >> info
+
+	%b[ansi(g, repeat(-, 77))]%r
+
+	[wrap(
+		udefault(%0/information,  No Information Set.), 
+		76, , %b%b
+	)]%r
+
+@@ >> report who can see, if faction dark, has permissions, & facthead/staff
+	[if(
+		and(
+			t(setr(s, get(%0/d_view-permission))), 
+			or(t(match(get(%#/_faction-member), ?!%0, |)), isstaff(%#)), 
+@@			u(f.factionhead?, %#, %0), 
+			or(isstaff(%#), hasflag(%0, dark))
+		), 
+		
+		%b[ansi(g, repeat(-, 77))]%r
+
+		[setq(s, 
+			iter(%qs, 
+				switch(%i0, 
+					faction:*, Faction is [titlestr(rest(%i0, :))], 
+					attribute:*:*, 
+						Attribute '[lcstr(elements(%i0, 2, :))]' 
+						is set to '[lcstr(last(%i0, :))]', 
+					attribute:*, 
+						Attribute '[lcstr(rest(%i0, :))]' exists, 
+					Unknown permission '[lcstr(first(%i0, :))]'
+				), 
+				|, |
+			)
+		)]
+
+		%b View Permissions[if(not(hasflag(%0, dark)), %b[ansi(xh, (if set dark))])]:
+		[itemize(%qs, |)]%r
+	)]
+
+
+@@ >> footer
+
+	[footer([words(%qm)] members)]
+
+--
+
+&f.display.roster afo=[header([name(%0)][if(isstaff(%#), %b%(%0%))])]%r%b [ljust(Name, 25)] [ljust(Title, 45)] Rank%r%b[ansi(g, repeat(-, 77))]%r[iter(setr(m, sortby(f.sortby.rank, lattr(%0/member-*))), [setq(p, extract(%i0, 2, 1, -))][setq(r, extract(%i0, 3, 1, -))][setq(t, after(get(%0/%i0),  /))][if(u(f.factionhead?, %qp, %0), >, %b)] [ljust(name(%qp), 25)] [ljust(%qt,  45)] [center(%qr, 4)], , %r)]%r%b[ansi(g, repeat(-, 77))]%r[wrap(udefault(%0/information,  No Information Set.), 76, , %b%b)]%r[if(and(t(setr(s, get(%0/d_view-permission))), or(t(match(get(%#/_faction-member), ?!%0, |)), isstaff(%#)), or(isstaff(%#), hasflag(%0, dark))), %b[ansi(g, repeat(-, 77))]%r[setq(s, iter(%qs, switch(%i0, faction:*, Faction is [titlestr(rest(%i0, :))], attribute:*:*, Attribute '[lcstr(elements(%i0, 2, :))]' is set to '[lcstr(last(%i0, :))]', attribute:*, Attribute '[lcstr(rest(%i0, :))]' exists, Unknown permission '[lcstr(first(%i0, :))]'), |, |))]%b View Permissions[if(not(hasflag(%0, dark)), %b[ansi(xh, (if set dark))])]: [itemize(%qs, |)]%r)][footer([words(%qm)] members)]
+
+
+--------------------------------------------------------------------------------
+-- Function: Faction Roster ----------------------------------------------------
+
+List of dbrefs on the faction object as members.
+
+0: faction dbref
+
+&f.faction.roster afo=iter(sortby(f.sortby.rank, lattr(%0/member-*)), extract(%i0, 2, 1, -))
+
+--
+
+think u(afo/f.faction.roster, #2722)
+
+
+--------------------------------------------------------------------------------
+-- Function: Sort by Rank ------------------------------------------------------
+
+0: List Of Attributes (probably should be surrounded in a localize())
+
+&f.sortby.rank afo=
+	[setq(0, last(%0, -))]
+	[setq(1, last(%1, -))]
+	[case(1, 
+		gt(%q0, %q1), -1, 
+		eq(%q0, %q1), 0, 
+		lt(%q0, %q1), 1
+	)]
+
+--
+
+&f.sortby.rank afo=[setq(0, last(%0, -))][setq(1, last(%1, -))][case(1, gt(%q0, %q1), -1, eq(%q0, %q1), 0, lt(%q0, %q1), 1)]
+
+--
+
+think sortby(afo/f.sortby.rank, lattr(#2722/member-*))
+
+
+================================================================================
+== +faction/add ================================================================
+
+Add someone to a faction. (Only faction heads and staff may do this, so there's no reason to check "see faction".)
+
+0: <charname>=<faction name>
+
+f: faction dbref
+c: character dbref
+@@ t: title - optional with rank - not used at the moment
+@@ r: rank - optional with title - not used at the moment
+
+a: faction head/staff?
+
+
+&c.faction/add afo=
+	[setq(f, num(trim(first(first(%0, /), =))))]
+	[setq(c, pmatch+(trim(rest(%0, =))))]
+@@	[setq(f, num(trim(rest(%0, =))))]
+@@	[setq(c, pmatch+(trim(first(first(%0, /), =))))]
+@@	[setq(t, extract(%qc, 2, 1, /))]
+@@	[setq(r, extract(%qc, 3, 1, /))]
+
+	[case(0, 
+		t(%qf), 
+		[alert(+faction)] That faction does not exist., 
+
+		u(f.factionhead?, %#, %qf), 
+		[alert(+faction)] You are not a faction head for this faction., 
+
+		t(%qc), 
+		[alert(+faction)] Name specified is not a player., 
+
+		isapproved(%qc, approved), 
+		[alert(+faction)] Player is not approved., 
+
+		not(hasflag(%qf, going)), 
+		[alert(+faction)] Faction has been deleted and is waiting to be cleared from the system., 
+
+		not(match(get(%qc/_faction-member), ?!%qf, |)), 
+		[alert(+faction)] Player is already a member of that faction., 
+
+@@		if(t(%qr), isint(%qr), 1), 
+@@		[alert(+faction)] Rank must be numeric., 
+
+@@ >> okay
+@@ .. add member to function object and to member object
+		[u(f.member.add, %qc, %qf, %qr, %qt)]
+		[alert(+faction)] [name(%qc)] added to faction '[name(%qf)]'.
+	)]
+
+
+--
+
+&c.faction/add afo=[setq(f, num(trim(first(first(%0, /), =))))][setq(c, pmatch+(trim(rest(%0, =))))][case(0, t(%qf), [msg(h, +faction)] That faction does not exist., u(f.factionhead?, %#, %qf), [msg(h, +faction)] You are not a faction head for this faction., t(%qc), [msg(h, +faction)] Name specified is not a player., isapproved(%qc, approved), [msg(h, +faction)] Player is not approved., not(hasflag(%qf, going)), [msg(h, +faction)] Faction has been deleted and is waiting to be cleared from the system., not(match(get(%qc/_faction-member), ?!%qf, |)), [msg(h, +faction)] Player is already a member of that faction., [u(f.member.add, %qc, %qf, %qr, %qt)][msg(h, +faction)] [name(%qc)] added to faction '[name(%qf)]'.)]
+
+
+
+--------------------------------------------------------------------------------
+-- Function: Add Member (to Faction) -------------------------------------------
+
+A simple function to add someone, and details, to a specific faction.  Won't set rank without faction and visa versa.  Won't set on a dbref that's not a faction.
+
+Use this for adding or removing someone whose rank/title is being changed, too, by deleting the attribute and re-adding it.
+
+			member-<#dbref>[-<rank>]: <#dbref>[/<title>]
+
+0: dbref of member
+1: dbref of faction
+2: rank, optional (to erase, pass '-')
+3: title, optional (to erase, pass '-')
+
+qo: original attribute name
+qn: new attribute name
+qc: new attribute contents
+
+
+&f.member.add afo=
+localize(
+
+
+@@ >> qn: Name of the attribute we'll be setting on the Faction Object
+	[setq(o, first(lattr(%1/member-%0*)))]
+	[setq(n, 
+		case(1, 
+@@ .. if rank is '-', remove it
+			strmatch(%2, -), member-%0, 
+@@ .. if other rank passed, override original rank
+			t(%2), member-%0-%2, 
+@@ .. else if an attribute already exists, use that
+			t(%qo), %qo, 
+@@ .. else create a new, empty attribute
+			member-%0
+		)
+	)]
+
+@@ >> qc: Contents of the attribute we'll be setting on the Faction Object
+	[setq(c, 
+		case(1, 
+@@ .. if title is '-', remove it
+			strmatch(%3, -), %0, 
+@@ .. else if a title passed, override original title
+			t(%3), %0/%3, 
+@@ .. else if something exists, use that, else use %0
+			default(%1/%qo, %0)
+		)
+	)]
+
+@@ >> Don't set anything if %1 isn't a Faction Object
+	[case(1, 
+		t(setinter(lcon(%!), %1)), 
+
+@@ .. remove any existing attribute and add the new one, built above
+		[if(t(%qo), set(%1, %qo:))][set(%1, %qn:%qc)]
+@@ .. add Faction to Player Object if they don't already have it
+		[if(
+			not(t(match(get(%0/_faction-member), ?!%1, |))), 
+			set(
+				%0, 
+				_faction-member:
+				[setunion(get(%0/_faction-member), N!%1, |)]
+			)
+		)]
+		
+		, 
+		#-2
+	)]
+)
+
+
+--
+
+&f.member.add afo=localize([setq(o, first(lattr(%1/member-%0*)))][setq(n, case(1, strmatch(%2, -), member-%0, t(%2), member-%0-%2, t(%qo), %qo, member-%0))][setq(c, case(1, strmatch(%3, -), %0, t(%3), %0/%3, default(%1/%qo, %0)))][case(1, t(setinter(lcon(%!), %1)), [if(t(%qo), set(%1, %qo:))][set(%1, %qn:%qc)][if(not(t(match(get(%0/_faction-member), ?!%1, |))), set(%0, _faction-member:[setunion(get(%0/_faction-member), N!%1, |)]))], #-2)])
+
+
+--
+
+think u(afo/f.member.add, pmatch(dog), #2998)
+
+
+================================================================================
+== +faction/remove =============================================================
+
+0: <person>=<faction name>
+
+qf: faction dbref
+qc: dbref - prefer character, but try everything
+
+&c.faction/remove afo=
+	[setq(f, num(trim(before(%0, =))))]
+	[setq(c, pmatch+(trim(rest(%0, =))))]
+	[setq(c, case(1, t(%qc), %qc, locate(%!, trim(rest(%0, =)), *P)))]
+
+	[case(0, 
+
+		isdbref(%qf), [alert(+faction)] Faction name does not exist., 
+
+		isdbref(%qc), [alert(+faction)] Could not find target., 
+
+		u(f.factionhead?, %#, %qf), 
+		[alert(+faction)] You are not a faction head for that faction., 
+
+@@ .. only staff may remove a member who is a faction head
+		or(
+			not(u(f.factionhead?, %qc, %qf)), 
+			isstaff(%#)
+		), 
+		[alert(+faction)] You cannot remove faction heads. Please ask staff., 
+
+		t(lattr(%qf/member-%qc*)), 
+		[alert(+faction)] Target is not part of the faction., 
+
+@@ >> okay
+		[u(f.member.remove, %qc, %qf)]
+		[name(%qc)] has been removed from [name(%qf)].
+	)]
+
+
+--
+
+&c.faction/remove afo=[setq(f, num(trim(rest(%0, =))))][setq(c, pmatch+(trim(before(%0, =))))][setq(c, case(1, t(%qc), %qc, locate(%!, trim(rest(%0, =)), *P)))][case(0, isdbref(%qf), [alert(+faction)] Faction name does not exist., isdbref(%qc), [alert(+faction)] Could not find target., u(f.factionhead?, %#, %qf), [alert(+faction)] You are not a faction head for that faction., or(not(u(f.factionhead?, %qc, %qf)), isstaff(%#)), [alert(+faction)] You cannot remove faction heads. Please ask staff., t(lattr(%qf/member-%qc*)), [alert(+faction)] Target is not part of the faction., [u(f.member.remove, %qc, %qf)][name(%qc)] has been removed from [name(%qf)].)]
+
+
+--------------------------------------------------------------------------------
+-- Function: Remove Member (from Faction) --------------------------------------
+
+A simple function to add someone, and details, to a specific faction.  Won't set on a dbref that's not a faction.
+
+0: dbref of member
+1: dbref of faction
+
+g: grab the matching -- member attribute, then N!#dbref or H!#dbref
+
+&f.member.remove afo=
+	case(1, 
+		t(setinter(lcon(%!), %1)), 
+
+@@ >> Remove from Faction Object
+		[setq(g, lattr(%1/member-%0*))]
+		[set(%1, %qg:)]
+		
+@@ >> Remove Faction to Player Object
+		[setq(g, grab(get(%0/_faction-member), ?!%1, |))]
+		[set(%0, _faction-member:[remove(get(%0/_faction-member), %qg, |)])], 
+		#-2
+	)
+
+--
+
+&f.member.remove afo=case(1, t(setinter(lcon(%!), %1)), [setq(g, lattr(%1/member-%0*))][set(%1, %qg:)][setq(g, grab(get(%0/_faction-member), ?!%1, |))][set(%0, _faction-member:[remove(get(%0/_faction-member), %qg, |)])], #-2)
+
+--
+
+think u(afo/f.member.remove, pmatch(dog), #2998)
+
+
+================================================================================
+== +faction/information ========================================================
+
+Add or change information about the faction. (Only faction heads and staff may do this, so there's no reason to check "see faction".)
+
+0: <faction>=[<text>]
+
+f: faction dbref
+t: text, if any (if none, clear)
+
+
+&c.faction/information afo=
+	[setq(f, num(trim(before(%0, =))))]
+	[setq(t, trim(rest(%0, =)))]
+
+	[case(0, 
+
+		u(f.factionhead?, %#, %qf), 
+		[alert(+faction)] You are not a faction head for this faction., 
+
+		[set(%qf, information:%qt)]
+		The information paragraph for your faction has been recorded.
+
+	)]
+
+--
+
+&c.faction/information afo=[setq(f, num(trim(before(%0, =))))][setq(t, trim(rest(%0, =)))][case(0, u(f.factionhead?, %#, %qf), [alert(+faction)] You are not a faction head for this faction., [set(%qf, information:%qt)]The information paragraph for your faction has been recorded.)]
+
+
+================================================================================
+== +faction/addhead ============================================================
+
+Adds an OOC administrator for the +faction
+
+0: <person>=<faction name>
+
+qf: faction dbref
+qc: character dbref
+
+
+&c.faction/addhead afo=
+	[setq(f, num(trim(rest(%0, =))))]
+	[setq(c, pmatch(trim(before(%0, =))))]
+
+	[case(0, 
+
+		isstaff(%#), [alert(+faction)] Only staff may add faction heads., 
+
+		isdbref(%qf), [alert(+faction)] Faction name does not exist., 
+
+		isdbref(%qc), [alert(+faction)] Could not find player., 
+
+		isapproved(%qc, approved), [alert(+faction)] Player not approved., 
+
+		not(t(match(get(%qc/_faction-member), H!%qf, |))), 
+		[alert(+faction)] Player is already a faction head., 
+
+@@ >> okay
+@@ .. remove N! and add H! -- player doesn't need to be a member first
+		[set(%qc, _faction-member:
+			[setunion(
+				remove(u(%qc/_faction-member), N!%qf, |), 
+				H!%qf, 
+				|
+			)]
+		)]
+		[alert(+faction)] [name(%qc)] has been added to the list of heads for '[name(%qf)]'.
+	)]
+
+--
+
+&c.faction/addhead afo=[setq(f, num(trim(rest(%0, =))))][setq(c, pmatch(trim(before(%0, =))))][case(0, isstaff(%#), [alert(+faction)] Only staff may add faction heads., isdbref(%qf), [alert(+faction)] Faction name does not exist., isdbref(%qc), [alert(+faction)] Could not find player., isapproved(%qc, approved), [alert(+faction)] Player not approved., not(t(match(get(%qc/_faction-member), H!%qf, |))), [alert(+faction)] Player is already a faction head., [set(%qc, _faction-member:[setunion(remove(u(%qc/_faction-member), N!%qf, |), H!%qf, |)])][alert(+faction)] [name(%qc)] has been added to the list of heads for '[name(%qf)]'.)]
+
+
+
+================================================================================
+== +faction/removehead =========================================================
+
+Remove someone from the leadership and OOC administration of a particular faction.
+
+0: <person>=<faction name>
+
+qf: faction dbref
+qc: character dbref
+
+
+&c.faction/removehead afo=
+	[setq(f, num(trim(rest(%0, =))))]
+	[setq(c, pmatch(trim(before(%0, =))))]
+
+	[case(0, 
+
+		isstaff(%#), [alert(+faction)] Only staff may remove faction heads., 
+
+		isdbref(%qf), [alert(+faction)] Faction name does not exist., 
+
+		isdbref(%qc), [alert(+faction)] Could not find player., 
+		
+		t(match(get(%qc/_faction-member), H!%qf, |)), 
+		[alert(+faction)] Player is not a faction head., 
+
+@@ >> okay
+@@ .. remove H! and add N! -- player doesn't need to be a member first
+		[set(%qc, _faction-member:
+			[setunion(
+				remove(u(%qc/_faction-member), H!%qf, |), 
+				N!%qf, 
+				|
+			)]
+		)]
+		[alert(+faction)] [name(%qc)] has been removed from the list of heads for '[name(%qf)]'.
+	)]
+
+--
+
+&c.faction/removehead afo=[setq(f, num(trim(rest(%0, =))))][setq(c, pmatch(trim(before(%0, =))))][case(0, isstaff(%#), [alert(+faction)] Only staff may remove faction heads., isdbref(%qf), [alert(+faction)] Faction name does not exist., isdbref(%qc), [alert(+faction)] Could not find player., t(match(get(%qc/_faction-member), H!%qf, |)), [alert(+faction)] Player is not a faction head., [set(%qc, _faction-member:[setunion(remove(u(%qc/_faction-member), H!%qf, |), N!%qf, |)])][alert(+faction)] [name(%qc)] has been removed from the list of heads for '[name(%qf)]'.)]
+
+
+================================================================================
+== +faction/[!]dark ============================================================
+
+Set a faction dark, or unset its darkness.
+
+0: <faction name>
+qf: faction dbref
+
+
+&c.faction/dark afo=
+	[setq(f, num(trim(%0)))]
+
+	[case(0, 
+		isstaff(%#), [alert(+faction)] Staff only., 
+		isdbref(%qf), [alert(+faction)] Faction not found., 
+
+		[set(%qf, dark)]
+		Faction '[name(%qf)]' is set dark and may now only be seen by staff and members.
+	)]
+
+
+
+&c.faction/!dark afo=
+	[setq(f, num(trim(%0)))]
+
+	[case(0, 
+		isstaff(%#), [alert(+faction)] Staff only., 
+		isdbref(%qf), [alert(+faction)] Faction not found., 
+
+		[set(%qf, !dark)]
+		Faction '[name(%qf)]' is set un-dark and may be seen by all players.
+	)]
+
+--
+
+&c.faction/dark afo=[setq(f, num(trim(%0)))][case(0, isstaff(%#), [alert(+faction)] Staff only., isdbref(%qf), [alert(+faction)] Faction not found., [set(%qf, dark)]Faction '[name(%qf)]' is set dark and may now only be seen by staff and members.)]
+
+--
+
+&c.faction/!dark afo=[setq(f, num(trim(%0)))][case(0, isstaff(%#), [alert(+faction)] Staff only., isdbref(%qf), [alert(+faction)] Faction not found., [set(%qf, !dark)]Faction '[name(%qf)]' is set un-dark and may be seen by all players.)]
+
+
+================================================================================
+== +faction/who ================================================================
+
+aka +fwho
+
+0: optional faction name
+
+qf: faction dbref
+ql: list of visible people in that faction
+
+
+&c.fwho afo=$+fwho*:@pemit %#=[u(c.faction/who, trim(%0))]
+
+&c.faction/who afo=
+@@ >> find which faction you're a part of - first one if multiple
+	[setq(f, 
+		ifelse(
+			strmatch(%0, ), 
+			before(after(u(%#/_faction-member), !), |), 
+			locate(me, %0, i)
+		)
+	)]
+
+@@ >> list of visible targets
+@@ .. could be a filter(), feeling lazy
+	[setq(l, 
+		iter(
+			lattr(%qf/member-*), 
+			[setq(p, extract(%i0, 2, 1, -))]
+			[if(
+				and(
+					hasflag(%qp, connected), 
+					or(orflags(%qp, !D), isstaff(%#))
+				), 
+				%qp
+			)]
+		)
+	)]
+
+	[case(0, 
+		isdbref(%qf), [alert(+faction)] No faction by that name., 
+		u(fil.see-faction, %qf, %#), [alert(+faction)] You cannot see that faction., 
+		u(f.display.list-who, %qf, %ql)
+	)]
+
+--
+
+&c.faction/who afo=[setq(f, ifelse(strmatch(%0, ), before(after(u(%#/_faction-member), !), |), locate(me, %0, i)))][setq(l, iter(lattr(%qf/member-*), [setq(p, extract(%i0, 2, 1, -))][if(and(hasflag(%qp, connected), or(orflags(%qp, !D), isstaff(%#))), %qp)]))][case(0, isdbref(%qf), [alert(+faction)] No faction by that name., u(fil.see-faction, %qf, %#), [alert(+faction)] You cannot see that faction., u(f.display.list-who, %qf, %ql))]
+
+&c.fwho afo=$+fwho*:@pemit %#=[u(c.faction/who, trim(%0))]
+
+
+================================================================================
+== +faction/whoall =============================================================
+
+aka +fwho/all
+
+&c.fwho afo=$+fwho*:@pemit %#=[switch(%0, /a*, u(c.faction/whoall, trim(rest(%0))), u(c.faction/who, trim(%0)))]
+
+&c.faction/whoall afo=
+@@ >> find which faction you're a part of - first one if multiple
+	[setq(f, 
+		ifelse(
+			strmatch(%0, ), 
+			before(after(u(%#/_faction-member), !), |), 
+			locate(me, %0, i)
+		)
+	)]
+
+@@ >> list of visible targets
+@@ .. could be a filter(), feeling lazy
+	[setq(l, 
+		iter(
+			lattr(%qf/member-*), 
+			extract(%i0, 2, 1, -)
+		)
+	)]
+
+	[case(0, 
+		isdbref(%qf), [alert(+faction)] No faction by that name., 
+		u(fil.see-faction, %qf, %#), [alert(+faction)] You cannot see that faction., 
+		u(f.display.list-who, %qf, %ql)
+	)]
+
+--
+
+&c.faction/whoall afo=[setq(f, ifelse(strmatch(%0, ), before(after(u(%#/_faction-member), !), |), locate(me, %0, i)))][setq(l, iter(lattr(%qf/member-*), extract(%i0, 2, 1, -)))][case(0, isdbref(%qf), [alert(+faction)] No faction by that name., u(fil.see-faction, %qf, %#), [alert(+faction)] You cannot see that faction., u(f.display.list-who, %qf, %ql))]
+
+
+
+--------------------------------------------------------------------------------
+-- Display: List Who -----------------------------------------------------------
+
+The +fwho display.
+
+0: dbref of faction
+1: list of people to display
+
+&f.display.list-who afo=
+
+	[list(%1, 
+@@ .. because we're using list(), on the first line throw the header
+
+		[if(eq(#@, 1), 
+			[header(+faction/who: [name(%0)])]%r
+			%b [ljust(Name, 14)] [ljust(Alias, 5)] 
+			[ljust(Sex, 3)] [ljust(Idle, 4)] Location%r
+			%b[ansi(g, repeat(-, 77))]%r
+		)]
+
+@@ .. one line
+		[if(u(f.factionhead?, %i0, %0), >, %b)] 
+
+		[ljust(name(%i0), 14)] 
+		[ljust(u(%i0/alias), 5)] 
+		[ljust(lcstr(strtrunc(u(%i0/sex), 1)), 3)] 
+		[ljust(singletime(idle(%i0)), 4)] 
+		[case(1, 
+			not(hasflag(%i0, connected)), 
+			Not Connected, 
+
+			strmatch(objeval(%#, loc(%i0)), #-1),
+			Unfindable,
+
+			or(orflags(%i0, !D), isstaff(%#)), 
+			strtrunc(name(loc(%i0)), 45), 
+
+@@ .. report 'not connected' for people who are dark, except to staff
+			Not Connected
+		)]
+	)]
+
+	[if(not(words(%1)), [header(+faction/who: [name(%0)])]%r%b No members connected.%r)]
+	[footer()]
+
+--
+
+&f.display.list-who afo=[list(%1, [if(eq(#@, 1), [header(+faction/who: [name(%0)])]%r%b [ljust(Name, 14)] [ljust(Alias, 5)] [ljust(Sex, 3)] [ljust(Idle, 4)] Location%r%b[ansi(g, repeat(-, 77))]%r)][if(u(f.factionhead?, %i0, %0), >, %b)] [ljust(name(%i0), 14)] [ljust(u(%i0/alias), 5)] [ljust(lcstr(strtrunc(u(%i0/sex), 1)), 3)] [ljust(singletime(idle(%i0)), 4)] [case(1, not(hasflag(%i0, connected)), Not Connected, strmatch(objeval(%#, loc(%i0)), #-1),Unfindable,or(orflags(%i0, !D), isstaff(%#)), strtrunc(name(loc(%i0)), 45), Not Connected)])][if(not(words(%1)), [header(+faction/who: [name(%0)])]%r%b No members connected.%r)][footer()]
+
+
+================================================================================
+== +faction/rank ===============================================================
+
+The original version of this function also listed rank as a kind of abbreviated +fwho, but we have '+faction <name>' doing that already, so I'm skipping it.
+
+0: <player>=<faction>[/<newrank>]
+
+qf: faction dbref
+qc: character dbref
+qr: rank to be set
+qo: old rank (for reporting purposes)
+
+&c.faction/rank afo=
+	[setq(c, pmatch(trim(before(%0, =))))]
+	[setq(f, num(trim(before(rest(%0, =), /))))]
+	[setq(r, if(t(setr(r, trim(rest(%0, /)))), %qr, -))]
+
+	[case(0, 
+		isdbref(%qf), [alert(+faction)] Faction not found., 
+
+		isdbref(%qc), [alert(+faction)] Player not found., 
+
+		u(f.factionhead?, %#, %qf), 
+		[alert(+faction)] You are not a faction head for this faction., 
+
+		t(match(get(%qc/_faction-member), ?!%qf, |)), 
+		[alert(+faction)] Player is not a member of that faction., 
+
+		or(and(isint(%qr), gte(%qr, 0)), strmatch(%qr, -)), 
+		[alert(+faction)] Rank must be positive numeric or cleared., 
+
+@@ >> Okay
+		[setq(o, extract(first(lattr(%qf/member-%qc*)), 3, 1, -))]
+		[u(f.member.add, %qc, %qf, %qr)]
+		[alert(+faction)] Changed [name(%qc)]'s rank from '[if(t(%qo), %qo, <none>)]' to '[if(comp(%qr, -), %qr, <none>)]'
+	)]
+
+--
+
+&c.faction/rank afo=[setq(c, pmatch(trim(before(%0, =))))][setq(f, num(trim(before(rest(%0, =), /))))][setq(r, if(t(setr(r, trim(rest(%0, /)))), %qr, -))][case(0, isdbref(%qf), [alert(+faction)] Faction not found., isdbref(%qc), [alert(+faction)] Player not found., u(f.factionhead?, %#, %qf), [alert(+faction)] You are not a faction head for this faction., t(match(get(%qc/_faction-member), ?!%qf, |)), [alert(+faction)] Player is not a member of that faction., or(and(isint(%qr), gte(%qr, 0)), strmatch(%qr, -)), [alert(+faction)] Rank must be positive numeric or cleared., [setq(o, extract(first(lattr(%qf/member-%qc*)), 3, 1, -))][u(f.member.add, %qc, %qf, %qr)][alert(+faction)] Changed [name(%qc)]'s rank from '[if(t(%qo), %qo, <none>)]' to '[if(comp(%qr, -), %qr, <none>)]')]
+
+
+================================================================================
+== +faction/title ==============================================================
+
++faction/title <faction>=<player>/<newtitle>
+
+0: <player>=<faction>[/<newtitle>]
+
+qf: faction dbref
+qc: character dbref
+qt: title to be set
+qo: old title (for reporting purposes)
+
+&c.faction/title afo=
+	[setq(c, pmatch(trim(before(%0, =))))]
+	[setq(f, num(trim(before(rest(%0, =), /))))]
+	[setq(t, if(t(setr(t, trim(rest(%0, /)))), %qt, -))]
+
+	[case(0, 
+		isdbref(%qf), [alert(+faction)] Faction not found., 
+
+		isdbref(%qc), [alert(+faction)] Player not found., 
+
+		u(f.factionhead?, %#, %qf), 
+		[alert(+faction)] You are not a faction head for this faction., 
+
+		t(match(get(%qc/_faction-member), ?!%qf, |)), 
+		[alert(+faction)] Player is not a member of that faction., 
+
+@@ >> Okay
+		[setq(o, rest(get(%qf/[first(lattr(%qf/member-%qc*))]), /))]
+		[u(f.member.add, %qc, %qf, , %qt)]
+		[alert(+faction)] Changed [name(%qc)]'s title from '[if(t(%qo), %qo, <none>)]' to '[if(t(comp(%qt, -)), %qt, <none>)]'
+	)]
+
+--
+
+&c.faction/title afo=[setq(c, pmatch(trim(before(%0, =))))][setq(f, num(trim(before(rest(%0, =), /))))][setq(t, if(t(setr(t, trim(rest(%0, /)))), %qt, -))][case(0, isdbref(%qf), [alert(+faction)] Faction not found., isdbref(%qc), [alert(+faction)] Player not found., u(f.factionhead?, %#, %qf), [alert(+faction)] You are not a faction head for this faction., t(match(get(%qc/_faction-member), ?!%qf, |)), [alert(+faction)] Player is not a member of that faction., [setq(o, rest(get(%qf/[first(lattr(%qf/member-%qc*))]), /))][u(f.member.add, %qc, %qf, , %qt)][alert(+faction)] Changed [name(%qc)]'s title from '[if(t(%qo), %qo, <none>)]' to '[if(t(comp(%qt, -)), %qt, <none>)]')]
+
+
+================================================================================
+== +faction/type ===============================================================
+
+What type of faction is this? Added specficially for Motley/Pack/etc. notifiers.  Would it have been better if I made this "tags"?  Time may tell.
+
+0: <faction>[=<type>]
+
+qf: faction dbref
+qt: type
+qo: old type, if any
+
+&c.faction/type afo=
+	[setq(f, num(trim(before(%0, =))))]
+	[setq(t, trim(after(%0, =)))]
+
+	[case(0, 
+		isdbref(%qf), [alert(+faction)] Faction not found., 
+
+		isstaff(%#), [alert(+faction)] Only staff may set the faction type., 
+
+@@ >> Okay
+
+		[setq(o, get(%qf/d_type))]
+		[set(%qf, d_type:%qt)]
+		[alert(+faction)] Changed [name(%qf)] type from '[if(t(%qo), %qo, <none>)]' to '[if(t(t(%qt)), %qt, <none>)]'
+	)]
+
+--
+
+&c.faction/type afo=[setq(f, num(trim(before(%0, =))))][setq(t, trim(after(%0, =)))][case(0, isdbref(%qf), [alert(+faction)] Faction not found., isstaff(%#), [alert(+faction)] Only staff may set the faction type., [setq(o, get(%qf/d_type))][set(%qf, d_type:%qt)][alert(+faction)] Changed [name(%qf)] type from '[if(t(%qo), %qo, <none>)]' to '[if(t(%qt), %qt, <none>)]')]
+
+
+
+================================================================================
+== FUNCTIONS ===================================================================
+
+They'll all make it down here eventually.
+
+--------------------------------------------------------------------------------
+-- Function: Is Faction? -------------------------------------------------------
+
+A user-defined function.
+
+0: dbref/name
+1: faction name (partial match) or dbref
+
+returns: 
+
+&f.isfaction? afo=
+	if(isstaff(%@), 
+		t(match(get([pmatch(%0)]/_faction-member), ?![locate(%!, %1, i)], |)), 
+		#-1 Staff Only
+	)
+
+--
+
+&f.isfaction? afo=if(isstaff(%@), t(match(get([pmatch(%0)]/_faction-member), ?![locate(%!, %1, i)], |)), #-1 Staff Only)
+
+
+--------------------------------------------------------------------------------
+-- Filter: See Faction ---------------------------------------------------------
+
+Can see a faction if one of the following:
+	The faction is not dark
+	Player is Staff
+	Player belongs to the faction
+
+Called with:
+	filter(fil.see-faction, <dbref list>, , , %#)
+	u(fil.see-faction, <dbref>, %#)
+
+
+&fil.see-faction afo=or(
+		orflags(%0, !D), 
+		isstaff(%1), 
+		t(match(get(%1/_faction-member), *%0, |)), 
+		u(f.check-view-permissions, %0, %1)
+	)
+
+--
+
+&fil.see-faction afo=or(orflags(%0, !D), isstaff(%1), t(match(get(%1/_faction-member), *%0, |)), u(f.check-view-permissions, %0, %1))
+
+
+--------------------------------------------------------------------------------
+-- Function: Check View Permissions --------------------------------------------
+
+(Known as the switch /permission)
+
+If the person passes this test, they can see the faction even if it's dark.
+
+Looks for: &view-permission: <list>|<of>|<locks>
+	faction:<faction dbref>
+	attribute:<attr name>[:<value>]
+
+"Check View Permissions" must NOT evaluate code.
+
+0: dbref of faction object
+1: dbref of player
+returns: 1 or 0
+
+--
+
+&f.check-view-permissions afo=
+	lor(
+		iter(get(%0/d_view-permission), 
+			switch(%i0, 
+
+@@ .. in faction?
+				faction:*, 
+				t(match(
+					get(%1/_faction-member), 
+					?![locate(%!, rest(%i0, :), i)], 
+					|
+				)), 
+
+@@ .. attribute matches? (remember not to evaluate)
+				attribute:*:*, 
+				t(match(get(%1/[elements(%i0, 2, :)]), last(%i0, :))), 
+
+@@ .. attribute exists?
+				attribute:*, 
+				hasattr(%1, rest(%i0, :)), 
+
+@@ .. else: permission not found: 0
+				0
+			), 
+			|
+		)
+	)
+
+--
+
+&f.check-view-permissions afo=lor(iter(get(%0/d_view-permission), switch(%i0, faction:*, t(match(get(%1/_faction-member), ?![locate(%!, rest(%i0, :), i)], |)), attribute:*:*, t(match(get(%1/[elements(%i0, 2, :)]), last(%i0, :))), attribute:*, hasattr(%1, rest(%i0, :)), 0), |))
+
+--
+
+&d_view-permission #2849=faction:changeling
+
+&d_view-permission #2849=attribute:_template:changeling
+
+&d_view-permission #2849=attribute:_template
+
+--
+
+@@ a changeling
+think u(#2832/fil.see-faction, #2849, pmatch(mae))	
+
+@@ a werewolf
+think u(#2832/fil.see-faction, #2849, pmatch(Saul))	
+
+
+--------------------------------------------------------------------------------
+-- Function: Faction Head? -----------------------------------------------------
+
+Is this person a faction head or have the proper staff credentials?
+
+0: target dbref
+1: faction dbref
+returns: 1 if yes, 0 if no or error
+
+&f.factionhead? afo=or(isstaff(%0), t(match(get(%0/_faction-member), H!%1, |)))
+
+
+--------------------------------------------------------------------------------
+-- Function: Faction Name ------------------------------------------------------
+
+Pretty up the faction name.
+
+0: faction dbref
+
+&f.name.faction afo=
+	[name(%0)]
+	[if(hasattr(%0, d_type), %b([lcstr(get(%0/d_type))]))]
+	[if(hasflag(%0, going), %b<going>)]
+
+--
+
+&f.name.faction afo=[name(%0)][if(hasattr(%0, d_type), %b([lcstr(get(%0/d_type))]))][if(hasflag(%0, going), %b<going>)]
+
+
+--------------------------------------------------------------------------------
+-- Function: Sort Factions By Type ---------------------------------------------
+
+0/1: Dbref of faction
+Returns: List 
+Usage:
+	sortby(f.sortby.factions.type, <list of factions>)
+
+&f.sortby.factions.type afo=comp(get(%0/d_type), get(%1/d_type))
+
+--
+
+think sortby(afo/f.sortby.factions.type, lcon(afo))
+
+
+--------------------------------------------------------------------------------
+-- Function: Player's Factions of Type -----------------------------------------
+
+I'm not using filter() here for no particular reason than saving an attribute.
+
+0: player dbref
+1: type name (full)
+returns: list of dbrefs of factions the player belongs to and match %1
+
+
+&f.player.factions-of-type afo=
+	setunion(
+		iter(
+			iter(get(%0/_faction-member), rest(%i0, !), |), 
+			if(strmatch(get(%i0/d_type), %1), %i0)
+		), 
+	)
+
+--
+
+&f.player.factions-of-type afo=setunion(iter(iter(get(%0/_faction-member), rest(%i0, !), |), if(strmatch(get(%i0/d_type), %1), %i0)), )
+
+--
+
+think [name(u(afo/f.player.factions-of-type, pmatch(kottyn), pack))]
+
+
+--------------------------------------------------------------------------------
+-- Function: Player's Factions of Type: Names ----------------------------------
+
+This is slightly different than above because +sheet is returning '#-1 not found' for name(<null>).  Imagine that.
+
+0: player dbref
+1: type name (full)
+returns: list - of - names, or <null> if no match
+
+ql: list
+
+&f.player.factions-of-type.names afo=localize([setq(l, u(f.player.factions-of-type, %0, %1))][if(t(%ql), iter(%ql, name(%ql), , %b-%b))])
+
+--
+
+think [u(afo/f.player.factions-of-type.names, pmatch(kottyn), motley)]
+think [u(afo/f.player.factions-of-type.names, pmatch(kottyn), pack)]
+
+
+
+=-=--=-==-=-=-
+
+RANDOM THOUGHT:
+
+
+
+
+think [setq(p, pmatch(kottyn))][setunion(iter(iter(get(%qp/_faction-member), rest(%i0, !), |), get(%i0/d_type)), )]
+
+
+
+
+================================================================================
+== +faction/mail ===============================================================
+
+Mails everyone in a faction.
+
+Check dark faction: u(fil.see-faction, %qf, %#)
+Send-To List: u(f.faction.roster, %qf)
+
+0: <faction name>=<subject>
+
+qf: faction name
+qs: subject
+
+
+&c.faction/mail afo=
+	[setq(f, num(trim(first(%0, =))))]
+	[setq(s, trim(rest(%0, =)))]
+	[case(0, 
+		and(isdbref(%qf), u(fil.see-faction, %qf, %#)), 
+		[alert(+faction)] Faction could not be found., 
+
+		t(%qs), [alert(+faction)] Subject was empty., 
+
+@@ >> ok -- trigger
+		trigger(%!/tr.mail.faction, %#, %qf, %qs)
+	)]
+
+--
+
+&c.faction/mail afo=[setq(f, num(trim(first(%0, =))))][setq(s, trim(rest(%0, =)))][case(0, and(isdbref(%qf), u(fil.see-faction, %qf, %#)), [alert(+faction)] Faction could not be found., t(%qs), [alert(+faction)] Subject was empty., trigger(%!/tr.mail.faction, %#, %qf, %qs))]
+
+
+--------------------------------------------------------------------------------
+-- Trigger: +faction/mail ------------------------------------------------------
+
+Starts the mail.
+
+0: dbref of sender
+1: dbref of faction
+2: subject of message
+
+ql: list of targets
+
+&tr.mail.faction afo=
+	@eval [setq(l, iter(lattr(%1/member-*), extract(%i0, 2, 1, -)))]; 
+	@force %0=
+	{
+		@mail %ql=[name(%1)]: %2; 
+		think [alert(+faction)] Continue writing your faction mail as you normally would with @mail.
+	}
+
+
+--
+
+&tr.mail.faction afo=@eval [setq(l, iter(lattr(%1/member-*), extract(%i0, 2, 1, -)))]; @force %0={@mail %ql=[name(%1)]: %2; think [alert(+faction)] Continue writing your faction mail as you normally would with @mail.}
+
+
+================================================================================
+== +faction/fix ================================================================
+
+If someone was deleted from the server but never removed from the faction, fix will remove them from the list.
+
+0: faction name
+
+qf: faction dbref
+qb: bad dbrefs
+qc: character being investigated
+
+&c.faction/fix afo=
+	[setq(f, num(%0))]
+	[case(0, 
+		isdbref(%qf), [alert(+faction)] Faction could not be found., 
+
+		u(f.factionhead?, %#, %qf), 
+		[alert(+faction)] You are not a faction head for this faction., 
+
+@@ >> ok 
+@@ .. store bad dbrefs -- also could have used filter() here, also lazy
+		[setq(b, 
+			iter(
+				lattr(%qf/member-*), 
+				[setq(c, extract(%i0, 2, 1, -))]
+@@ .. .. when bad, return dbref and unset 'member-...'
+				[if(
+					not(match(get(%qc/_faction-member), ?!%qf, |)), 
+					%qc
+					[set(%qf, %i0:)]
+				)]
+			)
+		)]
+@@ .. report
+		[header(+faction/fix [name(%qf)])]%r
+		[if(t(%qb), 
+			iter(%qb, %b [name(%i0)] (%i0): Removed, , %r), 
+			%b All good! No mismatched members.
+		)]%r
+		[footer([words(%qb) fixed])]
+	)]
+
+--
+
+&c.faction/fix afo=[setq(f, num(%0))][case(0, isdbref(%qf), [alert(+faction)] Faction could not be found., u(f.factionhead?, %#, %qf), [alert(+faction)] You are not a faction head for this faction., [setq(b, iter(lattr(%qf/member-*), [setq(c, extract(%i0, 2, 1, -))][if(not(match(get(%qc/_faction-member), ?!%qf, |)), %qc[set(%qf, %i0:)])]))][header(+faction/fix [name(%qf)])]%r[if(t(%qb), iter(%qb, %b [name(%i0)] (%i0): Removed, , %r), %b All good! No mismatched members.)]%r[footer([words(%qb) fixed])])]
+
+
+
+================================================================================
+== +faction/permission =========================================================
+
+Sets the View Lock for a specific channel, allowing someone not part of a dark faction to see it.
+
+	+faction/permission <faction>=<list|of|stuff>
+
+--
+
+qf: faction
+qp: permissions
+
+qd: faction's dbref
+qs: stuff to set for permissions (filtered)
+qe: error permissions
+
+qt: 'try' to set, check for errors
+
+--
+
+&c.faction/permission afo=
+	[setq(f, first(%0, =))]
+	[setq(p, rest(%0, =))]
+	[setq(s, filter(fil.view-permissions, %qp, |, |))]
+	[setq(e, setdiff(%qp, %qs, |, |))]
+
+	[case(0, 
+		isstaff(%#), 
+		[alert(+faction/permission)] Staff Only, 
+
+		t(setr(d, locate(%!, %qf, i))), 
+		[alert(+faction/permission)] Faction not found, 
+
+@@ %qp set, but %qs not: error.  (otherwise, clear is ok)
+		or(t(words(%qs)), not(words(%qp))), 
+		[alert(+faction/permission)] No valid permissions entered, 
+
+@@ valid, but report errors anyway
+		[setq(t, set(%qd, d_view-permission:%qs))]
+		[alert(+faction/permission)] [name(%qd)]: 
+		[if(t(%qt), ansi(r, Could Not Set), Set: %qs)]
+		[if(t(%qe), 
+			%, with some errors: %r
+			[iter(%qe, %b %b invalid: %i0, |, %r)]
+		)]
+	)]
+
+--
+
+&c.faction/permission afo=[setq(f, first(%0, =))][setq(p, rest(%0, =))][setq(s, filter(fil.view-permissions, %qp, |, |))][setq(e, setdiff(%qp, %qs, |, |))][case(0, isstaff(%#), [alert(+faction/permission)] Staff Only, t(setr(d, locate(%!, %qf, i))), [alert(+faction/permission)] Faction not found, or(t(words(%qs)), not(words(%qp))), [alert(+faction/permission)] No valid permissions entered, [setq(t, set(%qd, d_view-permission:%qs))][alert(+faction/permission)] [name(%qd)]: [if(t(%qt), ansi(r, Could Not Set), Set: %qs)][if(t(%qe), %, with some errors: %r[iter(%qe, %b %b invalid: %i0, |, %r)])])]
+
+
+--------------------------------------------------------------------------------
+-- FILTER: View Permission -----------------------------------------------------
+
+Check for basic validity on the faction view permissions.
+
+&fil.view-permissions afo=case(first(%0, :), faction, t(strlen(rest(%0, :))), attribute, valid(attrname, elements(%0, 2, :)))
+
+--
+
+think filter(afo/fil.view-permissions, faction:yes|faction|attribute:this thing|attribute:|attribute:valid|attribute:also_valid:yay, |, |)
+
+
+================================================================================
+== Help: Faction ===============================================================
+
+--------------------------------------------------------------------------------
+-- Raw Text --------------------------------------------------------------------
+
+Including some not-yet-included bits.
+
+HELP_FACTION:
+
+Character Groups & Factions
+
+-------------------------
+
+The +faction commands allows staff and characters who are set up as faction heads to modify and maintain factions.  You may use +faction and +factions interchangably for all commands.
+
+Factions may be set "dark" by staff, hidden to those not in that faction.
+
+GENERAL FACTION COMMANDS
+
++faction
++faction/list 
+	Displays a list of all factions.
+
++faction <faction name> 
+	Lists information about the given faction. Repeated uses may appear
+	to list the faction in different orders, but members are always
+	listed by rank. Players marked with a > are faction heads.
+
++fwho[/all] <faction name>
+	Lists people on that faction who are online, or all members of that
+	faction. Players marked with a > are faction heads.
+	This is aliased to +faction/who and +faction/whoall
+
++faction/mail <faction name>=<subject> 
+	@mail a faction. It just sets up an @mail with the 'To' list filled
+	in. If @mail complains about the list, the faction head should use 
+	'+faction/fix' for that faction. 
+
+-------------------------
+
+FACTION HEAD COMMANDS
+
+If a faction does not have a faction head, these commands may be used by staff.
+
++faction/information <faction name>[=<text>]
+	Allows you to set a short bit of information for the +roster display.
+	<text> should contain this information.
+
++faction/add <character name>=<faction name>
+	Allows a faction head to add a person to the +roster list with the
+	option of giving the person a rank.
+
++faction/remove <character name>=<faction name>
+	Allows a faction head to remove a person from the +roster list.
+
+-------------------------
+
+MORE FACTION HEAD COMMANDS
+
++faction/rank <character name>=<faction name>[/<rank>]
+	The second use of +faction/rank. Changes (or gives) the rank of
+	<rank> to the character. If <rank> is not passed, it is cleared.
+
++faction/title <character name>=<faction name>[/<title>]
+	Like the second use of '+faction/rank', allows the change of any
+	character's public title/position information for that faction.
+	If <title> is not passed, it is cleared.
+
++faction/fix <faction name> 
+	Removes all junk entries and non-members from the roster. Use if
+	+faction/mail becomes broken for your faction.
+
+-------------------------
+
+CREDITS
+
+The faction system was ported from AetherMUX, many long years ago. It was probably originally coded by Seth and updated by several people as needed.
+
+-------------------------
+
+Staff Faction Commands
+
+-------------------------
+
+These commands are those staff may use to maintain +factions.
+
+Factions must be:
+	- Notable, IC
+	- Game Relevant
+	- Be a motley, pack, agency, or contain at least four people
+
++faction/create <faction name>[=<faction head>]
+	Allows a wizard to add a new faction to the database. Make sure
+	<faction name> is the full name of the faction as you would want
+	it displayed. The optional <faction head> is the name of the first
+	faction head for that faction.
+
++faction/destroy <faction name>
+	Removes the faction from the game. Run '+faction/fix' first.
+
++faction/undestroy <faction name>
+	Saves that faction from distruction.
+
++faction/addhead <faction name>=<character name> 
+	Allows one to add a faction head to the faction. 
+
++faction/removehead <faction name>=<character name> 
+	Allows one to remove a faction head. A faction with no faction heads
+	must be maintained by staff.
+
++faction/[!]dark <faction name>
+	Sets a faction dark (hidden) or sets it undark (public)
+
++faction/type <faction name>\[=<type>]
+	Sets or removes a type for that faction. Useful for classifying, use 
+	sparingly.
+
++faction/permission <faction name>[=<list|of|items>]
+	Determines whether or not someone is allowed to see a dark faction without belonging to it.  Items are:
+	
+	faction:<faction name>             - viewer belongs to <faction name>
+	attribute:<attribute_name>         - viewer has <attribute_name>
+	attribute:<attribute_name>:<value> - attribute is a specific value
+
+isfaction?(<player>, <faction name>)
+	Returns '1' (true) if <player> belongs to <faction name>.
+
+(A step-by-step guide to creating factions is on the next page.)
+
+See Also: +help factions
+
+-------------------------
+
+CREATING FACTIONS
+
++faction/create <faction name>=<faction head>
+	Include "faction head" wherever possible as they are ooc
+	administrators.
+
++faction/info <faction>=<useful blurb>
+
++faction/add <character name>=<faction name>
+	Faction heads can do these, too.
+
+Optional:
+	+faction/type <faction name>=<type name>
+	Use this only for "pack" and "motley".
+
+	+faction/dark <faction name>
+	Use this only if faction is a secret group.
+
+Notes:
+* Factions are objects, so you can change the faction name by
+  changing the object name.
+* Dark factions are dark objects.
+* Faction Heads are OOC adminitrators of faction objects.
+
+
+--------------------------------------------------------------------------------
+-- Compiled File ---------------------------------------------------------------
+
+Only includes installed commands.
+
+&help~stat_topics~+factions #96=Character Groups & Factions~The +faction commands allows staff and characters who are set up as faction heads to modify and maintain factions.  You may use +faction and +factions interchangably for all commands.%r%rFactions may be set "dark" by staff, hidden to those not in that faction.%r%r[ansi(h, GENERAL FACTION COMMANDS)]%r%r+faction%r+faction/list %r%b %b Displays a list of all factions.%r%r+faction <faction name> %r%b %b Lists information about the given faction. Repeated uses may appear%r%b %b to list the faction in different orders, but members are always%r%b %b listed by rank. Players marked with a > are faction heads.%r%r+fwho\[/all\] <faction name>%r%b %b Lists people on that faction who are online, or all members of that%r%b %b faction. Players marked with a > are faction heads.%r%b %b This is aliased to +faction/who and +faction/whoall%r%r+faction/mail <faction name>=<subject> %r%b %b @mail a faction. It just sets up an @mail with the 'To' list filled%r%b %b in. If @mail complains about the list, the faction head should use %r%b %b '+faction/fix' for that faction.~[ansi(h, FACTION HEAD COMMANDS)]%r%rIf a faction does not have a faction head, these commands may be used by staff.%r%r+faction/information <faction name>\[=<text>\]%r%b %b Allows you to set a short bit of information for the +roster display.%r%b %b <text> should contain this information.%r%r+faction/add <character name>=<faction name>%r%b %b Allows a faction head to add a person to the +roster list with the%r%b %b option of giving the person a rank.%r%r+faction/remove <character name>=<faction name>%r%b %b Allows a faction head to remove a person from the +roster list.~[ansi(h, MORE FACTION HEAD COMMANDS)]%r%r+faction/rank <character name>=<faction name>\[/<rank>\]%r%b %b The second use of +faction/rank. Changes (or gives) the rank of%r%b %b <rank> to the character. If <rank> is not passed, it is cleared.%r%r+faction/title <character name>=<faction name>\[/<title>\]%r%b %b Like the second use of '+faction/rank', allows the change of any%r%b %b character's public title/position information for that faction.%r%b %b If <title> is not passed, it is cleared.%r%r+faction/fix <faction name> %r%b %b Removes all junk entries and non-members from the roster. Use if%r%b %b +faction/mail becomes broken for your faction.~[ansi(h, CREDITS)]%r%rThe faction system was ported from AetherMUX, many long years ago.  It was probably originally coded by Seth (as was the rest of Aether) and updated by several people as needed.
+
+
+&shelp~staff_commands~+faction #102=Staff Faction Commands~These commands are those staff may use to maintain +factions.%r%rFactions must at the very least be:%r%b %b - Notable, IC%r%b %b - Game Relevant%r%b %b - Be a motley, pack, agency, or contain at least three people%r%r+faction/create <faction name>\[=<faction head>\]%r%b %b Allows a wizard to add a new faction to the database. Make sure%r%b %b <faction name> is the full name of the faction as you would want%r%b %b it displayed. The optional <faction head> is the name of the first%r%b %b faction head for that faction.%r%r+faction/destroy <faction name>%r%b %b Removes the faction from the game. Run '+faction/fix' first.%r%r+faction/undestroy <faction name>%r%b %b Saves that faction from distruction.%r%r+faction/addhead <faction name>=<character name>%r%b %b Allows one to add a faction head to the faction.%r%r+faction/removehead <faction name>=<character name>%r%b %b Allows one to remove a faction head. A faction with no faction heads%r%b %b must be maintained by staff.%r%r+faction/\[!\]dark <faction name>%r%b %b Sets a faction dark (hidden) or sets it undark (public)%r%r+faction/type <faction name>\\[=<type>\]%r%b %b Sets or removes a type for that faction. Useful for classifying, use%r%b %b sparingly.%r%r+faction/permission <faction name>%[=<list|of|items>%]%r%b %b Determines whether or not someone is allowed to see a dark faction%r%b %b without belonging to it.  Items are:%r%r%b %b faction:<faction name> %b %b %b %b %b %b - viewer belongs to <faction name>%r%b %b attribute:<attribute_name> %b %b %b %b - viewer has <attribute_name>%r%b %b attribute:<attribute_name>:<value> - attribute is a specific value%r%risfaction?(<player>, <faction name>)%r%b %b Returns '1' (true) if <player> belongs to <faction name>.%r%r(A step-by-step guide to creating factions is on the next page.)%r%rSee Also: +help factions~[ansi(h, CREATING FACTIONS)]%r%r+faction/create <faction name>=<faction head>%r%b %b Include "faction head" wherever possible as they are ooc%r%b %b administrators.%r%r+faction/info <faction>=<useful blurb>%r%r+faction/add <character name>=<faction name>%r%b %b Faction heads can do these, too.%r%rOptional:%r%b %b +faction/type <faction name>=<type name>%r%b %b Use this only for "pack" and "motley".%r%r%b %b +faction/dark <faction name>%r%b %b Use this only if faction is a secret group.%r%rNotes:%r* Factions are objects, so you can change the faction name by%r%b changing the object name.%r* Dark factions are dark objects.%r* Faction Heads are OOC adminitrators of faction objects.
