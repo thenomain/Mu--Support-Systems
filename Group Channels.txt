@@ -1,6 +1,7 @@
 
 
-a: 
+Process: 
+
 @ccreate %0.
 @create %0 Channal Object <%0CO>
 @cset/object %0=%0CO
@@ -24,8 +25,8 @@ a:
 
 
 +chan/delete will need to do:
-@cdestroy %0
-@destroy %0CO
+	@cdestroy %0
+	@destroy %0CO
 
 =-=--==--=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -34,67 +35,116 @@ Cobalt says, “50 characters long.”
 
 Group: <one word>
 
+================================================================================
+== REQUIREMENTS ================================================================
+
+Crafted for TinyMux 2.7+, will add notes for other platforms as discovered.
+
+Required functions:
+	isstaff(<player>) - does what it says on the tin
+	alert(<text>[, <type>]) - Formats a message
+
 
 ================================================================================
 == DATA ========================================================================
 
-
-&d.channel-pocket gcm=#1853
+@force me=&d.channel-pocket gcm=[num(gcm)]
 
 &d.group-types gcm=Motley Pack
 
+
+--------------------------------------------------------------------------------
+-- Formatting items ------------------------------------------------------------
+
 &d.channel.prefix gcm=Group:%b
-
-&d.channel.lock gcm=[u(#1853/f.chan.lock, %#, v(d.group-name))]
-&f.chan.lock gcm=or(isstaff(%0), u(f.play.belongs-to-group?, %0, %1))
-@@ @set gcm/f.chan.lock=vis
-
-@@ &d.channel.lock gcm=[or(isstaff(%0), u(f.play.belongs-to-group?, %0, %1))]
-
-
 
 &d.channel.header gcm=[ansi(ch, \[, n, %0, ch, \])]
 
-
-
-&d.output.line gcm=[setq(m, u(f.search.members, get([u(f.chan.get-dbref, %0)]/d.group-name)))][if(t(%qm), %b [ansi(g, %0)] - [itemize(iter(%qm, name(%i0), , |), |)], %b [ansi(r, %0)] - (no members))]
-
-
-
 &d.object.name gcm=%1 Channel Object <%0>
 
+&d.output.line gcm=
+	[setq(m, u(f.search.members, get([u(f.chan.get-dbref, %0)]/d.group-name)))]
+	[if(
+		t(%qm), 
+		%b [ansi(g, %0)] - [itemize(iter(%qm, name(%i0), , |), |)], 
+		%b [ansi(r, %0)] - (no members)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- Lock items ------------------------------------------------------------------
+@@ (some of this is notes-to-self, should be answered/resolved)
+
+&d.channel.lock gcm=[u(f.chan.lock, %#, v(d.group-name))]
+
+&f.chan.lock gcm=or(isstaff(%0), u(f.player.belongs-to-group?, %0, %1))
+
+@@ @set gcm/f.chan.lock=vis
+@@ &d.channel.lock gcm=[or(isstaff(%0), u(f.player.belongs-to-group?, %0, %1))]
 
 
 ================================================================================
 == LOOKUP/VALIDATION FUNCTIONS =================================================
 
+This system was originally created for Darkwater, and designed to only allow people in with a certain character stat (Motley, Pack).
+
+Darkwater's character sheets could be overridden by another sheet, but this system does not yet account for that.
+
 >>>> NOTE:  THIS SYSTEM IS NOT YET +SHEET-LOCATION AWARE <<<<
 
+--
 
 &f.sheet-loc gcm=xxx
-
 
 &f.obj.name-ok? gcm=valid(name, u(d.object.name, %0, %1))
 
 &f.chan.get-dbref gcm=chanobj(%0)
 
-&f.chan.name-ok? gcm=and(valid(attrname, %0), eq(words(%0), 1), lte(strlen(%0), sub(20, strlen(u(d.channel.prefix)))))
+@@ Channel name must be valid for attribute name, be one-word,
+@@ and no more than 20 characters, including the 'Group:' channel prefix
+
+&f.chan.name-ok? gcm=
+	and(
+		valid(attrname, %0), 
+		eq(words(%0), 1), 
+		lte(strlen(%0), sub(20, strlen(u(d.channel.prefix))))
+	)
 
 &f.chan.exists? gcm=strmatch(channels(), *%0*)
 
 &f.chan.group-exists? gcm=t(u(f.search.members, %0))
 
-
+--
 
 @@ &f.chan.group-has-chan? gcm=t(search(eobject=and(strmatch(name(##), xxx*), strmatch(xxx, %0))))
 
+--
 
+@@ >> This is where we match on the character sheet.
+&f.player.belongs-to-group? gcm=
+	lor(iter(v(d.group-types), strmatch(u(%0/_bio.%i0), %1)))
 
-&f.play.belongs-to-group? gcm=lor(iter(v(d.group-types), strmatch(u(%0/_bio.%i0), %1)))
+--
 
-&f.search.members gcm=search(eplayer=and(lor(u(f.play.belongs-to-group?, ##, %0)), gt(isapproved(##), 0)))
+@@ >> Find all members belonging to group named %0
 
-&f.list.channels gcm=[setq(c, channels())][setq(p, u(d.channel.prefix))][iter(matchall(%qc, first(%qp)), extract(%qc, %i0, inc(words(%qp))), , |)]
+&f.search.members gcm=
+	search(
+		eplayer=and(
+			lor(u(f.player.belongs-to-group?, ##, %0)), 
+			gt(isapproved(##), 0)
+		)
+	)
+
+--
+
+@@ >> List 'group' channels. If &d.channel.prefix is null, this will list all
+@@ >> (so don't do that)
+
+&f.list.channels gcm=
+	[setq(c, channels())]
+	[setq(p, u(d.channel.prefix))]
+	[iter(matchall(%qc, first(%qp)), extract(%qc, %i0, inc(words(%qp))), , |)]
 
 
 ================================================================================
@@ -155,14 +205,21 @@ Group: <one word>
 ================================================================================
 == CHANNELS: Specific ==========================================================
 
+This is in case someone types +channel <item>.  As this was taken from a more general setup, we'll just push it back to the default.  If that chances, add code here.
+
+--
+
 &c.channels.specific gcm=[u(c.channels.default)]
 
 
 ================================================================================
 == CHANNELS/ADD ================================================================
 
++channels/add <channel name>=<group name it's for>
+
 0: <one-word channel name>=<group name>
 
+--
 
 &c.channels/add gcm=$+chan/a* *=*:@pemit %#=
 	[case(0, 
@@ -229,7 +286,6 @@ Group: <one word>
 &tr.channel.new gcm=@eval [setq(e, )][setq(c, [u(d.channel.prefix)]%1)][setq(o, u(d.object.name, %1, %2))]; @ccreate %qc; @pemit %0=%b * Channel '%qc' ... [if(t(f.chan.exists?, %qc), ansi(g, exists), [ansi(r, error)][setq(e, %qe|Channel not created)])]; @pemit %0=%b * Creating '%qo' ... [setq(d, create(%qo, 100))][if(t(%qd), ansi(g, %qd), [ansi(r, error)][setq(e, %qe|Object not created)])].; &d.group-name %qd=%2; @cset/object %qc=%qd; &d.lock %qd=[v(d.channel.lock)]; @lock %qd=d.lock/1; @cpflags %qc=!join; @coflags %qc=!join; @cset/header %qc=[u(d.channel.header, %1)]; @cset/log %qc=200; @desc %qd=A channel for %2; @eval [if(not(t(chanobj(%qc))), setq(e, %qe|Object not properly associated with channel))][if(not(elock(%qd, #1)), setq(e, %qe|Object lock does not appear to be working))]; @pemit %0=[setq(e, trim(%qe, b, |))][if(t(words(%qe, |)), %b [ansi(r, ERRORS)] (no @mail sent): %r[iter(%qe, %b %b >> %i0, |, %r)]%r%b You may want to:%r%b %b @clist/full %qc %r%b %b @cdestroy %qc %r%b %b @destroy <channel object> %r[footer([words(%qe, |)] errors)], %b [ansi(g, Looks Good!)] But you should probably check with:%r%b %b @clist/full %qc%r[footer()])]; @if t(%qd)={@teleport %qd=[u(d.channel-pocket)]}; @if not(t(%qe))={@trigger/quiet %!/tr.mail.confirm=%qc, %2, %0}
 
 
-
 ================================================================================
 == TRIGGER: CONFIRMATION EMAIL =================================================
 
@@ -253,6 +309,8 @@ Group: <one word>
 ================================================================================
 == CHANNELS/REMOVE =============================================================
 
+** This code isn't finished nor tested. **
+
 +channels/delete <name>[=YES]
 
 0: <one-word channel name>
@@ -262,6 +320,7 @@ v: verification ("YES")
 n: group name
 m: members of that group
 
+--
 
 &c.channels/remove gcm=
 	[setq(c, first(%0, =))]
@@ -298,6 +357,9 @@ m: members of that group
 ================================================================================
 == TRIGGER: DELETE CHANNEL =====================================================
 
+** This code isn't finished nor tested. **
+** probably would benefit greatly from @assert **
+
 0: trigererer's dbref
 1: channel object dbref (validated)
 2: channel name
@@ -306,6 +368,7 @@ m: members of that group
 w: who is using this channel?
 o: channel object name
 
+--
 
 &tr.channel.delete gcm=
 	@eval [setq(e, )][setq(w, cwho(%2, all))][setq(o, name(%1))];
@@ -314,17 +377,51 @@ o: channel object name
 
 	@cdestroy %2; 
 
-	@pemit %0=%b * Channel '%qc' ... [if(t(f.chan.exists?, %qc), [ansi(r, error)][setq(e, %qe|Channel still exists)], ansi(g, removed))]; 
+	@pemit %0=
+		%b * Channel '%qc' ... 
+		[if(
+			t(f.chan.exists?, %qc), 
+			[ansi(r, error)][setq(e, %qe|Channel still exists)], 
+
+			ansi(g, removed)
+		)]; 
 
 @@ .. destroy channel object
 
 	@destroy %1
 
-	@pemit %0=%b * Destroying '%qo' ... [if(or(hasflag(%1, going), not(t(num(%1)))), ansi(g, destroyed), [ansi(r, error)][setq(e, %qe|Object '%1' not destroyed)])]; 
+	@pemit %0=
+		%b * Destroying '%qo' ... 
+		[if(
+			or(hasflag(%1, going), not(t(num(%1)))), 
+			ansi(g, destroyed), 
+			
+			[ansi(r, error)][setq(e, %qe|Object '%1' not destroyed)]
+		)]; 
 	
 @@ .. report errors
 
-	@pemit %0=[setq(e, trim(%qe, b, |))][if(t(words(%qe, |)), %b [ansi(r, ERRORS)] (no @mail sent): %r[iter(%qe, %b %b >> %i0, |, %r)]%r%b You may want to:%r%b %b @clist/full %qc %r%b %b @cdestroy %2 %r%b %b @destroy %1  %r%b %b @mail %qw=Deleted Group Channel %r[footer([words(%qe, |)] errors)], %b [ansi(g, Looks Good!)] But you should probably check with:%r%b %b @clist/full %2%r[footer()])]; 
+	@pemit %0=
+		[setq(e, trim(%qe, b, |))]
+		[if(
+			t(words(%qe, |)), 
+
+@@ .. .. errors
+			%b [ansi(r, ERRORS)] (no @mail sent): %r
+			[iter(%qe, %b %b >> %i0, |, %r)]%r
+			
+			%b You may want to:%r
+			%b %b @clist/full %qc %r
+			%b %b @cdestroy %2 %r
+			%b %b @destroy %1  %r
+			%b %b @mail %qw=Deleted Group Channel %r
+			[footer([words(%qe, |)] errors)], 
+
+@@ .. .. looks good!
+			%b [ansi(g, Looks Good!)] But you should probably check with:%r
+			%b %b @clist/full %2%r
+			[footer()]
+		)]; 
 
 @@ .. mail anyone on the channel if a successful delete
 
@@ -335,22 +432,29 @@ o: channel object name
 ================================================================================
 == TRIGGER: DELETION EMAIL =================================================
 
+** This code isn't finished nor tested. **
+
 0: Channel name
 1: Group name
 2: Who was on the channel
 3: dbref of triggerer
 
+--
 
 &tr.mail.deleted gcm=
 
 	@if t(%2)={
 		@mail/quick %2/Removed Group Channel=
-		Hey there! We have removed the group channel for your IC group, %1.  The channel name was '%0'.  If you feel this was in error, please +request its recreation to staff.  Thanks - The Darkwater Staff; 
+		Hey there! We have removed the group channel for your IC group, %1.  
+		The channel name was '%0'.  If you feel this was in error, please 
+		+request its recreation to staff.  Thanks - The Darkwater Staff; 
 
-		@pemit %3=[alert(channels)] @mailed [itemize(iter(%2, name(%i0), , |), |)]
+		@pemit %3=
+			[alert(channels)] @mailed [itemize(iter(%2, name(%i0), , |), |)]
 	}, 
 	{
-		@pemit %3=[alert(channels)] Nobody on the channel for '%1'.  No mail sent.
+		@pemit %3=
+			[alert(channels)] Nobody on the channel for '%1'.  No mail sent.
 	}
 
 --
@@ -367,10 +471,10 @@ o: channel object name
 
 
 
-
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 MORE NOTES 
+(you'll see here how DW-specific this is)
 
 >>>>   @mail/quick <player-list>/<subject> = <message>
 
