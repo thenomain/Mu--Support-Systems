@@ -1,0 +1,135 @@
+This system was created mainly for The Reach, so items such as faction:xxx or template:xxx depend on the code for the game involved.
+
+
+Access System:
+    attribute:<attribute>[:<value>]
+    faction:<faction name>
+    bittype:<number or type>
+    flag:<has this flag>
+    location:<loc dbref or 'ic'>
+    template:<rp template, i.e. 'werewolf'>
+
+
+@@ ----------------------------------------
+@@ u(f.access, <dbref to check against>, <list|of|accesses>)
+@@ returns #-1 if not found or no access, #-2 if multiple found
+
+&f.access asf=
+localize(
+    case(0, 
+        t(setr(0, locate(%#, %0, *P))), %q0, 
+        lor(
+            iter(%1, 
+                if(strmatch(%i0, !*), 
+                    not(udefault(access.[first(rest(%i0, !), :)], 0, 
+                        %q0, elements(%i0, 2, :), elements(%i0, 3, :)
+                    )), 
+                    udefault(access.[first(%i0, :)], 0, 
+                        %q0, elements(%i0, 2, :), elements(%i0, 3, :)
+                    )
+                ), 
+                |, |
+            ), 
+            |
+        )
+    )
+)
+
+
+@@ ----------------------------------------
+@@ u(f.translate-access, <list|of|accesses>)
+@@ returns a fully english-language translation
+
+&f.translate-access asf=
+    iter(
+        filter(fil.access-elements, %0, |, |), 
+        ulocal(translate.[edit(first(%i0, :), !, )], 
+            strmatch(%i0, !*), 
+            elements(%i0, 2, :), 
+            elements(%i0, 3, :)
+        ), 
+        |, %,%b
+    )
+
+
+@@ --
+
+&fil.access-elements asf=t(lattr(%!/access.[edit(first(%0, :), !, )]))
+
+
+@@ ----------------------------------------
+@@ attribute:<attr name>[:<value>]
+@@ (as we use strmatch, <value> may contain wildcards)
+
+&access.attribute asf=
+    if(t(strlen(%2)), 
+        strmatch(get(%0/%1), %2), 
+        hasattr(%0, %1)
+    )
+
+&translate.attribute asf=if(t(strlen(%2)), attribute '%1' is[if(t(%0), n't)] '%2', attribute '%1' [if(t(%0), not%b)]set)
+
+
+@@ ----------------------------------------
+@@ faction:<faction name>
+
+&access.faction asf=objeval(%#, isfaction?(%0, %1))
+
+&translate.faction asf=[if(t(%0), is not in, belongs to)] faction '%1'
+
+
+@@ ----------------------------------------
+@@ flag:<flag name>
+
+&access.flag asf=objeval(%#, hasflag(%0, %1))
+
+&translate.flag asf=[if(t(%0), doesn't have, has)] the flag '%1'
+
+
+@@ ----------------------------------------
+@@ bittype:<power level>
+
+&access.bittype asf=
+    gte(
+        bittype(%0), 
+        rest(
+            grab(
+                God:7 
+                Wizard:5 
+                Royalty:4 
+                Staff:3 
+                Builder:3 
+                Head:2 
+                Immortal:2 
+                Mortal:1 
+                Approved:1 
+                Uninspected:0 
+                Guest:0 
+                Unapproved:0, 
+                %1*:?
+            ), 
+            :
+        )
+    )
+
+&translate.bittype asf=is [if(t(%0), less than, at least)] power level '%1'
+
+
+@@ ----------------------------------------
+@@ location:<room dbref or 'ic'>
+
+&access.location asf=
+    if(strmatch(%1, ic), 
+        isic(%0), 
+        strmatch(objeval(%#, loc(%0)), %1)
+    )
+
+&translate.location asf=is [if(t(%0), not%b)][if(not(strmatch(%1, ic)), in location%b)]'%1'
+
+
+@@ ----------------------------------------
+@@ template:<template name>
+
+&access.template asf=strmatch(get(%0/_template), %1)
+
+&translate.template asf=rp template is [if(t(%0), not%b)]'%1'
