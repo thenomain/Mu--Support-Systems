@@ -1,1 +1,351 @@
-Originally coded in TinyMUSH 3.x for a fantasy game.------------------------&f_ictime #129=@@ The Main Function.  Doesn't use any %q's, which is good.ifelse(	%0, @@ ictime(<stuff>)@@ Go down the list, evaluate those you know, return as a |-deliniated list@@ Return #-1 at those you don't know.@@ Allow passing of values via '<funct>=<val>'	iter(		%0, 		ifelse(			hasattr(parent(me), f_ictime-[before(##, =)]), 			u(f_ictime-[before(##, =)], [after(##, =)]), 			#-1		), 		, |	), @@ ictime() -- default	u(f_ictime-default))---&f_ictime #129=ifelse(%0, iter(%0, ifelse(hasattr(parent(me), f_ictime-[before(##, =)]), u(f_ictime-[before(##, =)], [after(##, =)]), #-1), , |), u(f_ictime-default))--------------------&D_START-TIME #209=994235052&D_TIME-COMPRESSION #209=1.75&D_TIME-OFFSET #209=0&D_YEAR-OFFSET #209=438--------------------@@ The Full IC Time@@ 0: Timezone Offset (if any)&f_ictime-default #209=	replace(		setr(0, u(f_ictime-vanilla, %0)), 		5, 		add(			extract(%q0, 5, 1), 			v(d_year-offset)		)	)---&f_ictime-default #209=replace(setr(0, u(f_ictime-vanilla, %0)), 5, add(extract(%q0, 5, 1), v(d_year-offset)))--------------------@@ The Crooked Time (all but the year replacement)@@ Useful when you don't care about the year.@@ 0: Timezone Offset (if any)&f_ictime-vanilla #209=	convsecs(		add(			mul(				sub(					secs(), 					v(d_start-time)				), 				v(d_time-compression)			), @@ Add timezone effect			mul(60, 60, %0), 			v(d_time-offset)		)	)---&f_ictime-vanilla #209=convsecs(add(mul(sub(secs(), v(d_start-time)), v(d_time-compression)), mul(60, 60, %0), v(d_time-offset)))--------------------@@ TIMEZONE!  When you need to alter the hour.@@ Okay, so it just calls Default, but it looks nicer this way@@ 0: Timezone Offset&f_ictime-timezone #209=u(f_ictime-default, %0)	--------------------@@ What Season Is It?&f_ictime-season #209=case(	extract(u(f_ictime-vanilla), 2, 1), 	Jan, Mid_Winter, 	Feb, Waning_Winter, 	Mar, Late_Spring, 	Apr, Mid_Spring, 	May, Late_Spring, 	Jun, Early_Summer, 	Jul, Mid_Summer, 	Aug, Late_Summer, 	Sep, Early_Autumn, 	Oct, Mid_Autumn, 	Nov, Lage_Autumn, 	Dec, Early_Winter)---&f_ictime-season #209=case(extract(u(f_ictime-vanilla), 2, 1), Jan, Mid_Winter, Feb, Waning_Winter, Mar, Early_Spring, Apr, Mid_Spring, May, Waning_Spring, Jun, Early_Summer, Jul, Mid_Summer, Aug, Waning_Summer, Sep, Early_Autumn, Oct, Mid_Autumn, Nov, Late_Autumn, Dec, Early_Winter)--------------------@@ What time of day is it?@@ Based on the Season.  Couldn't we get a formula for this?  Hm. @@ Sunrise and Sunset Last 30 minutes.  pre-dawn = dawn - 30. (0.5)@@ Sunrise/Sunset lasts 6 minutes (0.1)&f_ictime-daytime #209=@@ q0: Vanilla IC Time@@ q1: Precise Hour (hour.tenths)@@ q2: Sunrise@@ q3: Sunset@@ 1. Convert Hour:Minute:Second into Hours.Tenths[setq(0, u(f_ictime-vanilla))][setq(1, extract(%q0, 4, 1))][setq(1, add(first(%q1, :), fdiv(extract(%q1, 2, 1, :), 60), fdiv(last(%q1, :), 3600)))]@@ 2. Figure out when Sunrise/Sunset is this time of year.@@ Case and Switch work more or less the same here, only Case is a bit faster.[u(d_ictime-daytimetable)]@@ 3. Panic.  Report time of day/night.@@ Sunset: %q3 - 0.1 to %q3@@ Twilight: %q3 to %q3 + 0.25@@ Night: %q3 + 0.25 to %q2 - 0.25@@ Pre-Dawn: %q2 - 0.25 to %q2@@ Dawn: %q2 to %q2 + 0.1@@ Day: %q2 + 0.1 to %q3 - 0.1[case(	1, 	and(gte(%q1, sub(%q3, 0.1)), lt(%q1, %q3)), Sunset, 	and(gte(%q1, %q3), lt(%q1, add(%q3, 0.25))), Twilight, 	or(gte(%q1, add(%q3, 0.25)), lt(%q1, sub(%q2, 0.25))), Night, 	and(gte(%q1, sub(%q2, 0.25)), lt(%q1, %q2)), Pre-Dawn, 	and(gte(%q1, %q2), lt(%q1, add(%q2, 0.1))), Dawn, 	and(gte(%q1, add(%q2, 0.1)), lt(%q1, sub(%q3, 0.1))), Day,	Confused Daytime)]---&f_ictime-daytime #209=[setq(0, u(f_ictime-vanilla))][setq(1, extract(%q0, 4, 1))][setq(1, add(first(%q1, :), fdiv(extract(%q1, 2, 1, :), 60), fdiv(last(%q1, :), 3600)))][u(d_ictime-daytimetable)][case(1, and(gte(%q1, sub(%q3, 0.1)), lt(%q1, %q3)), Sunset, and(gte(%q1, %q3), lt(%q1, add(%q3, 0.25))), Twilight, or(gte(%q1, add(%q3, 0.25)), lt(%q1, sub(%q2, 0.25))), Night, and(gte(%q1, sub(%q2, 0.25)), lt(%q1, %q2)), Pre-Dawn, and(gte(%q1, %q2), lt(%q1, add(%q2, 0.1))), Dawn, and(gte(%q1, add(%q2, 0.1)), lt(%q1, sub(%q3, 0.1))), Day, Confused Daytime - %q0 - %q1 - %q2 - %q3)]--------------------&d_ictime-daytimetable #209=@@ q2: Sunrise@@ q3: Sunset[case(	extract(%q0, 2, 1),		Jan, [setq(2, 7.33)][setq(3, 16.66)], 	Feb, [setq(2, 6.66)][setq(3, 17.33)], 	Mar, [setq(2, 6)][setq(3, 18)], 	Apr, [setq(2, 5.33)][setq(3, 18.66)], 	May, [setq(2, 4.66)][setq(3, 19.33)], 	Jun, [setq(2, 4)][setq(3, 20)], 	Jul, [setq(2, 4.66)][setq(3, 19.33)], 	Aug, [setq(2, 5.33)][setq(3, 18.66)], 	Sep, [setq(2, 6)][setq(3, 18)], 	Oct, [setq(2, 6.66)][setq(3, 17.33)], 	Nov, [setq(2, 7.33)][setq(3, 16.66)], 	Dec, [setq(2, 8)][setq(3, 16)])]---&d_ictime-daytimetable #209=[case(extract(%q0, 2, 1),	Jan, [setq(2, 7.33)][setq(3, 16.66)], Feb, [setq(2, 6.66)][setq(3, 17.33)], Mar, [setq(2, 6)][setq(3, 18)], Apr, [setq(2, 5.33)][setq(3, 18.66)], May, [setq(2, 4.66)][setq(3, 19.33)], Jun, [setq(2, 4)][setq(3, 20)], Jul, [setq(2, 4.66)][setq(3, 19.33)], Aug, [setq(2, 5.33)][setq(3, 18.66)], Sep, [setq(2, 6)][setq(3, 18)], Oct, [setq(2, 6.66)][setq(3, 17.33)], Nov, [setq(2, 7.33)][setq(3, 16.66)], Dec, [setq(2, 8)][setq(3, 16)])]--------------------&f_ictime-what #209=@@ What's available on me? Don't tell them about Vanilla.iter(	edit(lattr(#209/f_ictime-*), F_ICTIME-VANILLA, ), 	lcstr(after(##, -)))---&f_ictime-what #209=iter(edit(lattr(#209/f_ictime-*), F_ICTIME-VANILLA, ), lcstr(after(##, -)))--------------------&f_ictime-when #209=@@ Returns current Sunrise!Sunset in hh:mm:ss format.@@ Don't even ask how I came up with this.	[setq(0, u(f_ictime-vanilla))]	[u(d_ictime-daytimetable)]@@ Sunrise	[setr(0, trunc(%q2))]:	[rjust(setr(1, trunc(setr(0, mul(sub(%q2, %q0), 60)))), 2, 0)]:	[rjust(round(mul(sub(%q0, %q1), 60), 0), 2, 0)]~@@ Sunset	[setr(0, trunc(%q3))]:	[rjust(setr(1, trunc(setr(0, mul(sub(%q3, %q0), 60)))), 2, 0)]:	[rjust(round(mul(sub(%q0, %q1), 60), 0), 2, 0)]---&f_ictime-when #209=[setq(0, u(f_ictime-vanilla))][u(d_ictime-daytimetable)][setr(0, trunc(%q2))]:[rjust(setr(1, trunc(setr(0, mul(sub(%q2, %q0), 60)))), 2, 0)]:[rjust(round(mul(sub(%q0, %q1), 60), 0), 2, 0)]~[setr(0, trunc(%q3))]:[rjust(setr(1, trunc(setr(0, mul(sub(%q3, %q0), 60)))), 2, 0)]:[rjust(round(mul(sub(%q0, %q1), 60), 0), 2, 0)]--------------------@@ What is the IC time in seconds?@@ 0: Hours offsetF_ICTIME-SECONDS: add(mul(sub(secs(), v(d_start-time)), v(d_time-compression)), mul(60, 60, %0), v(d_time-offset))--------------------&f_ictime-convsecs #209=@@ Convert from IC Seconds to IC Time.@@ Based in no small way on Vanilla & Default&f_ictime-convsecs #209=	replace(		setr(			0, @@ Vanilla, minus Timezone consideration			convsecs(				add(					mul(						sub(@@ (altered next line to take input instead of current seconds)							%0, 							v(d_start-time)						), 						v(d_time-compression)					), 					v(d_time-offset)				)			)		), 		5, 		add(			extract(%q0, 5, 1), 			v(d_year-offset)		)	)---&f_ictime-convsecs #209=replace(setr(0, convsecs(add(mul(sub(%0, v(d_start-time)), v(d_time-compression)), v(d_time-offset)))), 5, add(extract(%q0, 5, 1), v(d_year-offset)))&f_ictime-convsecs #209=replace(setr(0, convsecs(sub(%0, v(d_time-offset)))), 5, add(extract(%q0, 5, 1), v(d_year-offset)))------------------------------------------------------------HEY, A Support Command!&c_time #151=$+time:@pemit %#=@@ q0: IC Time@@ q1: hh:mm:ss@@ q2: Hour@@ q3: AM/PM@@ q4: Day	[setq(0, ictime())]	[setq(1, extract(%q0, 4, 1))]	[setq(2, trim(first(%q1, :), l, 0))]	[ifelse(gt(%q2, 11), setq(3, pm), setq(3, am))]	[ifelse(gt(%q2, 12), setq(2, sub(%q2, 12)), )]@@ Display.	[center(<>[repeat(-%xh%xc-%xn, 27)]<>, 78)] %r%r	[space(14)] The Most Empyreal and Accurate Time is @@ Hours:Minutes AM/PM. 00 is 12.	[ifelse(%q2, %q2, 12)]:[extract(%q1, 2, 1, :)] %q3 %r	[space(14)] On This Day%, @@ What day is that, exactly?	[case(		extract(%q0, 1, 1), 		Sun, Sunday, 		Mon, Monday, 		Tue, Tuesday, 		Wed, Wednesday, 		Thu, Thursday, 		Fri, Friday, 		Sat, Saturday	)]%, @@ Now what month?	[case(		extract(%q0, 2, 1), 		Jan, January, 		Feb, February, 		Mar, March, 		Apr, April, 		May, May, 		Jun, June, 		Jul, July, 		Aug, August, 		Sep, September, 		Oct, October, 		Nov, November, 		Dec, December	)] @@ The 1st, 2nd, 3rd, etc.	the [setr(4, extract(%q0, 3, 1))]	[switch(		right(%q4, 1), 		1, st, 		2, nd, 		3, rd, 		th	)]%, %r@@ Year	[space(14)] The Year of Our Benevolence%, [extract(%q0, 5, 1)] %r%r	[center(<>[repeat(-%xh%xc-%xn, 27)]<>, 78)]---&c_time #151=$+time:@pemit %#=[setq(0, ictime())][setq(1, extract(%q0, 4, 1))][setq(2, trim(first(%q1, :), l, 0))]	[ifelse(gt(%q2, 11), setq(3, pm), setq(3, am))][ifelse(gt(%q2, 12), setq(2, sub(%q2, 12)), )][center(<>[repeat(-%xh%xc-%xn, 27)]<>, 78)] %r%r[space(14)] The Most Empyreal and Accurate Time is [ifelse(%q2, %q2, 12)]:[extract(%q1, 2, 1, :)] %q3 %r[space(14)] On This Day%, [case(extract(%q0, 1, 1), Sun, Sunday, Mon, Monday, Tue, Tuesday, Wed, Wednesday, Thu, Thursday, Fri, Friday, Sat, Saturday)]%, [case(extract(%q0, 2, 1), Jan, January, Feb, February, Mar, March, Apr, April, May, May, Jun, June, Jul, July, Aug, August, Sep, September, Oct, October, Nov, November, Dec, December)] the [setr(4, extract(%q0, 3, 1))][switch(right(%q4, 1), 1, st, 2, nd, 3, rd, th)]%, %r[space(14)] The Year of Our Benevolence%, [extract(%q0, 5, 1)] %r%r[center(<>[repeat(-%xh%xc-%xn, 27)]<>, 78)]think ictime(default season daytime)--------------------Okay, now to make a Day/Night Notification Scheme(Coded for TinyMUSH, which has @cron)@startup #212=@cron #212/f_timechecks=*/1 * * * *&f_timechecks #212=@trig me/f_daytimer;&f_daytimer #212=@switch not(comp(ictime(daytime), v(d_daytimer-last)))=0, {	&d_daytimer-last me=[ictime(daytime)]; 	@switch v(d_daytimer-last)=		Dawn, @wall/emit/no Dawn Message,		Sunset, @wall/emit/no Sunset Message}&f_daytimer #212=@switch not(comp(ictime(daytime), v(d_daytimer-last)))=0, {&d_daytimer-last me=[ictime(daytime)]; @switch v(d_daytimer-last)=Dawn, @wall/emit/no %xh%xyDawn Message%xn, Sunset, @wall/emit/no %xh%xcSunset Message%xn}
+Originally coded in TinyMUSH 3.x for a fantasy game.
+
+------------------------
+
+&f_ictime #129=
+@@ The Main Function.  Doesn't use any %q's, which is good.
+ifelse(
+	%0, 
+@@ ictime(<stuff>)
+@@ Go down the list, evaluate those you know, return as a |-deliniated list
+@@ Return #-1 at those you don't know.
+@@ Allow passing of values via '<funct>=<val>'
+	iter(
+		%0, 
+		ifelse(
+			hasattr(parent(me), f_ictime-[before(##, =)]), 
+			u(f_ictime-[before(##, =)], [after(##, =)]), 
+			#-1
+		), 
+		, |
+	), 
+@@ ictime() -- default
+	u(f_ictime-default)
+)
+
+---
+
+&f_ictime #129=ifelse(%0, iter(%0, ifelse(hasattr(parent(me), f_ictime-[before(##, =)]), u(f_ictime-[before(##, =)], [after(##, =)]), #-1), , |), u(f_ictime-default))
+
+--------------------
+
+&D_START-TIME #209=994235052
+&D_TIME-COMPRESSION #209=1.75
+&D_TIME-OFFSET #209=0
+&D_YEAR-OFFSET #209=438
+
+--------------------
+
+@@ The Full IC Time
+@@ 0: Timezone Offset (if any)
+&f_ictime-default #209=
+	replace(
+		setr(0, u(f_ictime-vanilla, %0)), 
+		5, 
+		add(
+			extract(%q0, 5, 1), 
+			v(d_year-offset)
+		)
+	)
+
+---
+
+&f_ictime-default #209=replace(setr(0, u(f_ictime-vanilla, %0)), 5, add(extract(%q0, 5, 1), v(d_year-offset)))
+
+--------------------
+
+@@ The Crooked Time (all but the year replacement)
+@@ Useful when you don't care about the year.
+@@ 0: Timezone Offset (if any)
+&f_ictime-vanilla #209=
+	convsecs(
+		add(
+			mul(
+				sub(
+					secs(), 
+					v(d_start-time)
+				), 
+				v(d_time-compression)
+			), 
+@@ Add timezone effect
+			mul(60, 60, %0), 
+			v(d_time-offset)
+		)
+	)
+
+---
+
+&f_ictime-vanilla #209=convsecs(add(mul(sub(secs(), v(d_start-time)), v(d_time-compression)), mul(60, 60, %0), v(d_time-offset)))
+
+--------------------
+
+@@ TIMEZONE!  When you need to alter the hour.
+@@ Okay, so it just calls Default, but it looks nicer this way
+@@ 0: Timezone Offset
+
+&f_ictime-timezone #209=u(f_ictime-default, %0)
+	
+--------------------
+
+@@ What Season Is It?
+&f_ictime-season #209=
+case(
+	extract(u(f_ictime-vanilla), 2, 1), 
+	Jan, Mid_Winter, 
+	Feb, Waning_Winter, 
+	Mar, Late_Spring, 
+	Apr, Mid_Spring, 
+	May, Late_Spring, 
+	Jun, Early_Summer, 
+	Jul, Mid_Summer, 
+	Aug, Late_Summer, 
+	Sep, Early_Autumn, 
+	Oct, Mid_Autumn, 
+	Nov, Lage_Autumn, 
+	Dec, Early_Winter
+)
+
+---
+
+&f_ictime-season #209=case(extract(u(f_ictime-vanilla), 2, 1), Jan, Mid_Winter, Feb, Waning_Winter, Mar, Early_Spring, Apr, Mid_Spring, May, Waning_Spring, Jun, Early_Summer, Jul, Mid_Summer, Aug, Waning_Summer, Sep, Early_Autumn, Oct, Mid_Autumn, Nov, Late_Autumn, Dec, Early_Winter)
+
+--------------------
+
+@@ What time of day is it?
+@@ Based on the Season.  Couldn't we get a formula for this?  Hm. 
+@@ Sunrise and Sunset Last 30 minutes.  pre-dawn = dawn - 30. (0.5)
+@@ Sunrise/Sunset lasts 6 minutes (0.1)
+
+&f_ictime-daytime #209=
+@@ q0: Vanilla IC Time
+@@ q1: Precise Hour (hour.tenths)
+@@ q2: Sunrise
+@@ q3: Sunset
+
+@@ 1. Convert Hour:Minute:Second into Hours.Tenths
+[setq(0, u(f_ictime-vanilla))]
+[setq(1, extract(%q0, 4, 1))]
+[setq(1, add(first(%q1, :), fdiv(extract(%q1, 2, 1, :), 60), fdiv(last(%q1, :), 3600)))]
+
+@@ 2. Figure out when Sunrise/Sunset is this time of year.
+@@ Case and Switch work more or less the same here, only Case is a bit faster.
+
+[u(d_ictime-daytimetable)]
+
+@@ 3. Panic.  Report time of day/night.
+@@ Sunset: %q3 - 0.1 to %q3
+@@ Twilight: %q3 to %q3 + 0.25
+@@ Night: %q3 + 0.25 to %q2 - 0.25
+@@ Pre-Dawn: %q2 - 0.25 to %q2
+@@ Dawn: %q2 to %q2 + 0.1
+@@ Day: %q2 + 0.1 to %q3 - 0.1
+
+[case(
+	1, 
+	and(gte(%q1, sub(%q3, 0.1)), lt(%q1, %q3)), Sunset, 
+	and(gte(%q1, %q3), lt(%q1, add(%q3, 0.25))), Twilight, 
+	or(gte(%q1, add(%q3, 0.25)), lt(%q1, sub(%q2, 0.25))), Night, 
+	and(gte(%q1, sub(%q2, 0.25)), lt(%q1, %q2)), Pre-Dawn, 
+	and(gte(%q1, %q2), lt(%q1, add(%q2, 0.1))), Dawn, 
+	and(gte(%q1, add(%q2, 0.1)), lt(%q1, sub(%q3, 0.1))), Day,
+	Confused Daytime
+)]
+
+
+---
+
+&f_ictime-daytime #209=[setq(0, u(f_ictime-vanilla))][setq(1, extract(%q0, 4, 1))][setq(1, add(first(%q1, :), fdiv(extract(%q1, 2, 1, :), 60), fdiv(last(%q1, :), 3600)))][u(d_ictime-daytimetable)][case(1, and(gte(%q1, sub(%q3, 0.1)), lt(%q1, %q3)), Sunset, and(gte(%q1, %q3), lt(%q1, add(%q3, 0.25))), Twilight, or(gte(%q1, add(%q3, 0.25)), lt(%q1, sub(%q2, 0.25))), Night, and(gte(%q1, sub(%q2, 0.25)), lt(%q1, %q2)), Pre-Dawn, and(gte(%q1, %q2), lt(%q1, add(%q2, 0.1))), Dawn, and(gte(%q1, add(%q2, 0.1)), lt(%q1, sub(%q3, 0.1))), Day, Confused Daytime - %q0 - %q1 - %q2 - %q3)]
+
+--------------------
+
+&d_ictime-daytimetable #209=
+@@ q2: Sunrise
+@@ q3: Sunset
+[case(
+	extract(%q0, 2, 1),	
+	Jan, [setq(2, 7.33)][setq(3, 16.66)], 
+	Feb, [setq(2, 6.66)][setq(3, 17.33)], 
+	Mar, [setq(2, 6)][setq(3, 18)], 
+	Apr, [setq(2, 5.33)][setq(3, 18.66)], 
+	May, [setq(2, 4.66)][setq(3, 19.33)], 
+	Jun, [setq(2, 4)][setq(3, 20)], 
+	Jul, [setq(2, 4.66)][setq(3, 19.33)], 
+	Aug, [setq(2, 5.33)][setq(3, 18.66)], 
+	Sep, [setq(2, 6)][setq(3, 18)], 
+	Oct, [setq(2, 6.66)][setq(3, 17.33)], 
+	Nov, [setq(2, 7.33)][setq(3, 16.66)], 
+	Dec, [setq(2, 8)][setq(3, 16)]
+)]
+
+---
+
+&d_ictime-daytimetable #209=[case(extract(%q0, 2, 1),	Jan, [setq(2, 7.33)][setq(3, 16.66)], Feb, [setq(2, 6.66)][setq(3, 17.33)], Mar, [setq(2, 6)][setq(3, 18)], Apr, [setq(2, 5.33)][setq(3, 18.66)], May, [setq(2, 4.66)][setq(3, 19.33)], Jun, [setq(2, 4)][setq(3, 20)], Jul, [setq(2, 4.66)][setq(3, 19.33)], Aug, [setq(2, 5.33)][setq(3, 18.66)], Sep, [setq(2, 6)][setq(3, 18)], Oct, [setq(2, 6.66)][setq(3, 17.33)], Nov, [setq(2, 7.33)][setq(3, 16.66)], Dec, [setq(2, 8)][setq(3, 16)])]
+
+--------------------
+
+&f_ictime-what #209=
+@@ What's available on me? Don't tell them about Vanilla.
+iter(
+	edit(lattr(#209/f_ictime-*), F_ICTIME-VANILLA, ), 
+	lcstr(after(##, -))
+)
+
+---
+
+&f_ictime-what #209=iter(edit(lattr(#209/f_ictime-*), F_ICTIME-VANILLA, ), lcstr(after(##, -)))
+
+--------------------
+
+&f_ictime-when #209=
+@@ Returns current Sunrise!Sunset in hh:mm:ss format.
+@@ Don't even ask how I came up with this.
+	[setq(0, u(f_ictime-vanilla))]
+	[u(d_ictime-daytimetable)]
+@@ Sunrise
+	[setr(0, trunc(%q2))]:
+	[rjust(setr(1, trunc(setr(0, mul(sub(%q2, %q0), 60)))), 2, 0)]:
+	[rjust(round(mul(sub(%q0, %q1), 60), 0), 2, 0)]~
+@@ Sunset
+	[setr(0, trunc(%q3))]:
+	[rjust(setr(1, trunc(setr(0, mul(sub(%q3, %q0), 60)))), 2, 0)]:
+	[rjust(round(mul(sub(%q0, %q1), 60), 0), 2, 0)]
+
+---
+
+&f_ictime-when #209=[setq(0, u(f_ictime-vanilla))][u(d_ictime-daytimetable)][setr(0, trunc(%q2))]:[rjust(setr(1, trunc(setr(0, mul(sub(%q2, %q0), 60)))), 2, 0)]:[rjust(round(mul(sub(%q0, %q1), 60), 0), 2, 0)]~[setr(0, trunc(%q3))]:[rjust(setr(1, trunc(setr(0, mul(sub(%q3, %q0), 60)))), 2, 0)]:[rjust(round(mul(sub(%q0, %q1), 60), 0), 2, 0)]
+
+
+--------------------
+
+@@ What is the IC time in seconds?
+@@ 0: Hours offset
+
+F_ICTIME-SECONDS: add(mul(sub(secs(), v(d_start-time)), v(d_time-compression)), mul(60, 60, %0), v(d_time-offset))
+
+
+--------------------
+
+&f_ictime-convsecs #209=
+@@ Convert from IC Seconds to IC Time.
+@@ Based in no small way on Vanilla & Default
+
+&f_ictime-convsecs #209=
+	replace(
+		setr(
+			0, 
+@@ Vanilla, minus Timezone consideration
+			convsecs(
+				add(
+					mul(
+						sub(
+@@ (altered next line to take input instead of current seconds)
+							%0, 
+							v(d_start-time)
+						), 
+						v(d_time-compression)
+					), 
+					v(d_time-offset)
+				)
+			)
+		), 
+		5, 
+		add(
+			extract(%q0, 5, 1), 
+			v(d_year-offset)
+		)
+	)
+
+---
+
+&f_ictime-convsecs #209=replace(setr(0, convsecs(add(mul(sub(%0, v(d_start-time)), v(d_time-compression)), v(d_time-offset)))), 5, add(extract(%q0, 5, 1), v(d_year-offset)))
+
+
+&f_ictime-convsecs #209=replace(setr(0, convsecs(sub(%0, v(d_time-offset)))), 5, add(extract(%q0, 5, 1), v(d_year-offset)))
+
+
+--------------------
+--------------------
+--------------------
+
+HEY, A Support Command!
+
+&c_time #151=$+time:@pemit %#=
+@@ q0: IC Time
+@@ q1: hh:mm:ss
+@@ q2: Hour
+@@ q3: AM/PM
+@@ q4: Day
+	[setq(0, ictime())]
+	[setq(1, extract(%q0, 4, 1))]
+	[setq(2, trim(first(%q1, :), l, 0))]
+	[ifelse(gt(%q2, 11), setq(3, pm), setq(3, am))]
+	[ifelse(gt(%q2, 12), setq(2, sub(%q2, 12)), )]
+@@ Display.
+	[center(<>[repeat(-%xh%xc-%xn, 27)]<>, 78)] %r%r
+	[space(14)] The Most Empyreal and Accurate Time is 
+@@ Hours:Minutes AM/PM. 00 is 12.
+	[ifelse(%q2, %q2, 12)]:[extract(%q1, 2, 1, :)] %q3 %r
+	[space(14)] On This Day%, 
+@@ What day is that, exactly?
+	[case(
+		extract(%q0, 1, 1), 
+		Sun, Sunday, 
+		Mon, Monday, 
+		Tue, Tuesday, 
+		Wed, Wednesday, 
+		Thu, Thursday, 
+		Fri, Friday, 
+		Sat, Saturday
+	)]%, 
+@@ Now what month?
+	[case(
+		extract(%q0, 2, 1), 
+		Jan, January, 
+		Feb, February, 
+		Mar, March, 
+		Apr, April, 
+		May, May, 
+		Jun, June, 
+		Jul, July, 
+		Aug, August, 
+		Sep, September, 
+		Oct, October, 
+		Nov, November, 
+		Dec, December
+	)] 
+@@ The 1st, 2nd, 3rd, etc.
+	the [setr(4, extract(%q0, 3, 1))]
+	[switch(
+		right(%q4, 1), 
+		1, st, 
+		2, nd, 
+		3, rd, 
+		th
+	)]%, %r
+@@ Year
+	[space(14)] The Year of Our Benevolence%, [extract(%q0, 5, 1)] %r%r
+	[center(<>[repeat(-%xh%xc-%xn, 27)]<>, 78)]
+
+---
+
+&c_time #151=$+time:@pemit %#=[setq(0, ictime())][setq(1, extract(%q0, 4, 1))][setq(2, trim(first(%q1, :), l, 0))]	[ifelse(gt(%q2, 11), setq(3, pm), setq(3, am))][ifelse(gt(%q2, 12), setq(2, sub(%q2, 12)), )][center(<>[repeat(-%xh%xc-%xn, 27)]<>, 78)] %r%r[space(14)] The Most Empyreal and Accurate Time is [ifelse(%q2, %q2, 12)]:[extract(%q1, 2, 1, :)] %q3 %r[space(14)] On This Day%, [case(extract(%q0, 1, 1), Sun, Sunday, Mon, Monday, Tue, Tuesday, Wed, Wednesday, Thu, Thursday, Fri, Friday, Sat, Saturday)]%, [case(extract(%q0, 2, 1), Jan, January, Feb, February, Mar, March, Apr, April, May, May, Jun, June, Jul, July, Aug, August, Sep, September, Oct, October, Nov, November, Dec, December)] the [setr(4, extract(%q0, 3, 1))][switch(right(%q4, 1), 1, st, 2, nd, 3, rd, th)]%, %r[space(14)] The Year of Our Benevolence%, [extract(%q0, 5, 1)] %r%r[center(<>[repeat(-%xh%xc-%xn, 27)]<>, 78)]
+
+think ictime(default season daytime)
+
+--------------------
+
+Okay, now to make a Day/Night Notification Scheme
+(Coded for TinyMUSH, which has @cron)
+
+@startup #212=@cron #212/f_timechecks=*/1 * * * *
+
+&f_timechecks #212=@trig me/f_daytimer;
+
+&f_daytimer #212=@switch not(comp(ictime(daytime), v(d_daytimer-last)))=0, {
+	&d_daytimer-last me=[ictime(daytime)]; 
+	@switch v(d_daytimer-last)=
+		Dawn, @wall/emit/no Dawn Message,
+		Sunset, @wall/emit/no Sunset Message
+}
+
+&f_daytimer #212=@switch not(comp(ictime(daytime), v(d_daytimer-last)))=0, {&d_daytimer-last me=[ictime(daytime)]; @switch v(d_daytimer-last)=Dawn, @wall/emit/no %xh%xyDawn Message%xn, Sunset, @wall/emit/no %xh%xcSunset Message%xn}
