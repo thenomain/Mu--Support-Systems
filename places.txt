@@ -1,0 +1,275 @@
+================================================================================
+== PLANNING: Old Places ========================================================
+
+* mv from <#> to <#> Moves a vacancy from one place to another.                                                                              
+* join <place name> Puts you at <place name>                                                                                                 
+* join at #<num> Puts you at place #<num>.                                                                                                   
+* join with <name> Puts you at the place with <name>.                                                                                        
+* depart Removes you from your place.                                                                                                        
+* sit * Alias for Join.                                                                                                                      
+* depart Removes you from your place.                                                                                                        
+* places Lists who's present at all places.                                                                                                  
+* place <num> Lists who's present at place <num>.                                                                                            
+* plook Lists in column format everyone around the room.                                                                                     
+* plook <num> Lists name of <num> and virtual desc.                                                                                          
+* tt <message> (Tete a tete) Relays a message to all those at your place. This command takes the usual say/pose tokens, and TT |<message>    
+  will emit.                                                                                                                                   
+* ttooc <message> (Tete a tete) Relays an OOC message                                                                                        
+* update <#>/<Option>=<text> See "+help places-options"                                                                                      
+
+PLACES are virtual places to sit, stand or occupy. You remain in the same room, but join a group of people within that room who may or may not be having a quiet conversation only with others placed with them.
+
+For installation help, see "places-config".
+
+--
+
+Update <Place #>/<Option>=<Configuration Text>
+
+Option Description - <Option> - Default Configuration Text
+* Place Name - NAME - Table x                                                                                                                
+* Maximum # of places - MAXPLACES - Random                                                                                                   
+* Current # of places - CURPLACES - Random (1 >= # >= MAXPLACES)                                                                             
+* Fixed fail message - FIXED - <NULL>                                                                                                        
+* Full fail message - FULL - That table has no more room.                                                                                    
+* Join message - JOIN - You sit down at <place>.                                                                                             
+* Ojoin message - OJOIN - sits down at <place>.                                                                                              
+* Depart message - DEPART - You stand and leave <place>.                                                                                     
+* Odepart message - ODEPART - stands and leaves <place>.                                                                                     
+* Say prefix - PREFIX - At your table                                                                                                        
+* Description - DESCRIBE - A table with 4 legs and some chairs                                                                              
+
+--
+
+This code originally provided courtesy of Deirdre, Meg, and Osric of AmberMUSH. It has since been edited by Angel@Heaven
+
+* Configure <num> places                                                                                                                     
+* Unconfigure places                                                                                                                         
+
+Notes: A null fixed message means vacancies can be moved freely to and from the place. This does not make sense for things like couches and rugs. Set it to something like "That makes no sense." if you are using such a place.
+
+(O)Join and (O)depart messages take like this: %N. All Join and Depart messages are appended with the place name.
+
+Functions:
+* WHICHPLACE(<loc num>,<dbnum>) gives the number of a place where <dbnum> is.                                                                
+* ATPLACE(<loc num>,<place num>) gives you a list of things at a place.                                                                      
+* PLACEINFO(<loc num>,<place num>,<option>) gives the value of <option> at place.                                                           
+
+
+
+think [setq(w, whichplace)][setq(c, yh)][list(search(eval=grepi(##, *, %qw)), [wheader([name(%i0)] %(%i0%))]%r[iter(grepi(%i0, *, %qw), [ansi(%qc, >> %i0 <<)]%r[edit(get(%i1/%i0), %qw, ansi(%qc, %qw))], , %r)])][wfooter()]
+
+
+================================================================================
+== PLANNING: Setting Up Places =================================================
+
+The owner of a location should be able to set up places there, but the concept of "owner" is sometimes an iffy one.  Some games prefer that staff own all public hangouts, for example, even though a noncharbit has administrative control over it.
+
+We'll store everything, including this optional 'places owner' lock, on a set of room attributes prefixed &places.* & keep controlled information locked to the places object.
+
+	places.<num>.details: <name>|<spaces total>|<description>
+	places.<num>.notices: <say prefix>|<join>|<ojoin>|<depart>|<odepart>
+	places.<num>.occupancy: <who's there>
+
+(If 'spaces total' is 0, no limit.)
+
+If we get this far, lock to the places system object:
+
+	places.administrators: <list of people who can set up places here>
+
+User-defined commands we'll need:
+
+	isstaff(<player>) - return '1' if player has staff access
+	header(<text>) - game's default command header
+	footer(<text>) - game's default command footer
+	divider() - minor divider
+
+
+================================================================================
+== SETUP: Places ===============================================================
+
+@create Places Global Object <pgo>
+@set pgo=Inherit
+@set pgo=Safe
+
+
+================================================================================== PLACES GLOBAL OBJECT <pgo> ==================================================
+
+Commands:
+
+	places - the main driving command
+	tt[ooc] - tabletalk
+	sit/join & depart/leave - there we go
+
+NOTE TO SELF: I think the 'mutter' commands try to integrate with the places systems.  Remember to check and fix accordingly.
+
+
+--------------------------------------------------------------------------------
+-- Data ------------------------------------------------------------------------
+
+None so far.
+
+
+--------------------------------------------------------------------------------
+-- Mistress Setup --------------------------------------------------------------
+
+The "Mistress System" funnels everything through a single command.  For this command, like many others, an optional 's' on it is valid.  e.g., +place/+places.  (I should regexp that.)
+
+	+command(s) -> &c.<command>.default
+	+command(s) <stuff> -> &c.<command>.specific
+	+command(s)/switches [<stuff>] -> &c.<command>/<switch>
+
+To each of these (including the first), the following are passed:
+	%0: <stuff>
+	%1: </other/switches>
+
+In the case of the switches, the first valid switch has their command called, if all switches are invalid we call &c.<name>.default or &c.<name>.specific, depending on the above rules.
+
+--
+
+&c.places Places Global Object=$place*:@pemit %#=
+	[setq(n, places)]
+	[switch(%0, 
+@@ Without 's' ending
+		, u(c.%qn.default), 
+		/*, u(c.%qn.switch, first(%0), rest(%0)), 
+		%b*, u(c.%qn.specific, trim(%0)), 
+
+@@ With 's' ending
+		s, u(c.%qn.default), 
+		s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), 
+		s%b*, u(c.%qn.specific, trim(rest(%0))), 
+
+@@ No match
+		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
+	)]
+
+--
+
+&c.places Places Global Object=$+place*:@pemit %#=[setq(n, places)][switch(%0, , u(c.%qn.default), /*, u(c.%qn.switch, first(%0), rest(%0)), %b*, u(c.%qn.specific, trim(%0)), s, u(c.%qn.default), s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), s%b*, u(c.%qn.specific, trim(rest(%0))), Error: I don't know what you mean. Please see [ansi(h, +help %qn)])]
+
+
+--------------------------------------------------------------------------------
+-- +places/<switch> ------------------------------------------------------------
+
+Handles all /switches, which is to say it makes sure they exist and passes them on.
+
+Also handles pseudo-switches, passing them on as elements to any switched item.
+
+Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if %1 is empty.
+
+--
+
+0: /<switch>[/<switch>/<switch>, etc.]
+1: [<more>], stuff to pass to c.<name>/<switch>, if any
+qn: Name of the command, global register set in &c.<name> (above)
+
+qa: all c.<name>/* on this object
+qs: /valid/command/switches/found
+qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
+
+--
+
+&c.map.switch Places Global Object=
+	[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))]
+	[iter(rest(%0, /), 
+		if(
+			t(grab(%qa, c.%qn/%i0*)), 
+			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
+			setq(p, %qp/%i0)
+		), 
+		/, @@
+	)]
+	[if(t(%qs), 
+		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+		if(t(%1), 
+			ulocal(c.%qn.specific, %1, %qp), 
+			ulocal(c.%qn.default, %1, %qp)
+		)
+	)]
+
+--
+
+&c.map.switch Places Global Object=[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))][iter(rest(%0, /), if(t(grab(%qa, c.%qn/%i0*)), setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), setq(p, %qp/%i0)), /, @@)][if(t(%qs), ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), if(t(%1), ulocal(c.%qn.specific, %1, %qp), ulocal(c.%qn.default, %1, %qp)))]
+
+
+---------------------------------------------------------------------------------- places (default) ------------------------------------------------------------
+
+Show default places setup.
+
+
+---------------------------------------------------------------------------------- places <stuff> (specific) ---------------------------------------------------
+
+Show information about a particular place
+
+
+================================================================================
+== FUNCTION: Get XXX ===========================================================
+
+A bunch of functions to get specific information.  An easy way to get information for current and future coding.
+
+	u(f.get, <loc>, <placenum>, <list|of|elements>)
+	u(f.get.<element>, <loc>, <placenum>)
+
+--
+
+&f.get pgo=iter(%3, udefault(grab(lattr(%!/f.get.%i0*)), #-1, %0, %1), |, |)
+
+&f.get.name pgo=elements(get(%0/places.%1.details), 1, |)
+&f.get.spaces_total pgo=elements(get(%0/places.%1.details), 2, |)
+&f.get.description pgo=elements(get(%0/places.%1.details), lnum(3, 99), |, |)
+&f.get.say_prefix pgo=elements(get(%0/places.%1.notices), 1, |)
+&f.get.join pgo=elements(get(%0/places.%1.notices), 2, |)
+&f.get.ojoin pgo=elements(get(%0/places.%1.notices), 3, |)
+&f.get.depart pgo=elements(get(%0/places.%1.notices), 4, |)
+&f.get.odepart pgo=elements(get(%0/places.%1.notices), 5, |)
+&f.get.occupancy pgo=get(%0/places.%1.occupancy)
+
+
+================================================================================
+== FUNCTIONS: Set XXX ==========================================================
+
+Replaces elements entirely.  No checking first; using this on a place that hasn't been set up first will cause the information to not be written, due to the nature of replace() on TinyMUX.
+
+	u(f.set.<element>, <loc>, <placenum>, <item>)
+
+--
+
+&f.set.name pgo=u(f.set-element, %0, details, %1, 1, %2)
+&f.set.spaces_total pgo=u(f.set-element, %0, details, %1, 2, %2)
+&f.set.description pgo=
+	set(%0, 
+		places.%1.details:
+		[elements(get(%0/places.%1.details), 1 2, |, |)]|%1]
+	)
+
+&f.set.say_prefix pgo=u(f.set-element, %0, notices, %1, 1, %2)
+&f.set.join pgo=u(f.set-element, %0, notices, %1, 2, %2)
+&f.set.ojoin pgo=u(f.set-element, %0, notices, %1, 3, %2)
+&f.set.depart pgo=u(f.set-element, %0, notices, %1, 4, %2)
+&f.set.odepart pgo=u(f.set-element, %0, notices, %1, 5, %2)
+
+&f.set.occupancy pgo=set(%0, places.%1.occupancy:%1)
+
+&f.set-element pgo=set(%0, places.%2.%1:[replace(get(%0/places.%2.%1), %3, %4, |)])
+
+
+================================================================================
+== DISPLAY: One Place ==========================================================
+
+Used by 'show me information about all places/one place'
+
+Old:
+Table 1 (#1) has 2 empty places.
+        Present is:  Thenomain.
+
+New:
+	same for now, with 0 = '(no limit)'
+
+
+--
+
+0: Place number
+
+--
+
+&f.display.one-place Places Global Object=
