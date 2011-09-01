@@ -67,7 +67,8 @@ The owner of a location should be able to set up places there, but the concept o
 We'll store everything, including this optional 'places owner' lock, on a set of room attributes prefixed &places.* & keep controlled information locked to the places object.
 
 	places.<num>.details: <name>|<spaces total>|<description>
-	places.<num>.notices: <say prefix>|<join>|<ojoin>|<depart>|<odepart>
+	places.<num>.notices: 
+		<say prefix>|<osay prefix>|<join>|<ojoin>|<depart>|<odepart>
 	places.<num>.occupancy: <who's there>
 
 (If 'spaces total' is 0, no limit.)
@@ -79,9 +80,12 @@ If we get this far, lock to the places system object:
 User-defined commands we'll need:
 
 	isstaff(<player>) - return '1' if player has staff access
+	lmin(<list> [, <delimiter>]) - min() with delimiter
+
 	header(<text>) - game's default command header
 	footer(<text>) - game's default command footer
 	divider() - minor divider
+	alert(<test>) - header for informational alerts
 
 
 --------------------------------------------------------------------------------
@@ -95,7 +99,8 @@ And it ceases to be when all are gone.
 
 Same, but &gathering.* (?) -- no, because the rest of the places system needs to be able to interface with it.
 
-So: &_gatherings: <list of place numbers that are gatherings> (?)
+Instead: &place.<# of places + 1> and 
+		 &_gatherings: <list of place numbers that are gatherings>
 
 
 
@@ -107,7 +112,8 @@ So: &_gatherings: <list of place numbers that are gatherings> (?)
 @set pgo=Safe
 
 
-================================================================================== PLACES GLOBAL OBJECT <pgo> ==================================================
+================================================================================
+== PLACES GLOBAL OBJECT <pgo> ==================================================
 
 Commands:
 
@@ -184,7 +190,7 @@ qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
 
 --
 
-&c.map.switch Places Global Object=
+&c.places.switch Places Global Object=
 	[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))]
 	[iter(rest(%0, /), 
 		if(
@@ -204,23 +210,64 @@ qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
 
 --
 
-&c.map.switch Places Global Object=[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))][iter(rest(%0, /), if(t(grab(%qa, c.%qn/%i0*)), setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), setq(p, %qp/%i0)), /, @@)][if(t(%qs), ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), if(t(%1), ulocal(c.%qn.specific, %1, %qp), ulocal(c.%qn.default, %1, %qp)))]
+&c.places.switch Places Global Object=[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))][iter(rest(%0, /), if(t(grab(%qa, c.%qn/%i0*)), setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), setq(p, %qp/%i0)), /, @@)][if(t(%qs), ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), if(t(%1), ulocal(c.%qn.specific, %1, %qp), ulocal(c.%qn.default, %1, %qp)))]
 
 
----------------------------------------------------------------------------------- places (default) ------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- places (default) ------------------------------------------------------------
 
 Show default places setup.
 
 0: ignored
 1: fake /switches, ignored
 
+ql: location of %#
 
----------------------------------------------------------------------------------- places <stuff> (specific) ---------------------------------------------------
+--
+
+&c.places.default Places Global Object=
+	case(0, 
+		attrcnt([setr(l, loc(%#))]/places.*.details), There are no places here., 
+		list(
+			lattr(%ql/places.*.details), 
+			u(f.display.one-place, %ql, %i0)
+		)
+	)
+
+--
+
+&c.places.default Places Global Object=case(0, attrcnt([setr(l, loc(%#))]/places.*.details), There are no places here., list(lattr(%ql/places.*.details), u(f.display.one-place, %ql, %i0)))
+
+
+--------------------------------------------------------------------------------
+-- places <stuff> (specific) ---------------------------------------------------
 
 Show information about a particular place
 
 0: place name or number
 1: fake /switches, ignored
+
+ql: location of %#
+qn: number of location, if name passed
+
+--
+
+&c.places.default Places Global Object=
+	case(1, 
+		not(attrcnt([setr(l, loc(%#))]/places.*.details)), 
+		There are no places here., 
+
+		isint(%0), u(f.display.one-place, %ql, %0), 
+		
+		t(setr(n, u(f.get-num-by-name, %ql, %0))), 
+		u(f.display.one-place, %ql, %qn), 
+		
+		[alert(+places)] I can't find that place.
+	)
+
+--
+
+&c.places.default Places Global Object=case(1, not(attrcnt([setr(l, loc(%#))]/places.*.details)), There are no places here., isint(%0), u(f.display.one-place, %ql, %0), t(setr(n, u(f.get-num-by-name, %ql, %0))), u(f.display.one-place, %ql, %qn), [alert(+places)] I can't find that place.)
 
 
 
@@ -236,15 +283,31 @@ A bunch of functions to get specific information.  An easy way to get informatio
 
 &f.get pgo=iter(%3, udefault(grab(lattr(%!/f.get.%i0*)), #-1, %0, %1), |, |)
 
-&f.get.name pgo=elements(get(%0/places.%1.details), 1, |)
-&f.get.spaces_total pgo=elements(get(%0/places.%1.details), 2, |)
-&f.get.description pgo=elements(get(%0/places.%1.details), lnum(3, 99), |, |)
+&f.get.name pgo=u(f.get-element, %0, details, %1, 1, %2, name)
+&f.get.spaces_total pgo=u(f.get-element, %0, details, %1, 2, %2, spaces)
+&f.get.description pgo=u(f.get-element, %0, details, %1, 3, %2, description)
+
 &f.get.say_prefix pgo=elements(get(%0/places.%1.notices), 1, |)
-&f.get.join pgo=elements(get(%0/places.%1.notices), 2, |)
-&f.get.ojoin pgo=elements(get(%0/places.%1.notices), 3, |)
-&f.get.depart pgo=elements(get(%0/places.%1.notices), 4, |)
-&f.get.odepart pgo=elements(get(%0/places.%1.notices), 5, |)
+&f.get.osay_prefix pgo=u(f.get-element, %0, notices, %1, 2, %2, osay_prefix)
+&f.get.join pgo=u(f.get-element, %0, notices, %1, 3, %2, join)
+&f.get.ojoin pgo=u(f.get-element, %0, notices, %1, 4, %2, ojoin)
+&f.get.depart pgo=u(f.get-element, %0, notices, %1, 5, %2, depart)
+&f.get.odepart pgo=u(f.get-element, %0, notices, %1, 6, %2, odepart)
+
 &f.get.occupancy pgo=get(%0/places.%1.occupancy)
+
+--
+
+0: dbref
+1: attribtue data is on
+2: place num
+3: location in attribute
+4: name of item (for pulling default)
+
+&f.get-element pgo=localize(
+	[setq(e, elements(get(%0/places.%2.%1), %3, |))]
+	[if(strlen(%qe), objeval(%0, s(%qe)), v(d.default.%4))]
+)
 
 
 --------------------------------------------------------------------------------
@@ -279,16 +342,41 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 	)
 
 &f.set.say_prefix pgo=u(f.set-element, %0, notices, %1, 1, %2)
-&f.set.join pgo=u(f.set-element, %0, notices, %1, 2, %2)
-&f.set.ojoin pgo=u(f.set-element, %0, notices, %1, 3, %2)
-&f.set.depart pgo=u(f.set-element, %0, notices, %1, 4, %2)
-&f.set.odepart pgo=u(f.set-element, %0, notices, %1, 5, %2)
+&f.set.osay_prefix pgo=u(f.set-element, %0, notices, %1, 2, %2)
+&f.set.join pgo=u(f.set-element, %0, notices, %1, 3, %2)
+&f.set.ojoin pgo=u(f.set-element, %0, notices, %1, 4, %2)
+&f.set.depart pgo=u(f.set-element, %0, notices, %1, 5, %2)
+&f.set.odepart pgo=u(f.set-element, %0, notices, %1, 6, %2)
 
 &f.set.occupancy pgo=set(%0, places.%1.occupancy:%1)
 
 --
 
+0: dbref
+1: attribtue data is on
+2: place num
+3: location in attribute
+4: new value
+
 &f.set-element pgo=set(%0, places.%2.%1:[replace(get(%0/places.%2.%1), %3, %4, |)])
+
+
+================================================================================
+== DATA: Defaults ==============================================================
+
+If a places element is not set, or while setting up, use these defaults.
+
+&d.default.name pgo=A Table
+&d.default.spaces_total pgo=5
+&d.default.description pgo=A table with a couple of chairs.
+
+&d.default.say_prefix pgo=At your table,
+&d.default.osay_prefix pgo=From #NAME (#LOC),
+&d.defailt.join pgo=joins your location.
+&d.defailt.ojoin pgo=sits at #NAME (#LOC).
+&d.defailt.depart pgo=leaves your location.
+&d.defailt.odepart pgo=leaves #NAME (#LOC).
+
 
 
 ================================================================================
@@ -312,6 +400,44 @@ New:
 
 
 ================================================================================
+== DISPLAY: Elements ===========================================================
+
+The output of the various elements.
+
+--------------------------------------------------------------------------------
+-- Display Element -------------------------------------------------------------
+
+Output any known element.  Edit any tokens in the text.
+
+0: dbref
+1: place
+2: element
+
+--
+
+&f.display.element pgo=
+	edit(
+@@ .. get element - we know we'll get something if valid
+		udefault(
+			f.display.element.%2, 
+			u(f.display.element.other, %0, %1, %2), 
+			%0, %1, %2
+		), 
+@@ .. replace tokens
+		#LOC, <location number>, 
+		#NAME, <location name>
+	)
+
+
+--------------------------------------------------------------------------------
+-- Elements to display ---------------------------------------------------------
+
+&f.display.element.other pgo=udefault(f.get.%2, #-1 Element Unknown, %0, %1)
+
+&f.display.element.occupancy pgo=itemize(iter(u(f.get.occupancy), name(%i0), , |), |)
+
+
+================================================================================
 == FUNCTIONS: Cleanup ==========================================================
 
 We'll have the global system monitor disconnects, but we must initially set up a room with @aleave, or the equivalent.
@@ -327,3 +453,19 @@ Disconnected: Call the 'leave' function on that room for that person.
 Leave room: It can't call the 'leave' function unless we make it visible -- which we're not going to do -- so repeat
 
 &d.ahear Places Global Object=<xxx>
+
+
+================================================================================
+== FUNCTIONS: Support Functions ================================================
+
+Some functions used for various different aspects of the system.
+
+
+--------------------------------------------------------------------------------
+-- Lowest Available Number -----------------------------------------------------
+
+Passed a list of integers, it will return the lowest available positive integer.
+
+0: list of values
+
+&f.lowest-available-number pgo=lmin(setdiff(%0, lnum(1, lmax(%0))))
