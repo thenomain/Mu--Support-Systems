@@ -1,0 +1,134 @@
+CODE OBJECT DATA PARENT
+
+The purpose of this is to @parent any code object to in order to give you a rundown of its attributes in an organized manner.
+
+Usage:
+	@parent <object>=codp
+
+Configuration:
+	&prefix.<header_name> <object>=<a list of attribute prefixes>
+
+If you use a <header_name> that is on the Code Object Data Parent, it will override its prefixes.
+
+Because this object uses @descformat, you may @desc your object as normal.
+
+Requires:
+	header(<text>): Game's "pretty" output header.
+	footer(<text>): Game's "pretty" output footer.
+
+--------------------------------------------------------------------------------
+-- Setup -----------------------------------------------------------------------
+
+@create Code Object Data Parent <codp>=10
+
+@set Code Object Data Parent <codp>=INHERIT
+@set Code Object Data Parent <codp>=PARENT_OK
+@set Code Object Data Parent <codp>=SAFE
+
+
+--------------------------------------------------------------------------------
+-- Default Prefixes ------------------------------------------------------------
+
+&PREFIX.SERVER_COMMANDS Code Object Data Parent <codp>=startup shutdown aconnect adisconnect
+
+&PREFIX.DATA Code Object Data Parent <codp>=d. data.
+
+&PREFIX.COMMANDS Code Object Data Parent <codp>=c. cmd.
+
+&PREFIX.FUNCTIONS Code Object Data Parent <codp>=f. fn. fnc. fct.
+
+&PREFIX.FILTERS Code Object Data Parent <codp>=fil.
+
+&PREFIX.SORTS Code Object Data Parent <codp>=sort. sortby.
+
+&PREFIX.TRIGGERS Code Object Data Parent <codp>=tr. trig.
+
+&PREFIX.USER_FUNCTIONS Code Object Data Parent <codp>=ufunc. ufunc-switch.
+
+
+--------------------------------------------------------------------------------
+-- Descformat ------------------------------------------------------------------
+
+ql: list of 'prefix_title prefix prefix prefix', |-delimited 
+qc: attribute count
+
+--
+
+@DescFormat Code Object Data Parent <codp>=
+
+[localize(
+	[setq(l, 
+		iter(
+			setunion(lattr(%!/prefix.*), lattrp(%!/prefix.*)), 
+			[rest(%i0, .)] [iter(get(%!/%i0), lattr(%!/%i0*))], 
+			, |
+		)
+	)]
+
+@@ >> count actual attributes
+	[setq(c, words(setunion(iter(%ql, rest(%i0), |), )))]
+	
+	[header(name(%!))]
+
+@@ >> only list headers if they have attributes to list
+	[iter(%ql, 
+		if(
+			t(words(setr(r, rest(%i0)))), 
+			%r[first(%i0)] on this object: 
+			%r[lcstr(columns(sort(%qr), 25, , 2))]
+		), 
+		|, @@
+	)]
+	[if(not(%qc), %r)]
+	[footer(%qc attributes listed)][if(t(%0), %r%0%r[footer()])]
+)]
+
+--
+
+@DescFormat Code Object Data Parent <codp>=[localize([setq(l, iter(setunion(lattr(%!/prefix.*), lattrp(%!/prefix.*)), [rest(%i0, .)] [iter(get(%!/%i0), lattr(%!/%i0*))], , |))][setq(c, words(setunion(iter(%ql, rest(%i0), |), )))][header(name(%!))][iter(%ql, if(t(words(setr(r, rest(%i0)))), %r[first(%i0)] on this object: %r[lcstr(columns(sort(%qr), 25, , 2))]), |, @@)][if(not(%qc), %r)][footer(%qc attributes listed)][if(t(%0), %r%0%r[footer()])])]
+
+
+--------------------------------------------------------------------------------
+-- Non-TinyMUX Edits -----------------------------------------------------------
+
+Only Rhost for now.
+
+--
+
+@switch version()=
+	RhostMUSH*, {
+		@edit codp/descformat=
+			{columns(sort(%qr), 25, , 2)}, 
+			{columns(sort(%qr), 25, 3, l, 0, 0, %b%b)}; 
+		@edit codp/descformat={%i0}, {itext(0)}; 
+		@edit codp/descformat={, @@)}, {, @@())}
+	}
+
+--
+
+@switch version()=RhostMUSH*, {@edit codp/descformat={columns(sort(%qr), 25, , 2)}, {columns(sort(%qr), 25, 3, l, 0, 0, %b%b)}; @edit codp/descformat={%i0}, {itext(0)}; @edit codp/descformat={, @@)}, {, @@())}}
+
+
+--------------------------------------------------------------------------------
+-- Experimental: Startup -------------------------------------------------------
+
+TinyMUX Notes: his "startup" code does not propogate to the child object unless
+you add the "startup" flag, which is by default a) internal, b) locked to #1.
+
+It's not recommended, but the code is here in case it can be improved.
+
+--
+
+@Startup Code Object Data Parent <codp>=
+	@dolist [lattr(%!/ufunc.*)]=
+		@fo me=
+			@function/preserve[get(%!/ufunc-switch.[setr(0, after(##, .))])] 
+			%q0=%!/##; 
+	
+	@@ That is, for "me", ufunc.<function name> holds the code to call it (good 
+	idea to reference actual code), ufunc-switch.<function name> for any 
+	function switches. /preserve (localize setq()s) is always set.
+
+--
+
+@Startup Code Object Data Parent <codp>=@dolist [lattr(%!/ufunc.*)]=@fo me=@function/preserve[get(%!/ufunc-switch.[setr(0, after(##, .))])] %q0=%!/##; @@ That is, for "me", ufunc.<function name> holds the code to call it (good idea to reference actual code), ufunc-switch.<function name> for any function switches. /preserve (localize setq()s) is always set.
