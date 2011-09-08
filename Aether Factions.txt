@@ -180,6 +180,10 @@ qo: dbref of created faction object
 
 Clears everyone from the faction and destroys it. Staff-only.
 
+If the output looks odd, because some rosters are too large for the lbuf to handle, but list() avoids the output queue altogether.  So to get the timing right, each output element is wrapped in a list().
+
+--
+
 0: <faction name>[=YES]
 
 f: faction dbref
@@ -189,6 +193,8 @@ l: list of members
 d: attribute list
 r: rank, if any
 t: title, if any
+
+--
 
 &c.faction/destroy afo=
 	[setq(f, num(trim(first(%0, =))))]
@@ -205,9 +211,13 @@ t: title, if any
 
 		[setq(l, u(f.faction.roster, %qf))]
 
-		[header(+faction/destroy: [name(%qf)] (%qf))]%r
+@@ >> header
+		[list(1, 
+			header(+faction/destroy: [name(%qf)] (%qf))
+		)]
 
-		[iter(%ql, 
+@@ >> roster
+		[list(%ql, 
 			[setq(d, first(lattr(%qf/member-%i0*)))]
 			[setq(r, extract(%qd, 3, 1, -))]
 			[setq(t, rest(get(%qf/%qd), /))]
@@ -217,18 +227,21 @@ t: title, if any
 			Title: [if(t(%qt), %qt, none)] - 
 			Rank: [if(t(%qt), %qr, none)]
 @@ .. remove character
-			[u(f.member.remove, %i0, %qf)], 
-			, %r
-		)]%r %r
-		%b Information: [udefault(%qf/information, (Not Set))]%r %r
-		%b Created By: [name(get(%qf/d_created-by))] ([get(%qf/d_created-by)])%r
-		[footer([words(%ql)] members removed)]
-		[destroy(%qf)]
+			[u(f.member.remove, %i0, %qf)]
+		)]
+
+@@ >> footer
+		[list(1, 
+			%b Information: [udefault(%qf/information, (Not Set))]%r %r
+			%b Created By: [name(get(%qf/d_created-by))] ([get(%qf/d_created-by)])%r
+			[footer([words(%ql)] members removed)]
+			[destroy(%qf)]
+		)]
 	)]
 
 --
 
-&c.faction/destroy afo=[setq(f, num(trim(first(%0, =))))][setq(y, not(comp(rest(%0, =), YES)))][case(0, isstaff(%#), [alert(+faction)] Staff only., isdbref(%qf), [alert(+faction)] Could not find that faction., not(hasflag(%qf, going)), [alert(+faction)] Faction is already destroyed., %qy, [alert(+faction)] If you're absolutely sure%, type: +faction/destroy [name(%qf)]=YES, [setq(l, u(f.faction.roster, %qf))][header(+faction/destroy: [name(%qf)] (%qf))]%r[iter(%ql, [setq(d, first(lattr(%qf/member-%i0*)))][setq(r, extract(%qd, 3, 1, -))][setq(t, rest(get(%qf/%qd), /))]%b [name(%i0)] - Title: [if(t(%qt), %qt, none)] - Rank: [if(t(%qt), %qr, none)][u(f.member.remove, %i0, %qf)], , %r)]%r %r%b Information: [udefault(%qf/information, (Not Set))]%r %r%b Created By: [name(get(%qf/d_created-by))] ([get(%qf/d_created-by)])%r[footer([words(%ql)] members removed)][destroy(%qf)])]
+&c.faction/destroy afo=[setq(f, num(trim(first(%0, =))))][setq(y, not(comp(rest(%0, =), YES)))][case(0, isstaff(%#), [alert(+faction)] Staff only., isdbref(%qf), [alert(+faction)] Could not find that faction., not(hasflag(%qf, going)), [alert(+faction)] Faction is already destroyed., %qy, [alert(+faction)] If you're absolutely sure%, type: +faction/destroy [name(%qf)]=YES, [setq(l, u(f.faction.roster, %qf))][list(1, header(+faction/destroy: [name(%qf)] (%qf)))][list(%ql, [setq(d, first(lattr(%qf/member-%i0*)))][setq(r, extract(%qd, 3, 1, -))][setq(t, rest(get(%qf/%qd), /))]%b [name(%i0)] - Title: [if(t(%qt), %qt, none)] - Rank: [if(t(%qt), %qr, none)][u(f.member.remove, %i0, %qf)])][list(1, %b Information: [udefault(%qf/information, (Not Set))]%r %r%b Created By: [name(get(%qf/d_created-by))] ([get(%qf/d_created-by)])%r[footer([words(%ql)] members removed)][destroy(%qf)])])]
 
 
 ================================================================================
@@ -305,6 +318,10 @@ ql: list of factions to show
 ================================================================================
 == Display: Roster =============================================================
 
+If the use of list() here looks odd, it's because list() skips the queue.  By forcing all output into list(), it's processed in the proper order.
+
+--
+
 0: roster dbref
 
 qp: player dbref
@@ -312,13 +329,17 @@ qr: rank, if any
 qt: title, if any
 qs: permissions list
 
+--
+
 &f.display.roster afo=
-	[header([name(%0)][if(isstaff(%#), %b%(%0%))])]%r
-	%b [ljust(Name, 25)] [ljust(Title, 45)] Rank%r
-	%b[ansi(g, repeat(-, 77))]%r
+	[list(1, 
+		[header([name(%0)][if(isstaff(%#), %b%(%0%))])]%r
+		%b [ljust(Name, 25)] [ljust(Title, 45)] Rank%r
+		%b[ansi(g, repeat(-, 77))]
+	)]
 
 @@ >> each line, sorted by rank
-	[iter(
+	[list(
 		setr(m, sortby(f.sortby.rank, lattr(%0/member-*))), 
 		[setq(p, extract(%i0, 2, 1, -))]
 		[setq(r, extract(%i0, 3, 1, -))]
@@ -326,58 +347,60 @@ qs: permissions list
 
 		[if(u(f.factionhead?, %qp, %0), >, %b)] 
 		[ljust(name(%qp), 25)] 
-		[strtrunc(%qt,  45)] 
-		[center(%qr, 4)], 
-		, %r
-	)]%r
+		[ljust(%qt,  45)] 
+		[center(%qr, 4)]
+	)]
 
+	[list(1, 
 @@ >> info
-
-	%b[ansi(g, repeat(-, 77))]%r
-
-	[wrap(
-		udefault(%0/information,  No Information Set.), 
-		76, , %b%b
-	)]%r
-
-@@ >> report who can see, if faction dark, has permissions, & facthead/staff
-	[if(
-		and(
-			t(setr(s, get(%0/d_view-permission))), 
-			or(t(match(get(%#/_faction-member), ?!%0, |)), isstaff(%#)), 
-@@			u(f.factionhead?, %#, %0), 
-			or(isstaff(%#), hasflag(%0, dark))
-		), 
-		
 		%b[ansi(g, repeat(-, 77))]%r
 
-		[setq(s, 
-			iter(%qs, 
-				switch(%i0, 
-					faction:*, Faction is [titlestr(rest(%i0, :))], 
-					attribute:*:*, 
-						Attribute '[lcstr(elements(%i0, 2, :))]' 
-						is set to '[lcstr(last(%i0, :))]', 
-					attribute:*, 
-						Attribute '[lcstr(rest(%i0, :))]' exists, 
-					Unknown permission '[lcstr(first(%i0, :))]'
-				), 
-				|, |
-			)
+		[wrap(
+			udefault(%0/information,  No Information Set.), 
+			76, , %b%b
+		)]%r
+
+@@ >> report who can see, if faction dark, has permissions, & facthead/staff
+		[if(
+			and(
+				t(setr(s, get(%0/d_view-permission))), 
+				or(t(match(get(%#/_faction-member), ?!%0, |)), isstaff(%#)), 
+@@				u(f.factionhead?, %#, %0), 
+				or(isstaff(%#), hasflag(%0, dark))
+			), 
+		
+			%b[ansi(g, repeat(-, 77))]%r
+
+			[setq(s, 
+				iter(%qs, 
+					switch(%i0, 
+						faction:*, Faction is [titlestr(rest(%i0, :))], 
+						sphere:*, Sphere is [titlestr(rest(%i0, :))], 
+						attribute:*:*, 
+							Attribute '[lcstr(elements(%i0, 2, :))]' 
+							is set to '[lcstr(last(%i0, :))]', 
+						attribute:*, 
+							Attribute '[lcstr(rest(%i0, :))]' exists, 
+						Unknown permission '[lcstr(first(%i0, :))]'
+					), 
+					|, |
+				)
+			)]
+
+			%b View Permissions[if(not(hasflag(%0, dark)), %b[ansi(xh, (if set 	dark))])]:
+			[itemize(%qs, |)]%r
 		)]
 
-		%b View Permissions[if(not(hasflag(%0, dark)), %b[ansi(xh, (if set dark))])]:
-		[itemize(%qs, |)]%r
+@@ >> footer
+		[footer([words(%qm)] members)]
+
 	)]
 
 
-@@ >> footer
-
-	[footer([words(%qm)] members)]
 
 --
 
-&f.display.roster afo=[header([name(%0)][if(isstaff(%#), %b%(%0%))])]%r%b [ljust(Name, 25)] [ljust(Title, 45)] Rank%r%b[ansi(g, repeat(-, 77))]%r[iter(setr(m, sortby(f.sortby.rank, lattr(%0/member-*))), [setq(p, extract(%i0, 2, 1, -))][setq(r, extract(%i0, 3, 1, -))][setq(t, after(get(%0/%i0),  /))][if(u(f.factionhead?, %qp, %0), >, %b)] [ljust(name(%qp), 25)] [ljust(%qt,  45)] [center(%qr, 4)], , %r)]%r%b[ansi(g, repeat(-, 77))]%r[wrap(udefault(%0/information,  No Information Set.), 76, , %b%b)]%r[if(and(t(setr(s, get(%0/d_view-permission))), or(t(match(get(%#/_faction-member), ?!%0, |)), isstaff(%#)), or(isstaff(%#), hasflag(%0, dark))), %b[ansi(g, repeat(-, 77))]%r[setq(s, iter(%qs, switch(%i0, faction:*, Faction is [titlestr(rest(%i0, :))], attribute:*:*, Attribute '[lcstr(elements(%i0, 2, :))]' is set to '[lcstr(last(%i0, :))]', attribute:*, Attribute '[lcstr(rest(%i0, :))]' exists, Unknown permission '[lcstr(first(%i0, :))]'), |, |))]%b View Permissions[if(not(hasflag(%0, dark)), %b[ansi(xh, (if set dark))])]: [itemize(%qs, |)]%r)][footer([words(%qm)] members)]
+&f.display.roster afo=[list(1, [header([name(%0)][if(isstaff(%#), %b%(%0%))])]%r%b [ljust(Name, 25)] [ljust(Title, 45)] Rank%r%b[ansi(g, repeat(-, 77))])][list(setr(m, sortby(f.sortby.rank, lattr(%0/member-*))), [setq(p, extract(%i0, 2, 1, -))][setq(r, extract(%i0, 3, 1, -))][setq(t, after(get(%0/%i0),  /))][if(u(f.factionhead?, %qp, %0), >, %b)] [ljust(name(%qp), 25)] [ljust(%qt,  45)] [center(%qr, 4)])][list(1, %b[ansi(g, repeat(-, 77))]%r[wrap(udefault(%0/information,  No Information Set.), 76, , %b%b)]%r[if(and(t(setr(s, get(%0/d_view-permission))), or(t(match(get(%#/_faction-member), ?!%0, |)), isstaff(%#)), or(isstaff(%#), hasflag(%0, dark))), %b[ansi(g, repeat(-, 77))]%r[setq(s, iter(%qs, switch(%i0, faction:*, Faction is [titlestr(rest(%i0, :))], sphere:*, Sphere is [titlestr(rest(%i0, :))], attribute:*:*, Attribute '[lcstr(elements(%i0, 2, :))]' is set to '[lcstr(last(%i0, :))]', attribute:*, Attribute '[lcstr(rest(%i0, :))]' exists, Unknown permission '[lcstr(first(%i0, :))]'), |, |))]%b View Permissions[if(not(hasflag(%0, dark)), %b[ansi(xh, (if set dark))])]: [itemize(%qs, |)]%r)][footer([words(%qm)] members)])]
 
 
 --------------------------------------------------------------------------------
@@ -615,7 +638,8 @@ g: grab the matching -- member attribute, then N!#dbref or H!#dbref
 		t(setinter(lcon(%!), %1)), 
 
 @@ >> Remove from Faction Object
-		[setq(g, lattr(%1/member-%0*))]
+@@		[setq(g, lattr(%1/member-%0*))]
+		[setq(g, regrabi(lattr(%1/member-%0*), member-%0(-.*)?))]
 		[set(%1, %qg:)]
 		
 @@ >> Remove Faction to Player Object
@@ -626,7 +650,7 @@ g: grab the matching -- member attribute, then N!#dbref or H!#dbref
 
 --
 
-&f.member.remove afo=case(1, t(setinter(lcon(%!), %1)), [setq(g, lattr(%1/member-%0*))][set(%1, %qg:)][setq(g, grab(get(%0/_faction-member), ?!%1, |))][set(%0, _faction-member:[remove(get(%0/_faction-member), %qg, |)])], #-2)
+&f.member.remove afo=case(1, t(setinter(lcon(%!), %1)), [setq(g, regrabi(lattr(%1/member-%0*), member-%0(-.*)?))][set(%1, %qg:)][setq(g, grab(get(%0/_faction-member), ?!%1, |))][set(%0, _faction-member:[remove(get(%0/_faction-member), %qg, |)])], #-2)
 
 --
 
@@ -1130,6 +1154,9 @@ returns: 1 or 0
 					?![locate(%!, rest(%i0, :), i)], 
 					|
 				)), 
+@@ .. in sphere? (specific for The Reach)
+				sphere:*, 
+				t(match(sphere(%1), rest(%i0, :))), 
 
 @@ .. attribute matches? (remember not to evaluate)
 				attribute:*:*, 
