@@ -81,7 +81,7 @@ localize(
 @@ ----------------------------------------
 @@ sphere:<faction name>
 
-&access.sphere asf=objeval(%#, strmatch(sphere(%0), %1))
+&access.sphere asf=strmatch(sphere(%0), %1)
 
 &translate.sphere asf=[if(t(%0), is not in, belongs to)] sphere '%1'
 
