@@ -365,7 +365,7 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 
 
 ================================================================================
-== DATA: Defaults ==============================================================
+== DATA: Element Defaults ======================================================
 
 If a places element is not set, or while setting up, use these defaults.
 
@@ -533,7 +533,7 @@ Passed a list of integers, it will return the lowest available positive integer.
 
 0: list of values
 
-&f.lowest-available-number pgo=lmin(setdiff(%0, lnum(1, lmax(%0))))
+&f.lowest-available-number pgo=lmin(setdiff(lnum(1, inc(lmax(%0))), %0))
 
 
 ================================================================================
@@ -682,7 +682,7 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 		[trigger(%!/tr.setup, %0)]
 		[if(
 			not(hasattr(%0, places.1.details)), 
-			trigger(%!/tr.newplace, %0, %1)
+			trigger(%!/tr.newplace, %0, 1)
 		)]
 		1, 
 
@@ -736,12 +736,27 @@ Create a new place, auto-incremented and filled with defaults.
 
 Returns: #-1 ERROR or place #, if successful.
 
+--
 
 &action.newplace Places Global Object=
 	case(0, 
-		
+		or(strmatch(%#, owner(%0)), isstaff(%#)), 
+		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
+
+		hasattr(%0, places.1.details), 
+		#-1 PLACES NOT CONFIGURED, 
+
+		[setr(n, 
+			u(f.lowest-available-number, 
+				iter(lattr(%0/places.*.details), elements(%i0, 2, .))
+			)
+		)]
+		[trigger(%!/tr.newplace, %0, %qn)]
 	)
 
+--
+
+&action.newplace Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, [setr(n, u(f.lowest-available-number, iter(lattr(%0/places.*.details), elements(%i0, 2, .))))][trigger(%!/tr.newplace, %0, %qn)])
 
 
 --------------------------------------------------------------------------------
@@ -749,9 +764,12 @@ Returns: #-1 ERROR or place #, if successful.
 
 Set an aspect of an existing place (including "gatherings", when exists).
 
-	places(set, <room>, <place #>, <item> , <info>)
+	places(set, <room>, <place #>, <element> , <info>)
 
 Info cannot be null.
+
+qn: element name
+qe: possible error during set
 
 --
 
@@ -760,18 +778,41 @@ Info cannot be null.
 		or(strmatch(%#, owner(%0)), isstaff(%#)), 
 		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
 
+@@ >> check that it's set up
+		hasattr(%0, places.1.details), 
+		#-1 PLACES NOT CONFIGURED, 
+
 @@ >> rudamentary '<place>' check
 		hasattr(%0, places.%1.details), 
 		#-1 NO SUCH PLACE, 
 
-@@ >> '<item>' check - grab full item name & check null
-		t(setr(xxx, grab(|xx|xx|xx|xx, %2*, |))), 
-		#-1 ITEM NOT FOUND, 
+@@ >> '<info> check
+		comp(%3, ), 
+		#-1 ELEMENT MAY NOT BE NULL, 
 
+@@ >> '<element>' check - grab full item name & check null
+		t(setr(n, 
+			grab(
+				|[iter(lattr(%!/f.set.*), last(%i0, .), , |)], 
+				%2*, |
+			)
+		)), 
+		#-1 ELEMENT NOT FOUND, 
 
+@@ >> '<element>' grabbed was null
+		comp(%qn, ), 
+		#-1 ELEMENT NOT FOUND, 
+
+@@ >> set, check
+		comp(setr(e, u(f.set.%qn, %0, %1, %3)), ), 
+		1, 
+
+		#-1 [ucstr(%qe)]
 	)
 
+--
 
+&action.set Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, comp(%3, ), #-1 ELEMENT MAY NOT BE NULL, t(setr(n, grab(|[setdiff(iter(lattr(%!/f.set.*), last(%i0, .), , |), OCCUPANCY, |)], %2*, |))), #-1 ELEMENT NOT FOUND, comp(%qn, ), #-1 ELEMENT NOT FOUND, comp(setr(e, u(f.set.%qn, %0, %1, %3)), ), 1, #-1 [ucstr(%qe)])
 
 
 
