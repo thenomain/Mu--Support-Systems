@@ -460,9 +460,9 @@ Setting up WILL clobber a room's @adisconnect, @aleave, and @startup
 	@unlock %0/aleave; 
 	@unlock %0/startup; 
 
-	@adisconnect %0=places%(cleanup, %%!%); 
-	@aleave %0=places%(cleanup, %%!%); 
-	@startup %0=places%(cleanup, %%!%); 
+	@adisconnect %0=@eval places%(cleanup, %%!%); 
+	@aleave %0=@eval places%(cleanup, %%!%); 
+	@startup %0=@eval places%(cleanup, %%!%); 
 
 	@chown %0/adisconnect=[owner(%0)]; 
 	@chown %0/aleave=[owner(%0)]; 
@@ -474,7 +474,7 @@ Setting up WILL clobber a room's @adisconnect, @aleave, and @startup
 
 --
 
-&tr.setup Places Global Object=@unlock %0/adisconnect; @unlock %0/aleave; @unlock %0/startup; @adisconnect %0=places%(cleanup, %%!%); @aleave %0=places%(cleanup, %%!%); @startup %0=places%(cleanup, %%!%); @chown %0/adisconnect=[owner(%0)]; @chown %0/aleave=[owner(%0)]; @chown %0/startup=[owner(%0)]; @lock %0/adisconnect=%0; @lock %0/aleave=%0; @lock %0/startup=%0; 
+&tr.setup Places Global Object=@unlock %0/adisconnect; @unlock %0/aleave; @unlock %0/startup; @adisconnect %0=@eval places%(cleanup, %%!%); @aleave %0=@eval places%(cleanup, %%!%); @startup %0=@eval places%(cleanup, %%!%); @chown %0/adisconnect=[owner(%0)]; @chown %0/aleave=[owner(%0)]; @chown %0/startup=[owner(%0)]; @lock %0/adisconnect=%0; @lock %0/aleave=%0; @lock %0/startup=%0; 
 
 
 ================================================================================
@@ -629,7 +629,7 @@ Returns: #-1 ERROR or 1 (true) if the code ran or set without error.
 
 @@ no specific dbref(s), clean up everyone
 		comp(%1, ), 
-		[setq(c, lcon(loc(%#), connect))]
+		[setq(c, lcon(%1, connect))]
 		[setq(e, 
 			iter(lattr(%0/places.*.occupancy), 
 				set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@
@@ -656,7 +656,7 @@ Returns: #-1 ERROR or 1 (true) if the code ran or set without error.
 
 --
 
-&action.cleanup Places Global Object=case(0, or(strmatch(%0, %@), strmatch(%0, loc(%#)), isstaff(%#)), #-1 CLEANUP MUST BE USED IN ROOM OR BY ROOM, or(strmatch(%1, ), strmatch(%1, %#), strmatch(%0, %@), isstaff(%#)), #-1 CLEANUP PLAYER MUST BE USED BY PLAYER OR ROOM, comp(%1, ), [setq(c, lcon(loc(%#), connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], [setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setdiff(get(%0/%i0), %1)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], #-1 FUNCTION PANIC IN 'CLEANUP')
+&action.cleanup Places Global Object=case(0, or(strmatch(%0, %@), strmatch(%0, loc(%#)), isstaff(%#)), #-1 CLEANUP MUST BE USED IN ROOM OR BY ROOM, or(strmatch(%1, ), strmatch(%1, %#), strmatch(%0, %@), isstaff(%#)), #-1 CLEANUP PLAYER MUST BE USED BY PLAYER OR ROOM, comp(%1, ), [setq(c, lcon(%1, connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], [setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setdiff(get(%0/%i0), %1)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], #-1 FUNCTION PANIC IN 'CLEANUP')
 
 
 --------------------------------------------------------------------------------
