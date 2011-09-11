@@ -460,9 +460,9 @@ Setting up WILL clobber a room's @adisconnect, @aleave, and @startup
 	@unlock %0/aleave; 
 	@unlock %0/startup; 
 
-	@adisconnect %0=places(%%!, cleanup); 
-	@aleave %0=places(%%!, cleanup); 
-	@startup %0=places(%%!, cleanup); 
+	@adisconnect %0=places%(cleanup, %%!%); 
+	@aleave %0=places%(cleanup, %%!%); 
+	@startup %0=places%(cleanup, %%!%); 
 
 	@chown %0/adisconnect=[owner(%0)]; 
 	@chown %0/aleave=[owner(%0)]; 
@@ -474,7 +474,8 @@ Setting up WILL clobber a room's @adisconnect, @aleave, and @startup
 
 --
 
-&tr.setup Places Global Object=@unlock %0/adisconnect; @unlock %0/aleave; @unlock %0/startup; @adisconnect %0=places(%%!, cleanup); @aleave %0=places(%%!, cleanup); @startup %0=places(%%!, cleanup); @chown %0/adisconnect=[owner(%0)]; @chown %0/aleave=[owner(%0)]; @chown %0/startup=[owner(%0)]; @lock %0/adisconnect=%0; @lock %0/aleave=%0; @lock %0/startup=%0; 
+&tr.setup Places Global Object=@unlock %0/adisconnect; @unlock %0/aleave; @unlock %0/startup; @adisconnect %0=places%(cleanup, %%!%); @aleave %0=places%(cleanup, %%!%); @startup %0=places%(cleanup, %%!%); @chown %0/adisconnect=[owner(%0)]; @chown %0/aleave=[owner(%0)]; @chown %0/startup=[owner(%0)]; @lock %0/adisconnect=%0; @lock %0/aleave=%0; @lock %0/startup=%0; 
+
 
 ================================================================================
 == TRIGGER: Breakdown ==========================================================
@@ -631,7 +632,7 @@ Returns: #-1 ERROR or 1 (true) if the code ran or set without error.
 		[setq(c, lcon(loc(%#), connect))]
 		[setq(e, 
 			iter(lattr(%0/places.*.occupancy), 
-				set(%0, %i0:[setunion(get(%0/%i0), %qc)]), , @@
+				set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@
 			)
 		)]
 		[if(comp(%qe, ), 
@@ -655,7 +656,7 @@ Returns: #-1 ERROR or 1 (true) if the code ran or set without error.
 
 --
 
-&action.cleanup Places Global Object=case(0, or(strmatch(%0, %@), strmatch(%0, loc(%#)), isstaff(%#)), #-1 CLEANUP MUST BE USED IN ROOM OR BY ROOM, or(strmatch(%1, ), strmatch(%1, %#), strmatch(%0, %@), isstaff(%#)), #-1 CLEANUP PLAYER MUST BE USED BY PLAYER OR ROOM, comp(%1, ), [setq(c, lcon(loc(%#), connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setunion(get(%0/%i0), %qc)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], [setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setdiff(get(%0/%i0), %1)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], #-1 FUNCTION PANIC IN 'CLEANUP')
+&action.cleanup Places Global Object=case(0, or(strmatch(%0, %@), strmatch(%0, loc(%#)), isstaff(%#)), #-1 CLEANUP MUST BE USED IN ROOM OR BY ROOM, or(strmatch(%1, ), strmatch(%1, %#), strmatch(%0, %@), isstaff(%#)), #-1 CLEANUP PLAYER MUST BE USED BY PLAYER OR ROOM, comp(%1, ), [setq(c, lcon(loc(%#), connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], [setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setdiff(get(%0/%i0), %1)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], #-1 FUNCTION PANIC IN 'CLEANUP')
 
 
 --------------------------------------------------------------------------------
@@ -701,7 +702,7 @@ Remove places from a room permenantly.
 
 Clobbers @startup, @aleave, @adisconnect.
 
-	places(setup, <room> [, YES])
+	places(breakdown, <room> [, YES])
 
 Returns: #-1 ERROR or 1 if it believes it was successful.
 
@@ -723,14 +724,54 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 
 --
 
-&action.breakdown Places Global Object=
+&action.breakdown Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 BREAKDOWN MAY BE USED BY ROOM OWNER ONLY, comp(%1, YES), [trigger(%!/tr.breakdown, %0)]1, #-1 BREAKDOWN REQUIRES CONFIRMATION)
+
+
+--------------------------------------------------------------------------------
+-- places(): new place ---------------------------------------------------------
+
+Create a new place, auto-incremented and filled with defaults.
+
+	places(newplace, <room>, [<'true' if gathering/temp place>])
+
+Returns: #-1 ERROR or place #, if successful.
+
+
+&action.newplace Places Global Object=
+	case(0, 
+		
+	)
+
+
+
+--------------------------------------------------------------------------------
+-- places(): set ---------------------------------------------------------------
+
+Set an aspect of an existing place (including "gatherings", when exists).
+
+	places(set, <room>, <place #>, <item> , <info>)
+
+Info cannot be null.
+
+--
+
+&action.set Places Global Object=
 	case(0, 
 		or(strmatch(%#, owner(%0)), isstaff(%#)), 
-		#-1 BREAKDOWN MAY BE USED BY ROOM OWNER ONLY, 
+		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
 
-		comp(%1, YES), 
-		[trigger(%!/tr.breakdown, %0)]
-		1, 
+@@ >> rudamentary '<place>' check
+		hasattr(%0, places.%1.details), 
+		#-1 NO SUCH PLACE, 
 
-		#-1 BREAKDOWN REQUIRES CONFIRMATION
+@@ >> '<item>' check - grab full item name & check null
+		t(setr(xxx, grab(|xx|xx|xx|xx, %2*, |))), 
+		#-1 ITEM NOT FOUND, 
+
+
 	)
+
+
+
+
+
