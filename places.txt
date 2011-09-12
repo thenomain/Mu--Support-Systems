@@ -574,7 +574,7 @@ List is available only to the room itself, people in the room, or to a staffer.
 
 	places(list, <room> [, <place>])
 
-Returns: #-1 ERROR or '<place name> (<num>):<list of dbrefs there>', |-delim
+Returns: #-1 ERROR or '<num>:<name>:<max>:<list of dbrefs>', |-delim
 
 --
 
@@ -583,14 +583,22 @@ Returns: #-1 ERROR or '<place name> (<num>):<list of dbrefs there>', |-delim
 		or(strmatch(%0, %@), strmatch(%0, loc(%#)), isstaff(%#)), 
 		#-1 LIST MUST BE USED IN ROOM OR BY ROOM, 
 
+@@ >> check that it's set up
+		hasattr(%0, places.1.details), 
+		#-1 PLACES NOT CONFIGURED, 
+
 @@ >> no '<place>', return everything, may be null
 		comp(%1, ), 
-		iter(lattr(%0/places.*.details), 
+		sort(
+			iter(lattr(%0/places.*.details), 
 @@ .. less efficient than grabbing directly from attribute, more updatable 
-			[setq(n, elements(%i0, 2, .))]
-			[u(f.get.name, %0, %qn, name)] (%qn):
-			[u(f.get.occupancy, %0, %qn)], 
-			, |
+				[setr(n, elements(%i0, 2, .))]:
+				[u(f.get.name, %0, %qn, name)]:
+				[u(f.get.spaces_total, %0, %qn, spaces_total)]:
+				[u(f.get.occupancy, %0, %qn)], 
+				, |
+			), 
+			n, |, |
 		), 
 
 @@ >> rudamentary '<place>' check
@@ -598,12 +606,15 @@ Returns: #-1 ERROR or '<place name> (<num>):<list of dbrefs there>', |-delim
 		#-1 NO SUCH PLACE, 
 
 @@ >> 'else' assumption: place exists, so show it
-		[u(f.get.name, %0, %1, name)] (%qn):[u(f.get.occupancy, %0, %1)]
+		%1:
+		[u(f.get.name, %0, %1, name)]:
+		[u(f.get.spaces_total, %0, %1, spaces_total)]:
+		[u(f.get.occupancy, %0, %1)]
 	)
 
 --
 
-&action.list Places Global Object=case(0, or(strmatch(%0, %@), strmatch(%0, loc(%#)), isstaff(%#)), #-1 LIST MUST BE USED IN ROOM OR BY ROOM, comp(%1, ), iter(lattr(%0/places.*.details), [setq(n, elements(%i0, 2, .))][u(f.get.name, %0, %qn, name)] (%qn):[u(f.get.occupancy, %0, %qn)], , |), hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, [u(f.get.name, %0, %1, name)] (%qn):[u(f.get.occupancy, %0, %1)])
+&action.list Places Global Object=case(0, or(strmatch(%0, %@), strmatch(%0, loc(%#)), isstaff(%#)), #-1 LIST MUST BE USED IN ROOM OR BY ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, comp(%1, ), sort(iter(lattr(%0/places.*.details), [setr(n, elements(%i0, 2, .))]:[u(f.get.name, %0, %qn, name)]:[u(f.get.spaces_total, %0, %qn, spaces_total)]:[u(f.get.occupancy, %0, %qn)], , |), n, |, |), hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, %1:[u(f.get.name, %0, %1, name)]:[u(f.get.spaces_total, %0, %1, spaces_total)]:[u(f.get.occupancy, %0, %1)])
 
 
 --------------------------------------------------------------------------------
@@ -771,6 +782,8 @@ Info cannot be null.
 qn: element name
 qe: possible error during set
 
+NOTE: '&f.set' SHOLD ALSO DATA VALIDATE
+
 --
 
 &action.set Places Global Object=
@@ -812,7 +825,6 @@ qe: possible error during set
 
 --
 
-&action.set Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, comp(%3, ), #-1 ELEMENT MAY NOT BE NULL, t(setr(n, grab(|[setdiff(iter(lattr(%!/f.set.*), last(%i0, .), , |), OCCUPANCY, |)], %2*, |))), #-1 ELEMENT NOT FOUND, comp(%qn, ), #-1 ELEMENT NOT FOUND, comp(setr(e, u(f.set.%qn, %0, %1, %3)), ), 1, #-1 [ucstr(%qe)])
-
+&action.set Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, comp(%3, ), #-1 ELEMENT MAY NOT BE NULL, t(setr(n, grab(|[iter(lattr(%!/f.set.*), last(%i0, .), , |)], %2*, |))), #-1 ELEMENT NOT FOUND, comp(%qn, ), #-1 ELEMENT NOT FOUND, comp(setr(e, u(f.set.%qn, %0, %1, %3)), ), 1, #-1 [ucstr(%qe)])
 
 
