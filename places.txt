@@ -89,6 +89,12 @@ User-defined commands we'll need:
 
 
 --------------------------------------------------------------------------------
+-- Validations -----------------------------------------------------------------
+
+The : and | characters are restricted as common output delimiters, and could mess up attribute setting.
+
+
+--------------------------------------------------------------------------------
 -- As-Needed Places (LA's Gatherings) ------------------------------------------
 
 *** TO DO ***
@@ -127,14 +133,29 @@ Commands:
 NOTE TO SELF: I think the 'mutter' commands try to integrate with the places systems.  Remember to check and fix accordingly.
 
 
---------------------------------------------------------------------------------
--- Data ------------------------------------------------------------------------
-
-None so far.
+================================================================================
+== DATA ========================================================================
 
 
 --------------------------------------------------------------------------------
--- Mistress Setup --------------------------------------------------------------
+-- Element Defaults ------------------------------------------------------------
+
+If a places element is not set, or while setting up, use these defaults.
+
+&d.default.name pgo=A Table
+&d.default.spaces_total pgo=5
+&d.default.description pgo=A table with a couple of chairs.
+
+&d.default.say_prefix pgo=At your table,
+&d.default.osay_prefix pgo=From #NAME (#LOC),
+&d.default.join pgo=joins your location.
+&d.default.ojoin pgo=sits at #NAME (#LOC).
+&d.default.depart pgo=leaves your location.
+&d.default.odepart pgo=leaves #NAME (#LOC).
+
+
+================================================================================
+== COMMAND SETUP ===============================================================
 
 The "Mistress System" funnels everything through a single command.  For this command, like many others, an optional 's' on it is valid.  e.g., +place/+places.  (I should regexp that.)
 
@@ -217,7 +238,7 @@ qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
 
 
 --------------------------------------------------------------------------------
--- places (default) ------------------------------------------------------------
+-- +places (default) -----------------------------------------------------------
 
 Show default places setup.
 
@@ -243,7 +264,7 @@ ql: location of %#
 
 
 --------------------------------------------------------------------------------
--- places <stuff> (specific) ---------------------------------------------------
+-- +places <stuff> (specific) --------------------------------------------------
 
 Show information about a particular place
 
@@ -365,21 +386,32 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 
 
 ================================================================================
-== DATA: Element Defaults ======================================================
+== FUNCTIONS: Validate XXX =====================================================
 
-If a places element is not set, or while setting up, use these defaults.
+Used primarially with &f.set.*, and should relate 1:1
 
-&d.default.name pgo=A Table
-&d.default.spaces_total pgo=5
-&d.default.description pgo=A table with a couple of chairs.
+	u(f.validate.<element>, <item>)
 
-&d.default.say_prefix pgo=At your table,
-&d.default.osay_prefix pgo=From #NAME (#LOC),
-&d.default.join pgo=joins your location.
-&d.default.ojoin pgo=sits at #NAME (#LOC).
-&d.default.depart pgo=leaves your location.
-&d.default.odepart pgo=leaves #NAME (#LOC).
+--
 
+&f.validate.text pgo=case(1, regmatch(%0, :|%\|), No pipes or colons., and(isint(%1), gt(strlen(%0), %1)), Keep item to %1 characters)
+
+&f.validate.num pgo=if(or(lt(%0, 0), not(isint(%0))), Positive integers only)
+
+--
+
+&f.validate.name pgo=u(f.validate.text, %0, 30)
+&f.validate.spaces_total pgo=u(f.validate.num, %0)
+&f.validate.description pgo=u(f.validate.text, %0)
+
+&f.validate.say_prefix pgo=u(f.validate.text, %0, 15)
+&f.validate.osay_prefix pgo=u(f.validate.text, %0, 15)
+&f.validate.join pgo=u(f.validate.text, %0, 15)
+&f.validate.ojoin pgo=u(f.validate.text, %0, 15)
+&f.validate.depart pgo=u(f.validate.text, %0, 15)
+&f.validate.odepart pgo=u(f.validate.text, %0, 15)
+
+&f.validate.occupancy pgo=if(land(iter(%0, and(isdbref(%i0), hastype(%i0, PLAYER)), , |), |), Occupancy must be player dbrefs)
 
 
 ================================================================================
@@ -407,6 +439,7 @@ New:
 
 The output of the various elements.
 
+
 --------------------------------------------------------------------------------
 -- Display Element -------------------------------------------------------------
 
@@ -427,13 +460,13 @@ Output any known element.  Edit any tokens in the text.
 			%0, %1, %2
 		), 
 @@ .. replace tokens
-		#LOC, <location number>, 
-		#NAME, <location name>
+		#LOC, %1, 
+		#NAME, u(f.get.name, %0, %1)
 	)
 
 --
 
-&f.display.element pgo=edit(udefault(f.display.element.%2, u(f.display.element.other, %0, %1, %2), %0, %1, %2), #LOC, <location number>, #NAME, <location name>)
+&f.display.element pgo=edit(udefault(f.display.element.%2, u(f.display.element.other, %0, %1, %2), %0, %1, %2), #LOC, %1, #NAME, u(f.get.name, %0, %1))
 
 
 --------------------------------------------------------------------------------
@@ -441,7 +474,7 @@ Output any known element.  Edit any tokens in the text.
 
 &f.display.element.other pgo=udefault(f.get.%2, #-1 Element Unknown, %0, %1)
 
-&f.display.element.occupancy pgo=itemize(iter(u(f.get.occupancy), name(%i0), , |), |)
+&f.display.element.occupancy pgo=itemize(iter(u(f.get.occupancy, %0, %1), name(%i0), , |), |)
 
 
 ================================================================================
