@@ -148,9 +148,9 @@ If a places element is not set, or while setting up, use these defaults.
 
 &d.default.say_prefix pgo=At your table,
 &d.default.osay_prefix pgo=From #NAME (#LOC),
-&d.default.join pgo=joins your location.
+&d.default.join pgo=joins everyone here at #NAME.
 &d.default.ojoin pgo=sits at #NAME (#LOC).
-&d.default.depart pgo=leaves your location.
+&d.default.depart pgo=leaves #NAME.
 &d.default.odepart pgo=leaves #NAME (#LOC).
 
 
@@ -351,7 +351,7 @@ Cheap filter().
 ================================================================================
 == FUNCTIONS: Set XXX ==========================================================
 
-Replaces elements entirely.  No checking first; using this on a place that hasn't been set up first will cause the information to not be written, due to the nature of replace() on TinyMUX.
+Replaces elements entirely.  No checking first; using this on a place that hasn't been set up first will cause the information to not be written, due to the nature of replace() on TinyMUX (does not create, only replaces).
 
 	u(f.set.<element>, <loc>, <placenum>, <item>)
 
@@ -372,7 +372,7 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 &f.set.depart pgo=u(f.set-element, %0, notices, %1, 5, %2)
 &f.set.odepart pgo=u(f.set-element, %0, notices, %1, 6, %2)
 
-&f.set.occupancy pgo=set(%0, places.%1.occupancy:%1)
+&f.set.occupancy pgo=set(%0, places.%1.occupancy:%2)
 
 --
 
@@ -815,8 +815,6 @@ Info cannot be null.
 qn: element name
 qe: possible error during set
 
-NOTE: '&f.set' SHOLD ALSO DATA VALIDATE
-
 --
 
 &action.set Places Global Object=
@@ -849,7 +847,11 @@ NOTE: '&f.set' SHOLD ALSO DATA VALIDATE
 		comp(%qn, ), 
 		#-1 ELEMENT NOT FOUND, 
 
-@@ >> set, check
+@@ >> validate input
+		not(strlen(setr(e, u(f.validate.%qn, %3)))), 
+		#-1 [ucstr(%qe)], 
+
+@@ >> set, check error from set
 		comp(setr(e, u(f.set.%qn, %0, %1, %3)), ), 
 		1, 
 
@@ -858,6 +860,71 @@ NOTE: '&f.set' SHOLD ALSO DATA VALIDATE
 
 --
 
-&action.set Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, comp(%3, ), #-1 ELEMENT MAY NOT BE NULL, t(setr(n, grab(|[iter(lattr(%!/f.set.*), last(%i0, .), , |)], %2*, |))), #-1 ELEMENT NOT FOUND, comp(%qn, ), #-1 ELEMENT NOT FOUND, comp(setr(e, u(f.set.%qn, %0, %1, %3)), ), 1, #-1 [ucstr(%qe)])
+&action.set Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, comp(%3, ), #-1 ELEMENT MAY NOT BE NULL, t(setr(n, grab(|[iter(lattr(%!/f.set.*), last(%i0, .), , |)], %2*, |))), #-1 ELEMENT NOT FOUND, comp(%qn, ), #-1 ELEMENT NOT FOUND, not(strlen(setr(e, u(f.validate.%qn, %3)))), #-1 [ucstr(%qe)], comp(setr(e, u(f.set.%qn, %0, %1, %3)), ), 1, #-1 [ucstr(%qe)])
 
 
+--------------------------------------------------------------------------------
+-- places(): join --------------------------------------------------------------
+
+If I'm going to make this a function-based system, I might as well go all the way.
+
+	places(join, <room>, <place #>, <player name or dbref>)
+
+qp: dbref from pmatch()
+qo: current place occupancy
+qs: spaces_total
+qe: possible error from set
+
+--
+
+&action.join Places Global Object=
+	case(0, 
+		and(
+			strmatch(%0, loc(setr(p, pmatch(%2)))), 
+			or(strmatch(%0, %@), isstaff(%#))
+		), 
+		#-1 JOIN MUST BE USED BY ROOM PLAYER IS IN, 
+
+@@ >> check that it's set up
+		hasattr(%0, places.1.details), 
+		#-1 PLACES NOT CONFIGURED, 
+
+@@ >> rudamentary '<place>' check
+		hasattr(%0, places.%1.details), 
+		#-1 NO SUCH PLACE, 
+
+@@ >> any space left? (0 spaces = infinite)
+		or(
+			eq(setr(s, u(f.get.spaces_total, %0, %1)), 0), 
+			lt(
+				words(setr(o, u(f.get.occupancy, %0, %1))), 
+				%qs
+			)
+		), 
+		#-1 NO SPACES AVAILABLE, 
+
+@@ >> already there
+		not(match(%qo, %qp)), 
+		#-1 ALREADY AT THAT LOCATION, 
+
+@@ >> dbref has to be player (c.f. pmatch), add it to .occupancy
+		comp(setr(e, u(f.set.occupancy, %0, %1, trim(%qo %qp))), ), 
+@@ .. ojoin
+		[pemit(
+			setdiff(lcon(%0), %qp), 
+			[name(%qp)] [u(f.display.element, %0, %1, ojoin)]
+		)]
+@@ .. join
+		[pemit(
+			setinter(lcon(%0), %qo %qp), 
+			[name(%qp)] [u(f.display.element, %0, %1, join)]
+		)]
+		1, 
+
+@@ .. error found on set
+		#-1 [ucstr(%qe)]
+	)
+
+--
+
+&action.join Places Global Object=case(0, and(strmatch(%0, loc(setr(p, pmatch(%2)))), or(strmatch(%0, %@), isstaff(%#))), #-1 JOIN MUST BE USED BY ROOM PLAYER IS IN, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, or(eq(setr(s, u(f.get.spaces_total, %0, %1)), 0), lt(words(setr(o, u(f.get.occupancy, %0, %1))), %qs)), #-1 NO SPACES AVAILABLE, not(match(%qo, %qp)), #-1 ALREADY AT THAT LOCATION, comp(setr(e, u(f.set.occupancy, %0, %1, trim(%qo %qp))), ), [pemit(setdiff(lcon(%0), %qp), [name(%qp)] [u(f.display.element, %0, %1, ojoin)])][pemit(setinter(lcon(%0), %qo), [name(%qp)] [u(f.display.element, %0, %1, join)])][pemit(%qp, You join [u(f.display.element, %0, %1, name)].)]1, #-1 [ucstr(%qe)])
