@@ -68,7 +68,7 @@ We'll store everything, including this optional 'places owner' lock, on a set of
 
 	places.<num>.details: <name>|<spaces total>|<description>
 	places.<num>.notices: 
-		<say prefix>|<osay prefix>|<join>|<ojoin>|<depart>|<odepart>
+		<say prefix>|<join>|<ojoin>|<depart>|<odepart>
 	places.<num>.occupancy: <who's there>
 
 (If 'spaces total' is 0, no limit.)
@@ -147,7 +147,6 @@ If a places element is not set, or while setting up, use these defaults.
 &d.default.description pgo=A table with a couple of chairs.
 
 &d.default.say_prefix pgo=At your table,
-&d.default.osay_prefix pgo=At #NAME (#LOC),
 &d.default.join pgo=joins everyone here at #NAME.
 &d.default.ojoin pgo=sits at #NAME (#LOC).
 &d.default.depart pgo=departs your table.
@@ -312,7 +311,6 @@ A bunch of functions to get specific information.  An easy way to get informatio
 &f.get.description pgo=u(f.get-element, %0, details, %1, 3, %2, description)
 
 &f.get.say_prefix pgo=elements(get(%0/places.%1.notices), 1, |)
-&f.get.osay_prefix pgo=u(f.get-element, %0, notices, %1, 2, %2, osay_prefix)
 &f.get.join pgo=u(f.get-element, %0, notices, %1, 3, %2, join)
 &f.get.ojoin pgo=u(f.get-element, %0, notices, %1, 4, %2, ojoin)
 &f.get.depart pgo=u(f.get-element, %0, notices, %1, 5, %2, depart)
@@ -376,11 +374,10 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 	)
 
 &f.set.say_prefix pgo=u(f.set-element, %0, notices, %1, 1, %2)
-&f.set.osay_prefix pgo=u(f.set-element, %0, notices, %1, 2, %2)
-&f.set.join pgo=u(f.set-element, %0, notices, %1, 3, %2)
-&f.set.ojoin pgo=u(f.set-element, %0, notices, %1, 4, %2)
-&f.set.depart pgo=u(f.set-element, %0, notices, %1, 5, %2)
-&f.set.odepart pgo=u(f.set-element, %0, notices, %1, 6, %2)
+&f.set.join pgo=u(f.set-element, %0, notices, %1, 2, %2)
+&f.set.ojoin pgo=u(f.set-element, %0, notices, %1, 3, %2)
+&f.set.depart pgo=u(f.set-element, %0, notices, %1, 4, %2)
+&f.set.odepart pgo=u(f.set-element, %0, notices, %1, 5, %2)
 
 &f.set.occupancy pgo=set(%0, places.%1.occupancy:%2)
 
@@ -415,7 +412,6 @@ Used primarially with &f.set.*, and should relate 1:1
 &f.validate.description pgo=u(f.validate.text, %0)
 
 &f.validate.say_prefix pgo=u(f.validate.text, %0, 15)
-&f.validate.osay_prefix pgo=u(f.validate.text, %0, 15)
 &f.validate.join pgo=u(f.validate.text, %0, 15)
 &f.validate.ojoin pgo=u(f.validate.text, %0, 15)
 &f.validate.depart pgo=u(f.validate.text, %0, 15)
@@ -554,13 +550,13 @@ Sets up Place #%1 in room %0 with all the defaults.
 
 &tr.newplace Places Global Object=
 	&places.%1.details %0=[iter(name spaces_total description, v(d.default.%i0), , |)];
-	&places.%1.notices %0=[iter(say_prefix osay_prefix join ojoin depart odepart, v(d.default.%i0), , |)]; 
+	&places.%1.notices %0=[iter(say_prefix join ojoin depart odepart, v(d.default.%i0), , |)]; 
 	@chown %0/places.%1.details=[owner(%0)]; 
 	@chown %0/places.%1.notices=[owner(%0)]; 
 
 --
 
-&tr.newplace Places Global Object=&places.%1.details %0=[iter(name spaces_total description, v(d.default.%i0), , |)];&places.%1.notices %0=[iter(say_prefix osay_prefix join ojoin depart odepart, v(d.default.%i0), , |)]; @chown %0/places.%1.details=[owner(%0)]; @chown %0/places.%1.notices=[owner(%0)]; 
+&tr.newplace Places Global Object=&places.%1.details %0=[iter(name spaces_total description, v(d.default.%i0), , |)];&places.%1.notices %0=[iter(say_prefix join ojoin depart odepart, v(d.default.%i0), , |)]; @chown %0/places.%1.details=[owner(%0)]; @chown %0/places.%1.notices=[owner(%0)]; 
 
 
 ================================================================================
@@ -1052,7 +1048,7 @@ qs: say/pose formatted
 
 --
 
-&action.tt Places Global Object=case(0, or(and(strmatch(%0, loc(%#)), strmatch(setr(p, pmatch(%1)), %#)), isstaff(%#)), #-1 TT MUST BE USED IN ROOM BY PERSON, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, t(setr(n, ulocal(action.whichplace, %0, %qp))), %qn, [setq(o, u(f.get.occupancy, %0, %qn))][setq(s, [name(%qp)][objeval(%#, switch(%2, :*, %b[rest(%2, :)], %;, rest(%2, %;), %bsays%, “%2”))])][case(1, strmatch(%3, loud), pemit(lcon(%0), [u(f.display.element, %0, %qn, osay_prefix)] %qs),strmatch(%3, ooc), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] [ansi(xh, <ooc>)] %qs),pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] %qs),)]1)
+&action.tt Places Global Object=case(0, or(and(strmatch(%0, loc(%#)), strmatch(setr(p, pmatch(%1)), %#)), isstaff(%#)), #-1 TT MUST BE USED IN ROOM BY PERSON, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, t(setr(n, ulocal(action.whichplace, %0, %qp))), %qn, [setq(o, u(f.get.occupancy, %0, %qn))][setq(s, [name(%qp)][objeval(%#, switch(%2, :*, %b[rest(%2, :)], %;, rest(%2, %;), %bsays%, “%2”))])][case(1, strmatch(%3, ooc), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] [ansi(xh, <ooc>)] %qs),pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] %qs),)]1)
 
 
 --------------------------------------------------------------------------------
