@@ -66,12 +66,12 @@ The owner of a location should be able to set up places there, but the concept o
 
 We'll store everything, including this optional 'places owner' lock, on a set of room attributes prefixed &places.* & keep controlled information locked to the places object.
 
-	places.<num>.details: <name>|<spaces total>|<description>
+	places.<num>.details: <name>|<spaces>|<description>
 	places.<num>.notices: 
 		<say prefix>|<join>|<ojoin>|<depart>|<odepart>
 	places.<num>.occupancy: <who's there>
 
-(If 'spaces total' is 0, no limit.)
+(If 'spaces' is 0, no limit.)
 
 If we get this far, lock to the places system object:
 
@@ -143,7 +143,7 @@ NOTE TO SELF: I think the 'mutter' commands try to integrate with the places sys
 If a places element is not set, or while setting up, use these defaults.
 
 &d.default.name pgo=A Table
-&d.default.spaces_total pgo=5
+&d.default.spaces pgo=5
 &d.default.description pgo=A table with a couple of chairs.
 
 &d.default.say_prefix pgo=At your table,
@@ -307,14 +307,14 @@ A bunch of functions to get specific information.  An easy way to get informatio
 &f.get pgo=iter(%3, udefault(grab(lattr(%!/f.get.%i0*)), #-1, %0, %1), |, |)
 
 &f.get.name pgo=u(f.get-element, %0, details, %1, 1, %2, name)
-&f.get.spaces_total pgo=u(f.get-element, %0, details, %1, 2, %2, spaces)
+&f.get.spaces pgo=u(f.get-element, %0, details, %1, 2, %2, spaces)
 &f.get.description pgo=u(f.get-element, %0, details, %1, 3, %2, description)
 
 &f.get.say_prefix pgo=elements(get(%0/places.%1.notices), 1, |)
-&f.get.join pgo=u(f.get-element, %0, notices, %1, 3, %2, join)
-&f.get.ojoin pgo=u(f.get-element, %0, notices, %1, 4, %2, ojoin)
-&f.get.depart pgo=u(f.get-element, %0, notices, %1, 5, %2, depart)
-&f.get.odepart pgo=u(f.get-element, %0, notices, %1, 6, %2, odepart)
+&f.get.join pgo=u(f.get-element, %0, notices, %1, 2, %2, join)
+&f.get.ojoin pgo=u(f.get-element, %0, notices, %1, 3, %2, ojoin)
+&f.get.depart pgo=u(f.get-element, %0, notices, %1, 4, %2, depart)
+&f.get.odepart pgo=u(f.get-element, %0, notices, %1, 5, %2, odepart)
 
 &f.get.occupancy pgo=get(%0/places.%1.occupancy)
 
@@ -365,21 +365,18 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 
 --
 
-&f.set.name pgo=u(f.set-element, %0, details, %1, 1, %2)
-&f.set.spaces_total pgo=u(f.set-element, %0, details, %1, 2, %2)
-&f.set.description pgo=
-	set(%0, 
-		places.%1.details:
-		[elements(get(%0/places.%1.details), 1 2, |, |)]|%1]
-	)
+&f.set.name pgo=trigger(%!/tr.set-element, %0, details, %1, 1, %2)
+&f.set.spaces pgo=trigger(%!/tr.set-element, %0, details, %1, 2, %2)
+&f.set.description pgo=trigger(%!/tr.set-element, %0, details, %1, 3, %2)
 
-&f.set.say_prefix pgo=u(f.set-element, %0, notices, %1, 1, %2)
-&f.set.join pgo=u(f.set-element, %0, notices, %1, 2, %2)
-&f.set.ojoin pgo=u(f.set-element, %0, notices, %1, 3, %2)
-&f.set.depart pgo=u(f.set-element, %0, notices, %1, 4, %2)
-&f.set.odepart pgo=u(f.set-element, %0, notices, %1, 5, %2)
+&f.set.say_prefix pgo=trigger(%!/tr.set-element, %0, notices, %1, 1, %2)
+&f.set.join pgo=trigger(%!/tr.set-element, %0, notices, %1, 2, %2)
+&f.set.ojoin pgo=trigger(%!/tr.set-element, %0, notices, %1, 3, %2)
+&f.set.depart pgo=trigger(%!/tr.set-element, %0, notices, %1, 4, %2)
+&f.set.odepart pgo=trigger(%!/tr.set-element, %0, notices, %1, 5, %2)
 
-&f.set.occupancy pgo=set(%0, places.%1.occupancy:%2)
+
+&f.set.occupancy pgo=trigger(%!/tr.set-direct, %0, places.%1.occupancy, %2)
 
 --
 
@@ -390,6 +387,10 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 4: new value
 
 &f.set-element pgo=set(%0, places.%2.%1:[replace(get(%0/places.%2.%1), %3, %4, |)])
+
+&tr.set-element pgo=&places.%2.%1 %0=replace(get(%0/places.%2.%1), %3, %4, |); @chown %0/places.%2.%1=owner(%0)
+
+&tr.set-direct pgo=&%1 %0=%2; @chown %0/%1=owner(%0)
 
 
 ================================================================================
@@ -408,7 +409,7 @@ Used primarially with &f.set.*, and should relate 1:1
 --
 
 &f.validate.name pgo=u(f.validate.text, %0, 30)
-&f.validate.spaces_total pgo=u(f.validate.num, %0)
+&f.validate.spaces pgo=u(f.validate.num, %0)
 &f.validate.description pgo=u(f.validate.text, %0)
 
 &f.validate.say_prefix pgo=u(f.validate.text, %0, 15)
@@ -430,7 +431,7 @@ Table 1 (#1) has 2 empty places.
         Present is:  Thenomain.
 
 New:
-	same for now, with spaces_total of '0' == '(no limit)'
+	same for now, with 'spaces' of '0' == '(no limit)'
 
 0: location dbref
 1: place number
@@ -549,14 +550,14 @@ Sets up Place #%1 in room %0 with all the defaults.
 --
 
 &tr.newplace Places Global Object=
-	&places.%1.details %0=[iter(name spaces_total description, v(d.default.%i0), , |)];
+	&places.%1.details %0=[iter(name spaces description, v(d.default.%i0), , |)];
 	&places.%1.notices %0=[iter(say_prefix join ojoin depart odepart, v(d.default.%i0), , |)]; 
 	@chown %0/places.%1.details=[owner(%0)]; 
 	@chown %0/places.%1.notices=[owner(%0)]; 
 
 --
 
-&tr.newplace Places Global Object=&places.%1.details %0=[iter(name spaces_total description, v(d.default.%i0), , |)];&places.%1.notices %0=[iter(say_prefix join ojoin depart odepart, v(d.default.%i0), , |)]; @chown %0/places.%1.details=[owner(%0)]; @chown %0/places.%1.notices=[owner(%0)]; 
+&tr.newplace Places Global Object=&places.%1.details %0=[iter(name spaces description, v(d.default.%i0), , |)];&places.%1.notices %0=[iter(say_prefix join ojoin depart odepart, v(d.default.%i0), , |)]; @chown %0/places.%1.details=[owner(%0)]; @chown %0/places.%1.notices=[owner(%0)]; 
 
 
 ================================================================================
@@ -633,7 +634,7 @@ Returns: #-1 ERROR or '<num>:<name>:<max>:<list of dbrefs>', |-delim
 @@ .. less efficient than grabbing directly from attribute, more updatable 
 				[setr(n, elements(%i0, 2, .))]:
 				[u(f.get.name, %0, %qn, name)]:
-				[u(f.get.spaces_total, %0, %qn, spaces_total)]:
+				[u(f.get.spaces, %0, %qn, spaces)]:
 				[u(f.get.occupancy, %0, %qn)], 
 				, |
 			), 
@@ -647,13 +648,13 @@ Returns: #-1 ERROR or '<num>:<name>:<max>:<list of dbrefs>', |-delim
 @@ >> 'else' assumption: place exists, so show it
 		%1:
 		[u(f.get.name, %0, %1, name)]:
-		[u(f.get.spaces_total, %0, %1, spaces_total)]:
+		[u(f.get.spaces, %0, %1, spaces)]:
 		[u(f.get.occupancy, %0, %1)]
 	)
 
 --
 
-&action.list Places Global Object=case(0, or(strmatch(%0, %@), strmatch(%0, loc(%#)), isstaff(%#)), #-1 LIST MUST BE USED IN ROOM OR BY ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, comp(%1, ), sort(iter(lattr(%0/places.*.details), [setr(n, elements(%i0, 2, .))]:[u(f.get.name, %0, %qn, name)]:[u(f.get.spaces_total, %0, %qn, spaces_total)]:[u(f.get.occupancy, %0, %qn)], , |), n, |, |), hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, %1:[u(f.get.name, %0, %1, name)]:[u(f.get.spaces_total, %0, %1, spaces_total)]:[u(f.get.occupancy, %0, %1)])
+&action.list Places Global Object=case(0, or(strmatch(%0, %@), strmatch(%0, loc(%#)), isstaff(%#)), #-1 LIST MUST BE USED IN ROOM OR BY ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, comp(%1, ), sort(iter(lattr(%0/places.*.details), [setr(n, elements(%i0, 2, .))]:[u(f.get.name, %0, %qn, name)]:[u(f.get.spaces, %0, %qn, spaces)]:[u(f.get.occupancy, %0, %qn)], , |), n, |, |), hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, %1:[u(f.get.name, %0, %1, name)]:[u(f.get.spaces, %0, %1, spaces)]:[u(f.get.occupancy, %0, %1)])
 
 
 --------------------------------------------------------------------------------
@@ -878,7 +879,7 @@ If I'm going to make this a function-based system, I might as well go all the wa
 
 qp: dbref from pmatch()
 qo: current place occupancy list
-qs: spaces_total
+qs: spaces (max)
 qe: possible error from set
 
 --
@@ -901,7 +902,7 @@ qe: possible error from set
 
 @@ >> any space left? (0 spaces = infinite)
 		or(
-			eq(setr(s, u(f.get.spaces_total, %0, %1)), 0), 
+			eq(setr(s, u(f.get.spaces, %0, %1)), 0), 
 			lt(
 				words(setr(o, u(f.get.occupancy, %0, %1))), 
 				%qs
@@ -933,7 +934,38 @@ qe: possible error from set
 
 --
 
-&action.join Places Global Object=case(0, and(strmatch(%0, loc(setr(p, pmatch(%2)))), or(strmatch(%0, loc(%qp)), isstaff(%#))), #-1 JOIN MUST BE TRIGGERD PLAYER FOR THAT ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, or(eq(setr(s, u(f.get.spaces_total, %0, %1)), 0), lt(words(setr(o, u(f.get.occupancy, %0, %1))), %qs)), #-1 NO SPACES AVAILABLE, not(match(%qo, %qp)), #-1 ALREADY AT THAT LOCATION, comp(setr(e, u(f.set.occupancy, %0, %1, trim(%qo %qp))), ), [pemit(setdiff(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, ojoin)])][pemit(setinter(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, join)])][pemit(%qp, You join [u(f.display.element, %0, %1, name)].)]1, #-1 [ucstr(%qe)])
+&action.join Places Global Object=case(0, and(strmatch(%0, loc(setr(p, pmatch(%2)))), or(strmatch(%0, loc(%qp)), isstaff(%#))), #-1 JOIN MUST BE TRIGGERD PLAYER FOR THAT ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, or(eq(setr(s, u(f.get.spaces, %0, %1)), 0), lt(words(setr(o, u(f.get.occupancy, %0, %1))), %qs)), #-1 NO SPACES AVAILABLE, not(match(%qo, %qp)), #-1 ALREADY AT THAT LOCATION, comp(setr(e, u(f.set.occupancy, %0, %1, trim(%qo %qp))), ), [pemit(setdiff(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, ojoin)])][pemit(setinter(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, join)])][pemit(%qp, You join [u(f.display.element, %0, %1, name)].)]1, #-1 [ucstr(%qe)])
+
+
+--------------------------------------------------------------------------------
+-- places(): whichplace --------------------------------------------------------
+
+Which place# is someone in?  Only available to person in that location.
+
+Be Careful: Whichplace has its own validation check.  (If we check for dark players, here's where it should go.)
+
+	places(whichplace, <loc>, <person>)
+
+qn: place number (localized)
+
+--
+
+&action.whichplace Places Global Object=
+localize(
+	case(0, 
+		or(strmatch(%0, loc(%#)), isstaff(%#)), 
+		#-1 WHICHPLACE MUST BE USED IN ROOM, 
+
+		t(setr(n, first(sort(u(f.get-num-by-player, %0, pmatch(%1)))))), 
+		#-1 NOT AT ANY PLACE, 
+
+		%qn
+	)
+)
+
+--
+
+&action.whichplace Places Global Object=localize(case(0, or(strmatch(%0, loc(%#)), isstaff(%#)), #-1 WHICHPLACE MUST BE USED IN ROOM, t(setr(n, first(sort(u(f.get-num-by-player, %0, pmatch(%1)))))), #-1 NOT AT ANY PLACE, %qn))
 
 
 --------------------------------------------------------------------------------
@@ -947,7 +979,7 @@ qp: dbref from pmatch()
 qn: current place number
 
 qo: new place occupancy list (sans %qp)
-qs: spaces_total
+qs: spaces (max)e
 qe: possible error from set
 
 --
@@ -1049,37 +1081,6 @@ qs: say/pose formatted
 --
 
 &action.tt Places Global Object=case(0, or(and(strmatch(%0, loc(%#)), strmatch(setr(p, pmatch(%1)), %#)), isstaff(%#)), #-1 TT MUST BE USED IN ROOM BY PERSON, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, t(setr(n, ulocal(action.whichplace, %0, %qp))), %qn, [setq(o, u(f.get.occupancy, %0, %qn))][setq(s, [name(%qp)][objeval(%#, switch(%2, :*, %b[rest(%2, :)], %;, rest(%2, %;), %bsays%, “%2”))])][case(1, strmatch(%3, ooc), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] [ansi(xh, <ooc>)] %qs),pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] %qs),)]1)
-
-
---------------------------------------------------------------------------------
--- places(): whichplace --------------------------------------------------------
-
-Which place# is someone in?  Only available to person in that location.
-
-Be Careful: Whichplace has its own validation check.  (If we check for dark players, here's where it should go.)
-
-	places(whichplace, <loc>, <person>)
-
-qn: place number (localized)
-
---
-
-&action.whichplace Places Global Object=
-localize(
-	case(0, 
-		or(strmatch(%0, loc(%#)), isstaff(%#)), 
-		#-1 WHICHPLACE MUST BE USED IN ROOM, 
-
-		t(setr(n, first(sort(u(f.get-num-by-player, %0, pmatch(%1)))))), 
-		#-1 NOT AT ANY PLACE, 
-
-		%qn
-	)
-)
-
---
-
-&action.whichplace Places Global Object=localize(case(0, or(strmatch(%0, loc(%#)), isstaff(%#)), #-1 WHICHPLACE MUST BE USED IN ROOM, t(setr(n, first(sort(u(f.get-num-by-player, %0, pmatch(%1)))))), #-1 NOT AT ANY PLACE, %qn))
 
 
 
