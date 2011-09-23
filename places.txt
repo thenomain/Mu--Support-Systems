@@ -87,9 +87,11 @@ User-defined commands we'll need:
 	divider() - minor divider
 	wheader(), wdivider(), wfooter() - A width()-friendly version of the above
 
-	alert(<test>) - header for informational alerts
+	alert(<test>) - prefix for informational alerts
+	msg(<ansi>, <text>) - prefix for command notice
 	plural(<num>, <singular text>, <plural text>) - does what it looks like
 	titlestr(<string>) - Display text as something like book-title appropriate
+	crumple(<string> [, <delim>]) - trim() + squish()
 
 
 --------------------------------------------------------------------------------
@@ -305,6 +307,224 @@ qn: number of location, if name passed
 &c.places.specific Places Global Object=case(1, not(attrcnt([setr(l, loc(%#))]/places.*.details)), There are no places here., and(isint(%0), hasattr(%ql, places.%0.details)), u(f.display.one-place-detailed, %ql, %0), and(t(setr(n, u(f.get-num-by-name, %ql, %0))), hasattr(%ql, places.%qn.details)), u(f.display.one-place-detailed, %ql, %qn), [alert(+places)] I can't find that place.)
 
 
+--------------------------------------------------------------------------------
+-- +places/setup ---------------------------------------------------------------
+
+	+places/setup <location>[/<number>][=YES]
+
+'here' should work fine.
+
+qf: places() function results
+ql: location for places
+qn: number of places the player wants configured (always 1)
+
+--
+
+&c.places/setup Places Global Object=
+	case(0, 
+		not(comp(rest(%0, =), YES)), 
+		[alert(places/setup)] Please take note! Setting up places will 
+		overwrite the room's @startup%, @ahear and @aleave attributes.  
+		If the room has places set up already%, the existing places will be 
+		left but these attributes will still be overwritten.  If you are alright 
+		with this%, please type: [ansi(h, places/setup [before(%0, =)]=YES)], 
+
+		t(setr(f, 
+			places(setup, 
+				before(before(%0, =), /), 
+				YES, 
+				rest(before(%0, =), /)
+			)
+		)), 
+		[alert(places/setup)] [titlestr(rest(%qf))], 
+
+		SET!
+	)
+
+--
+
+&c.places/setup Places Global Object=case(0, not(comp(rest(%0, =), YES)), [alert(places/setup)] Please take note! Setting up places will overwrite the room's @startup%, @ahear and @aleave attributes.  If the room has places set up already%, the existing places will be left but these attributes will still be overwritten.  If you are alright with this%, please type: [ansi(h, places/setup [before(%0, =)]=YES)], t(setr(f, places(setup, before(before(%0, =), /), YES, rest(before(%0, =), /)))), [alert(places/setup)] [titlestr(rest(%qf))], SET!)
+
+
+--------------------------------------------------------------------------------
+-- +places/breakdown -----------------------------------------------------------
+
+	+places/breakdown <location>[=YES]
+
+qf: places() function results
+
+--
+
+&c.places/breakdown Places Global Object=
+	case(0, 
+		not(comp(rest(%0, =), YES)), 
+		[alert(places/setup)] Please take note! Breaking down places will 
+		delete the room's @startup%, @ahear and @aleave attributes%, as well as the attributes set up to make places work.  
+		If you are alright with this%, please type: 
+		[ansi(h, places/breakdown <location>=YES)], 
+
+		t(setr(f, places(breakdown, first(%0, =), YES))), 
+		[alert(places/setup)] [titlestr(rest(%qf))], 
+
+		REMOVED!
+	)
+
+--
+
+&c.places/breakdown Places Global Object=case(0, not(comp(rest(%0, =), YES)), [alert(places/setup)] Please take note! Breaking down places will delete the room's @startup%, @ahear and @aleave attributes%, as well as the attributes set up to make places work.  If you are alright with this%, please type: [ansi(h, places/breakdown <location>=YES)], t(setr(f, places(breakdown, first(%0, =), YES))), [alert(places/setup)] [titlestr(rest(%qf))], REMOVED!)
+
+
+--------------------------------------------------------------------------------
+-- +places/newplace ------------------------------------------------------------
+
+	+places/newplace <location>[=<placenum>]
+
+qf: places() function results
+
+--
+
+&c.places/newplace Places Global Object=
+	case(0, 
+		t(setr(f, places(newplace, first(%0, =), rest(%0, =)))), 
+		[alert(places/newplace)] [titlestr(rest(%qf))], 
+
+		[msg(h, places/newplace)]Created Place Number %qf
+	)
+
+--
+
+&c.places/newplace Places Global Object=case(0, t(setr(f, places(newplace, first(%0, =), rest(%0, =)))), [alert(places/newplace)] [titlestr(rest(%qf))], [msg(h, places/newplace)]Created Place Number %qf)
+
+
+--------------------------------------------------------------------------------
+-- +places/delplace ------------------------------------------------------------
+
+	+places/delplace <location>=<placenum>
+
+Feels too short.
+
+qf: places() function results
+
+--
+
+&c.places/delplace Places Global Object=
+	case(0, 
+		t(setr(f, places(delplace, first(%0, =), rest(%0, =)))), 
+		[alert(places/delplace)] [titlestr(rest(%qf))], 
+
+		[msg(h, places/delplace)]Deleted Place Number %qf
+	)
+
+--
+
+&c.places/delplace Places Global Object=case(0, t(setr(f, places(delplace, first(%0, =), rest(%0, =)))), [alert(places/delplace)] [titlestr(rest(%qf))], [msg(h, places/delplace)]Deleted Place Number %qf)
+
+
+--------------------------------------------------------------------------------
+-- +places/compress ------------------------------------------------------------
+
+Moves the places together, filling any gaps.  Does not correlate to a places() function, so do the normal set of access & validation checks.  Staff or owner only.
+
+	+places/compress <location>
+
+ql: location dbref
+qn: new place numbers list, <old>:<new> <old>:<new> <old>:<new>
+qo: output from
+
+--
+
+&c.places/compress Places Global Object=
+	case(0, 
+		or(strmatch(owner(setr(l, locate(%#, %0, ha))), %#), isstaff(%#)), 
+		[alert(places/compress)] Staff or Owner Only., 
+
+		strmatch(type(%ql), ROOM), 
+		[alert(places/compress)] Room Not Found., 
+
+		hasattr(%ql, places.1.details), 
+		[alert(places/compress)] Places Not Configured., 
+
+@@ .. set the oldkey:newkey list
+		[setq(n, 
+			iter(
+				places(list, %ql), 
+				[first(%i0, :)]:[inum()], 
+				|
+			)
+		)]
+@@ .. move those that need it
+		[msg(h, places/compress)]Compressed. 
+		[crumple(iter(%qn, 
+			if(neq(first(%i0, :), rest(%i0, :)), 
+				[null(trigger(%!/tr.moveplace, %ql, first(%i0, :), rest(%i0, :)))]
+				[first(%i0, :)]->[rest(%i0, :)]
+			)
+		))]
+	)
+
+--
+
+&c.places/compress Places Global Object=case(0, or(strmatch(owner(setr(l, locate(%#, %0, ha))), %#), isstaff(%#)), [alert(places/compress)] Staff or Owner Only., strmatch(type(%ql), ROOM), [alert(places/compress)] Room Not Found., hasattr(%ql, places.1.details), [alert(places/compress)] Places Not Configured., [setq(n, iter(places(list, %ql), [first(%i0, :)]:[inum()], |))][msg(h, places/compress)]Compressed. [crumple(iter(%qn, if(neq(first(%i0, :), rest(%i0, :)), [null(trigger(%!/tr.moveplace, %ql, first(%i0, :), rest(%i0, :)))][first(%i0, :)]->[rest(%i0, :)])))])
+
+
+--------------------------------------------------------------------------------
+-- +places/cleanup -------------------------------------------------------------
+
+	places/cleanup <location>
+
+--
+
+&c.places/cleanup Places Global Object=
+	case(0, 
+		t(setr(f, places(cleanup, %0))), 
+		[alert(places/setup)] [titlestr(rest(%qf))], 
+
+		[msg(h, places/cleanup)]Cleaned.
+	)
+
+--
+
+&c.places/cleanup Places Global Object=case(0, t(setr(f, places(cleanup, %0))), [alert(places/setup)] [titlestr(rest(%qf))], [msg(h, places/cleanup)]Cleaned.)
+
+
+--------------------------------------------------------------------------------
+-- +places/set -----------------------------------------------------------------
+
+The general command to change information about a place.
+
+	places/set <loc>/<placenum> <element>=<info>
+
+ql: location dbref
+qp: placenum
+qe: element - name completion please, reject 'occupancy' here
+qi: info
+
+qf: function result
+
+--
+
+&c.places/set Places Global Object=
+	[setq(l, locate(%#, first(first(%0), /), ha))]
+	[setq(p, rest(first(%0), /))]
+	[setq(e, first(rest(%0), =))]
+	[setq(e, last(grab(lattr(%!/f.set.%qe*)), .))]	
+	[setq(i, rest(rest(%0), =))]
+
+	[case(0, 
+		strmatch(%qe, occupancy), 
+		[alert(places/set)] Plase use 'places/cleanup [first(first(%0), /)]'., 
+
+		t(places(set, %ql, %qp, %qe, %qi)), 
+		[alert(places/set)] [titlestr(%qf)], 
+		
+		[msg(h, places/set)]Set %ql/#%qp '[lcstr(%qe)]' to '[%qi]'.
+	)]
+
+--
+
+&c.places/set Places Global Object=[setq(l, locate(%#, first(first(%0), /), ha))][setq(p, rest(first(%0), /))][setq(e, first(rest(%0), =))][setq(e, last(grab(lattr(%!/f.set.%qe*)), .))][setq(i, rest(rest(%0), =))][case(0, strmatch(%qe, occupancy), [alert(places/set)] Plase use 'places/cleanup [first(first(%0), /)]'., t(places(set, %ql, %qp, %qe, %qi)), [alert(places/set)] [titlestr(%qf)], [msg(h, places/set)]Set %ql/#%qp '[lcstr(%qe)]' to '[%qi]'.)]
+
+
 ================================================================================
 == FUNCTION: Get XXX ===========================================================
 
@@ -350,11 +570,14 @@ Slightly related, getting the number for a particular named place is critical.
 Normally I use the name for the key, but for this system we're using the place
 number.
 
-Cheap filter().
+Cheap filter().  Returns all matches, unordered - lets calling code decide what to do with it.
+
+0: room dbref
+1: name
 
 --
 
-&f.get-num-by-name pgo=elements(first(iter(lattr(%0/places.*.details), if(strmatch(first(get(%0/%i0), |), %1*), %i0))), 2, .)
+&f.get-num-by-name pgo=iter(lattr(%0/places.*.details), if(strmatch(first(get(%0/%i0), |), %1*), elements(%i0, 2, .)))
 
 
 --------------------------------------------------------------------------------
@@ -575,7 +798,13 @@ Output any known element.  Edit any tokens in the text.
 
 
 ================================================================================
-== TRIGGER: Setup ==============================================================
+== TRIGGERS ====================================================================
+
+Almost all the triggers on the object.
+
+
+--------------------------------------------------------------------------------
+-- Trigger: Setup --------------------------------------------------------------
 
 The room setup functions.  Since someone can run some of these multiple times, we'll unlock things that we lock first.
 
@@ -607,8 +836,8 @@ Setting up WILL clobber a room's @adisconnect, @aleave, and @startup
 &tr.setup Places Global Object=@unlock %0/adisconnect; @unlock %0/aleave; @unlock %0/startup; @adisconnect %0=@eval places%(depart, %%!, %%#%); @aleave %0=@eval places%(depart, %%!, %%#%); @startup %0=@eval places%(cleanup, %%!%); @chown %0/adisconnect=[owner(%0)]; @chown %0/aleave=[owner(%0)]; @chown %0/startup=[owner(%0)]; @lock %0/adisconnect=%0; @lock %0/aleave=%0; @lock %0/startup=%0; 
 
 
-================================================================================
-== TRIGGER: Breakdown ==========================================================
+--------------------------------------------------------------------------------
+-- Trigger: Breakdown ----------------------------------------------------------
 
 The places removal function.
 
@@ -632,8 +861,8 @@ This WILL clobber a room's @adisconnect, @aleave, and @startup
 &tr.breakdown Places Global Object=@unlock %0/adisconnect; @unlock %0/aleave; @unlock %0/startup; @adisconnect %0=; @aleave %0=; @startup %0=; @dolist [lattr(%0/places.*)]={&## %0=}; 
 
 
-================================================================================
-== TRIGGER: New Place ==========================================================
+--------------------------------------------------------------------------------
+-- Trigger: New Place ----------------------------------------------------------
 
 Sets up Place #%1 in room %0 with all the defaults.
 
@@ -648,6 +877,44 @@ Sets up Place #%1 in room %0 with all the defaults.
 --
 
 &tr.newplace Places Global Object=&places.%1.details %0=[iter(name spaces description, v(d.default.%i0), , |)];&places.%1.notices %0=[iter(say_prefix join ojoin depart odepart, v(d.default.%i0), , |)]; @chown %0/places.%1.details=[owner(%0)]; @chown %0/places.%1.notices=[owner(%0)]; 
+
+
+--------------------------------------------------------------------------------
+-- Trigger: Delete Place -------------------------------------------------------
+
+Removes up Place #%1 in room %0.
+
+--
+
+&tr.delplace Places Global Object=
+	&places.%1.details %0=; 
+	&places.%1.notices %0=; 
+	&places.%1.occupancy %0=; 
+
+--
+
+&tr.delplace Places Global Object=&places.%1.details %0=; &places.%1.notices %0=; &places.%1.occupancy %0=; 
+
+
+--------------------------------------------------------------------------------
+-- Trigger: Move Place ---------------------------------------------------------
+
+0: room dbref
+1: old placenum
+2: new placenum
+
+&tr.moveplace Places Global Object=
+	@mvattr %0=places.%1.details, places.%2.details; 
+	@mvattr %0=places.%1.notices, places.%2.notices; 
+	@mvattr %0=places.%1.occupancy, places.%2.occupancy; 
+
+	@chown %0/places.%2.details=[owner(%0)]; 
+	@chown %0/places.%2.notices=[owner(%0)]; 
+	@chown %0/places.%2.occupancy=[owner(%0)]; 
+
+--
+
+&tr.moveplace Places Global Object=@mvattr %0=places.%1.details, places.%2.details; @mvattr %0=places.%1.notices, places.%2.notices; @mvattr %0=places.%1.occupancy, places.%2.occupancy; @chown %0/places.%2.details=[owner(%0)]; @chown %0/places.%2.notices=[owner(%0)]; @chown %0/places.%2.occupancy=[owner(%0)]; 
 
 
 ================================================================================
@@ -807,7 +1074,7 @@ Set (or re-set) up a room.  Clobbers @startup, @aleave, @adisconnect.
 
 Must be used by room owner or staffer.
 
-	places(setup, <room> [, YES])
+	places(setup, <room>, YES[, <number of places>])
 
 Returns: #-1 ERROR or 1 if it believes it was successful.
 
@@ -817,14 +1084,22 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 	case(0, 
 		or(strmatch(%#, owner(%0)), isstaff(%#)), 
 		#-1 SETUP MAY BE USED BY ROOM OWNER ONLY, 
+@@ >> validate 'number of places'
+		or(
+			not(strlen(%2)), 
+			and(isint(%2), lte(%2, 10), gte(%2, 1))
+		), 
+		#-1 SETUP BETWEEN 1 AND 10 PLACES, 
 
 @@ >> 'YES' was passed, do it
 		comp(%1, YES), 
 		[trigger(%!/tr.setup, %0)]
-		[if(
-			not(hasattr(%0, places.1.details)), 
-			trigger(%!/tr.newplace, %0, 1)
-		)]
+		[null(iter(lnum(1, if(strlen(%2), %2, 1)), 
+			if(
+				not(hasattr(%0, places.%i0.details)), 
+				trigger(%!/tr.newplace, %0, %i0)
+			)
+		))]
 		1, 
 
 @@ >> else: no 'YES', show warning
@@ -833,7 +1108,8 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 
 --
 
-&action.setup Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SETUP MAY BE USED BY ROOM OWNER ONLY, comp(%1, YES), [trigger(%!/tr.setup, %0)][if(not(hasattr(%0, places.1.details)), trigger(%!/tr.newplace, %0, 1))]1, #-1 SETUP REQUIRES CONFIRMATION)
+&action.setup Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SETUP MAY BE USED BY ROOM OWNER ONLY, or(not(strlen(%2)), and(isint(%2), lte(%2, 10), gte(%2, 1))), #-1 SETUP BETWEEN 1 AND 10 PLACES, comp(%1, YES), [trigger(%!/tr.setup, %0)][null(iter(lnum(1, if(strlen(%2), %2, 1)), if(not(hasattr(%0, places.%i0.details)), trigger(%!/tr.newplace, %0, %i0))))]1, #-1 SETUP REQUIRES CONFIRMATION)
+
 
 
 --------------------------------------------------------------------------------
@@ -873,7 +1149,7 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 
 Create a new place, auto-incremented and filled with defaults.
 
-	places(newplace, <room>, [<'true' if gathering/temp place>])
+	places(newplace, <room>, [<specific place number>])
 
 Returns: #-1 ERROR or place #, if successful.
 
@@ -887,9 +1163,15 @@ Returns: #-1 ERROR or place #, if successful.
 		hasattr(%0, places.1.details), 
 		#-1 PLACES NOT CONFIGURED, 
 
+		or(not(strlen(%1)), and(gte(%1, 1), isint(%1))), 
+		#-1 PLACE NUMBER NOT VALID, 
+
 		[setr(n, 
-			u(f.lowest-available-number, 
-				iter(lattr(%0/places.*.details), elements(%i0, 2, .))
+			if(strlen(%1),
+				%1, 
+				u(f.lowest-available-number, 
+					iter(lattr(%0/places.*.details), elements(%i0, 2, .))
+				)
 			)
 		)]
 		[trigger(%!/tr.newplace, %0, %qn)]
@@ -897,7 +1179,44 @@ Returns: #-1 ERROR or place #, if successful.
 
 --
 
-&action.newplace Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, [setr(n, u(f.lowest-available-number, iter(lattr(%0/places.*.details), elements(%i0, 2, .))))][trigger(%!/tr.newplace, %0, %qn)])
+&action.newplace Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, or(not(strlen(%1)), and(gte(%1, 1), isint(%1))), #-1 PLACE NUMBER NOT VALID, [setr(n, if(strlen(%1), %1, u(f.lowest-available-number, iter(lattr(%0/places.*.details), elements(%i0, 2, .)))))][trigger(%!/tr.newplace, %0, %qn)])
+
+
+--------------------------------------------------------------------------------
+-- places(): del place ---------------------------------------------------------
+
+Deletes a place, unless someone is already there.
+
+	places(delplace, <room>, <specific place number>)
+
+Returns: #-1 ERROR or ex-place #, if successful.
+
+--
+
+&action.delplace Places Global Object=
+	case(0, 
+		or(strmatch(%#, owner(%0)), isstaff(%#)), 
+		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
+
+		hasattr(%0, places.1.details), 
+		#-1 PLACES NOT CONFIGURED, 
+
+		hasattr(%0, places.%1.details), 
+		#-1 PLACE NUMBER NOT VALID, 
+
+		dec(%1), 
+		#-1 CANNOT DELETE PLACE #1, 
+
+		not(hasattr(%0, places.%1.occupancy)), 
+		#-1 PLACE IS OCCUPIED, 
+
+		%1
+		[trigger(%!/tr.delplace, %0, %1)]
+	)
+
+--
+
+&action.delplace Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 PLACE NUMBER NOT VALID, dec(%1), #-1 CANNOT DELETE PLACE #1, not(hasattr(%0, places.%1.occupancy)), #-1 PLACE IS OCCUPIED, %1[trigger(%!/tr.delplace, %0, %1)])
 
 
 --------------------------------------------------------------------------------
@@ -1033,7 +1352,7 @@ qe: possible error from set
 --------------------------------------------------------------------------------
 -- places(): whichplace --------------------------------------------------------
 
-Which place# is someone in?  Only available to person in that location.
+Which place# is someone in?  Only available to person in that location. Returns the lowest numbered place, in the incorrect event that the person has joined more than one place.  (This incorrect situation would get fixed via the leave/cleanup code.)
 
 Be Careful: Whichplace has its own validation check.  (If we check for dark players, here's where it should go.)
 
@@ -1059,6 +1378,35 @@ localize(
 --
 
 &action.whichplace Places Global Object=localize(case(0, or(strmatch(%0, loc(%#)), isstaff(%#)), #-1 WHICHPLACE MUST BE USED IN ROOM, t(setr(n, first(sort(u(f.get-num-by-player, %0, pmatch(%1)))))), #-1 NOT AT ANY PLACE, %qn))
+
+
+--------------------------------------------------------------------------------
+-- places(): nameplace ---------------------------------------------------------
+
+Returns the place number of a place's name, the name -> num version of 'whichplace', but returns the place number of all matching places.
+
+	places(nameplace, <loc>, <name>)
+
+qn: place numbers (localized)
+
+--
+
+&action.nameplace Places Global Object=
+localize(
+	case(0, 
+		or(strmatch(%0, loc(%#)), isstaff(%#)), 
+		#-1 NAMEPLACE MUST BE USED IN ROOM, 
+
+		t(setr(n, sort(u(f.get-num-by-name, %0, %1)))), 
+		#-1 NO MATCH, 
+
+		crumple(%qn)
+	)
+)
+
+--
+
+&action.nameplace Places Global Object=localize(case(0, or(strmatch(%0, loc(%#)), isstaff(%#)), #-1 NAMEPLACE MUST BE USED IN ROOM, t(setr(n, sort(u(f.get-num-by-name, %0, %1)))), #-1 NO MATCH, crumple(%qn)))
 
 
 --------------------------------------------------------------------------------
@@ -1207,3 +1555,5 @@ qe: element from 'f.get'.
 --
 
 &action.get Places Global Object=case(0, or(strmatch(%0, loc(%#)), isstaff(%#)), #-1 GET MUST BE USED IN ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, comp(setr(e, u(f.get, %0, %1, %2)), #-1), #-1 NO SUCH ELEMENT, %qe)
+
+
