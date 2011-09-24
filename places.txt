@@ -308,9 +308,9 @@ qn: number of location, if name passed
 
 
 --------------------------------------------------------------------------------
--- +places/setup ---------------------------------------------------------------
+-- +places/configure -----------------------------------------------------------
 
-	+places/setup <location>[/<number>][=YES]
+	+places/configure <location>[/<number>][=YES]
 
 'here' should work fine.
 
@@ -320,30 +320,30 @@ qn: number of places the player wants configured (always 1)
 
 --
 
-&c.places/setup Places Global Object=
+&c.places/configure Places Global Object=
 	case(0, 
 		not(comp(rest(%0, =), YES)), 
-		[alert(places/setup)] Please take note! Setting up places will 
+		[alert(places/configure)] Please take note! Configuring up places will 
 		overwrite the room's @startup%, @ahear and @aleave attributes.  
 		If the room has places set up already%, the existing places will be 
 		left but these attributes will still be overwritten.  If you are alright 
-		with this%, please type: [ansi(h, places/setup [before(%0, =)]=YES)], 
+		with this%, please type: [ansi(h, places/configure [before(%0, =)]=YES)], 
 
-		t(setr(f, 
-			places(setup, 
+		t(setr(f,configure
+			places(configure, 
 				before(before(%0, =), /), 
 				YES, 
 				rest(before(%0, =), /)
 			)
 		)), 
-		[alert(places/setup)] [titlestr(rest(%qf))], 
+		[alert(places/configure)] [titlestr(rest(%qf))], 
 
-		SET!
+		CONFIGURED!
 	)
 
 --
 
-&c.places/setup Places Global Object=case(0, not(comp(rest(%0, =), YES)), [alert(places/setup)] Please take note! Setting up places will overwrite the room's @startup%, @ahear and @aleave attributes.  If the room has places set up already%, the existing places will be left but these attributes will still be overwritten.  If you are alright with this%, please type: [ansi(h, places/setup [before(%0, =)]=YES)], t(setr(f, places(setup, before(before(%0, =), /), YES, rest(before(%0, =), /)))), [alert(places/setup)] [titlestr(rest(%qf))], SET!)
+&c.places/configure Places Global Object=case(0, not(comp(rest(%0, =), YES)), [alert(places/configure)] Please take note! Configuring up places will overwrite the room's @startup%, @ahear and @aleave attributes.  If the room has places set up already%, the existing places will be left but these attributes will still be overwritten.  If you are alright with this%, please type: [ansi(h, places/configure [before(%0, =)]=YES)], t(setr(f, places(configure, before(before(%0, =), /), YES, rest(before(%0, =), /)))), [alert(places/configure)] [titlestr(rest(%qf))], SET!)
 
 
 --------------------------------------------------------------------------------
@@ -358,20 +358,20 @@ qf: places() function results
 &c.places/breakdown Places Global Object=
 	case(0, 
 		not(comp(rest(%0, =), YES)), 
-		[alert(places/setup)] Please take note! Breaking down places will 
+		[alert(places/breakdown)] Please take note! Breaking down places will 
 		delete the room's @startup%, @ahear and @aleave attributes%, as well as the attributes set up to make places work.  
 		If you are alright with this%, please type: 
 		[ansi(h, places/breakdown <location>=YES)], 
 
 		t(setr(f, places(breakdown, first(%0, =), YES))), 
-		[alert(places/setup)] [titlestr(rest(%qf))], 
+		[alert(places/breakdown)] [titlestr(rest(%qf))], 
 
 		REMOVED!
 	)
 
 --
 
-&c.places/breakdown Places Global Object=case(0, not(comp(rest(%0, =), YES)), [alert(places/setup)] Please take note! Breaking down places will delete the room's @startup%, @ahear and @aleave attributes%, as well as the attributes set up to make places work.  If you are alright with this%, please type: [ansi(h, places/breakdown <location>=YES)], t(setr(f, places(breakdown, first(%0, =), YES))), [alert(places/setup)] [titlestr(rest(%qf))], REMOVED!)
+&c.places/breakdown Places Global Object=case(0, not(comp(rest(%0, =), YES)), [alert(places/breakdown)] Please take note! Breaking down places will delete the room's @startup%, @ahear and @aleave attributes%, as well as the attributes set up to make places work.  If you are alright with this%, please type: [ansi(h, places/breakdown <location>=YES)], t(setr(f, places(breakdown, first(%0, =), YES))), [alert(places/breakdown)] [titlestr(rest(%qf))], REMOVED!)
 
 
 --------------------------------------------------------------------------------
@@ -477,14 +477,14 @@ qo: output from
 &c.places/cleanup Places Global Object=
 	case(0, 
 		t(setr(f, places(cleanup, %0))), 
-		[alert(places/setup)] [titlestr(rest(%qf))], 
+		[alert(places/cleanup)] [titlestr(rest(%qf))], 
 
 		[msg(h, places/cleanup)]Cleaned.
 	)
 
 --
 
-&c.places/cleanup Places Global Object=case(0, t(setr(f, places(cleanup, %0))), [alert(places/setup)] [titlestr(rest(%qf))], [msg(h, places/cleanup)]Cleaned.)
+&c.places/cleanup Places Global Object=case(0, t(setr(f, places(cleanup, %0))), [alert(places/cleanup)] [titlestr(rest(%qf))], [msg(h, places/cleanup)]Cleaned.)
 
 
 --------------------------------------------------------------------------------
@@ -523,6 +523,20 @@ qf: function result
 --
 
 &c.places/set Places Global Object=[setq(l, locate(%#, first(first(%0), /), ha))][setq(p, rest(first(%0), /))][setq(e, first(rest(%0), =))][setq(e, last(grab(lattr(%!/f.set.%qe*)), .))][setq(i, rest(rest(%0), =))][case(0, strmatch(%qe, occupancy), [alert(places/set)] Plase use 'places/cleanup [first(first(%0), /)]'., t(places(set, %ql, %qp, %qe, %qi)), [alert(places/set)] [titlestr(%qf)], [msg(h, places/set)]Set %ql/#%qp '[lcstr(%qe)]' to '[%qi]'.)]
+
+
+================================================================================
+== OTHER COMMANDS ==============================================================
+
+These are the commands that alias to or don't use 'places'.
+
+
+--------------------------------------------------------------------------------
+-- tt: tabletalk ---------------------------------------------------------------
+
+The basic unit of places are for conversation.
+
+	tt <say/pose/emit>
 
 
 ================================================================================
@@ -804,9 +818,9 @@ Almost all the triggers on the object.
 
 
 --------------------------------------------------------------------------------
--- Trigger: Setup --------------------------------------------------------------
+-- Trigger: Configure ----------------------------------------------------------
 
-The room setup functions.  Since someone can run some of these multiple times, we'll unlock things that we lock first.
+The room configure functions.  Since someone can run some of these multiple times, we'll unlock things that we lock first.
 
 Setting up WILL clobber a room's @adisconnect, @aleave, and @startup
 
@@ -814,7 +828,7 @@ Setting up WILL clobber a room's @adisconnect, @aleave, and @startup
 
 --
 
-&tr.setup Places Global Object=
+&tr.configure Places Global Object=
 	@unlock %0/adisconnect; 
 	@unlock %0/aleave; 
 	@unlock %0/startup; 
@@ -833,7 +847,7 @@ Setting up WILL clobber a room's @adisconnect, @aleave, and @startup
 
 --
 
-&tr.setup Places Global Object=@unlock %0/adisconnect; @unlock %0/aleave; @unlock %0/startup; @adisconnect %0=@eval places%(depart, %%!, %%#%); @aleave %0=@eval places%(depart, %%!, %%#%); @startup %0=@eval places%(cleanup, %%!%); @chown %0/adisconnect=[owner(%0)]; @chown %0/aleave=[owner(%0)]; @chown %0/startup=[owner(%0)]; @lock %0/adisconnect=%0; @lock %0/aleave=%0; @lock %0/startup=%0; 
+&tr.configure Places Global Object=@unlock %0/adisconnect; @unlock %0/aleave; @unlock %0/startup; @adisconnect %0=@eval places%(depart, %%!, %%#%); @aleave %0=@eval places%(depart, %%!, %%#%); @startup %0=@eval places%(cleanup, %%!%); @chown %0/adisconnect=[owner(%0)]; @chown %0/aleave=[owner(%0)]; @chown %0/startup=[owner(%0)]; @lock %0/adisconnect=%0; @lock %0/aleave=%0; @lock %0/startup=%0; 
 
 
 --------------------------------------------------------------------------------
@@ -1068,32 +1082,32 @@ Returns: #-1 ERROR or 1 (true) if the code ran or set without error.
 
 
 --------------------------------------------------------------------------------
--- places(): setup -------------------------------------------------------------
+-- places(): configure ---------------------------------------------------------
 
-Set (or re-set) up a room.  Clobbers @startup, @aleave, @adisconnect.
+Configure (or re-configure) a room.  Clobbers @startup, @aleave, @adisconnect.
 
 Must be used by room owner or staffer.
 
-	places(setup, <room>, YES[, <number of places>])
+	places(configure, <room>, YES[, <number of places>])
 
 Returns: #-1 ERROR or 1 if it believes it was successful.
 
 --
 
-&action.setup Places Global Object=
+&action.configure Places Global Object=
 	case(0, 
 		or(strmatch(%#, owner(%0)), isstaff(%#)), 
-		#-1 SETUP MAY BE USED BY ROOM OWNER ONLY, 
+		#-1 CONFIGURE MAY BE USED BY ROOM OWNER ONLY, 
 @@ >> validate 'number of places'
 		or(
 			not(strlen(%2)), 
 			and(isint(%2), lte(%2, 10), gte(%2, 1))
 		), 
-		#-1 SETUP BETWEEN 1 AND 10 PLACES, 
+		#-1 CONFIGURE BETWEEN 1 AND 10 PLACES, 
 
 @@ >> 'YES' was passed, do it
 		comp(%1, YES), 
-		[trigger(%!/tr.setup, %0)]
+		[trigger(%!/tr.configure, %0)]
 		[null(iter(lnum(1, if(strlen(%2), %2, 1)), 
 			if(
 				not(hasattr(%0, places.%i0.details)), 
@@ -1103,13 +1117,12 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 		1, 
 
 @@ >> else: no 'YES', show warning
-		#-1 SETUP REQUIRES CONFIRMATION
+		#-1 CONFIGURE REQUIRES CONFIRMATION
 	)
 
 --
 
-&action.setup Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SETUP MAY BE USED BY ROOM OWNER ONLY, or(not(strlen(%2)), and(isint(%2), lte(%2, 10), gte(%2, 1))), #-1 SETUP BETWEEN 1 AND 10 PLACES, comp(%1, YES), [trigger(%!/tr.setup, %0)][null(iter(lnum(1, if(strlen(%2), %2, 1)), if(not(hasattr(%0, places.%i0.details)), trigger(%!/tr.newplace, %0, %i0))))]1, #-1 SETUP REQUIRES CONFIRMATION)
-
+&action.configure Places Global Object=case(0, or(strmatch(%#, owner(%0)), isstaff(%#)), #-1 CONFIGURE MAY BE USED BY ROOM OWNER ONLY, or(not(strlen(%2)), and(isint(%2), lte(%2, 10), gte(%2, 1))), #-1 CONFIGURE BETWEEN 1 AND 10 PLACES, comp(%1, YES), [trigger(%!/tr.configure, %0)][null(iter(lnum(1, if(strlen(%2), %2, 1)), if(not(hasattr(%0, places.%i0.details)), trigger(%!/tr.newplace, %0, %i0))))]1, #-1 CONFIGURE REQUIRES CONFIRMATION)
 
 
 --------------------------------------------------------------------------------
