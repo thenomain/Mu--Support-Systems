@@ -286,21 +286,59 @@ e: possible error from 'set'
 ================================================================================
 == +faction/list ===============================================================
 
-ql: list of factions to show
+New with headers for faction types.
+
+qf: factions %# can see
+qt: list|of|faction|types
+
+--
 
 &c.faction/list afo=
+	[setq(f, filter(fil.see-faction, lcon(%!), , , %#))]
+	[setq(t, setunion(lcstr(iter(%qf, get(%i0/d_type), , |)), , |))]
+
 	[header(Factions)]%r
 
-	[setq(l, 
-		iter(
-			sortby(f.sortby.factions.type, 
-				filter(fil.see-faction, lcon(%!), , , %#)
-			)
-			, 
+	[case(0, 
+@@ .. no factions visible
+		words(%qf), %b (No factions to display), 
 
+@@ .. no faction types, display all by alpha sort
+		words(%qt, |), 
+		u(f.display.one-faction-group, %qf), 
+
+@@ .. faction types, display one at a time starting with 'no type'
+		iter(%qt, 
+			[divider(if(comp(%i0, ), lcstr(%i0), (no type)))]%r
+			[u(f.display.one-faction-group, 
+				filter(fil.faction-type, %qf, , , %i0)
+			)], 
+			|, @@
+		)
+
+	)]%r
+
+	[footer(words(%qf))]
+
+--
+
+&c.faction/list afo=[setq(f, filter(fil.see-faction, lcon(%!), , , %#))][setq(t, setunion(lcstr(iter(%qf, get(%i0/d_type), , |)), , |))][header(Factions)]%r[case(0, words(%qf), %b (No factions to display), words(%qt, |), u(f.display.one-faction-group, %qf), iter(%qt, [divider(if(comp(%i0, ), lcstr(%i0), (no type)))]%r[u(f.display.one-faction-group, filter(fil.faction-type, %qf, , , %i0))], |, @@))][footer(words(%qf))]
+
+
+--------------------------------------------------------------------------------
+-- Display: One Faction Group --------------------------------------------------
+
+0: list of faction objects (by dbref)
+ql: list of factions to show
+
+--
+
+&f.display.one-faction-group afo=
+	[setq(l, 
+		iter(sortby(f.sortby.object-name, %0), 
 			[if(hasflag(%i0, DARK), 
-				ansi(xh, %[ %qn %]), 
-				u(f.name.faction, %i0)
+				ansi(xh, %[ [name(%i0)] %]), 
+				name(%i0)
 			)], 
 			, |
 		)
@@ -308,11 +346,21 @@ ql: list of factions to show
 
 	[columns(%ql, 38, |, 2)]
 
-	[footer(words(%ql, |))]
-
 --
 
-&c.faction/list afo=[header(Factions)]%r[setq(l, iter(sortby(f.sortby.factions.type, filter(fil.see-faction, lcon(%!), , , %#)), [if(hasflag(%i0, DARK), ansi(xh, %[ [u(f.name.faction, %i0)] %]), u(f.name.faction, %i0))], , |))][columns(%ql, 38, |, 2)][footer(words(%ql, |))]
+&f.display.one-faction-group afo=[setq(l, iter(sortby(f.sortby.object-name, %0), [if(hasflag(%i0, DARK), ansi(xh, %[ [name(%i0)] %]), name(%i0))][if(hasflag(%0, going), %b<going>)], , |))][columns(%ql, 38, |, 2)]
+
+
+--------------------------------------------------------------------------------
+-- Sortby: Object Name ---------------------------------------------------------
+
+&f.sortby.object-name afo=comp(name(%0), name(%1))
+
+
+--------------------------------------------------------------------------------
+-- Filter: Faction Type --------------------------------------------------------
+
+&fil.faction-type afo=strmatch(get(%0/d_type), %1)
 
 
 ================================================================================
@@ -859,7 +907,7 @@ ql: list of visible people in that faction
 
 	[case(0, 
 		isdbref(%qf), [alert(+faction)] No faction by that name., 
-		u(fil.see-faction, %qf, %#), [alert(+faction)] You cannot see that faction., 
+		u(fil.see-faction, %qf, %#), [alert(+faction)] No faction by that name., 
 		u(f.display.list-who, %qf, %ql)
 	)]
 
