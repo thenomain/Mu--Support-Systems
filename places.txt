@@ -538,21 +538,24 @@ Join a place
 
 	join [ at| with] <placenum, placename, or person>
 
-0: matched command, ignore
+0: matched command (ignore)
 1: ' at'/' with' match
-2: <place>|<person> match
+2: #<stuff>, if exists (ignore)
+3: <place>|<person> match
 
 qa: place number if 'at'
 qw: place number if 'with'
+qd: object dbref if 'with'
 qt: register of place number (a/w/null)
 
 qf: places() function results
 
 --
 
-&c.join Places Global Object=$^\+join( at| with)?( .*)?:
+&c.join Places Global Object=$^join( at| with)?( #?(.*))?$:
 @@ >> if nothing but 'join', fail
-	@assert t(%2)={@pemit %#=[alert(places)] Join where?}; 
+	@assert t(%3)={@pemit %#=[alert(places)] Join where?}; 
+	@assert not(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're already at a place. Please 'depart' first.}; 
 
 @@ >> guess for explicit/implicit 'at' or 'with'
 	@eval case(1, 
@@ -560,34 +563,39 @@ qf: places() function results
 		strmatch(%1, %bat), 
 		[setq(t, a)]
 		[setq(a, if(
-			isint(%2), 
-			trim(%2), 
-			u(f.get-num-by-name, loc(%#), %2)
+			isint(%3), 
+			trim(%3), 
+			u(f.get-num-by-name, loc(%#), %3)
 		))], 
 
 @@ .. explicit 'with'
 		strmatch(%1, %bwith), 
 		[setq(t, w)]
-		[setq(w, u(f.get-num-by-player, loc(%#), locate(%#, %2, nP)))], 
+		[setq(w, u(f.get-num-by-player, loc(%#), setr(d, locate(%#, %3, nP))))], 
 
 @@ .. implicit 'at' (join <number>)
-		isint(%2), [setq(t, at)][setq(a, trim(%2))], 
+		isint(%3), [setq(t, a)][setq(a, trim(%3))], 
 
 @@ .. implicit 'with' (join <neighbor name>)
-		t(setr(w, locate(%#, %2, nP))), setq(t, w), 
+		t(setr(d, locate(%#, %3, nP))), 
+		[setq(w, u(f.get-num-by-player, loc(%#), %qd))]
+		[setq(t, w)], 
 
 @@ .. implicit 'at' (join <place name>)
-		t(setr(a, u(f.get-num-by-name, loc(%#), %2))), setq(t, a), 
+		t(setr(a, u(f.get-num-by-name, loc(%#), %3))), setq(t, a), 
 
 @@ .. panic condition
 		setq(t, )
-	)
+	); 
 
 @@ >> start actual process
 	@pemit %#=
 		case(0, 
 			comp(%qt, ), 
 			[alert(places)] I can't figure out where you want to join., 
+
+			comp(%#, %qd), 
+			[alert(places)] You can't join yourself!, 
 
 			lte(words(r(%qt)), 1), [alert(places)] Too many matches., 
 
@@ -603,15 +611,7 @@ qf: places() function results
 
 --
 
-&c.join Places Global Object=$^\+join( at (.*)| with (.*))?:@eval [setq(p, if(isnum(%2), %2, u(f.get-num-by-name, loc(%#), %2)))][setq(d, u(f.get-num-by-player, loc(%#), locate(%#, %3, n)))]; @pemit %#=case(0, or(t(%2), t(%3)), [alert(places)] Join where?, or(strlen(%3), eq(words(%qp), 1)), [alert(places)] [if(words(%qp), Too many matches, I can't find that place)]., or(strlen(%2), strlen(%qd)), [alert(places)] I can't find [name(%qd)] at a place., t(setr(f, places(join, loc(%#), first(%qp %qd)))), [alert(places)] [titlestr(%qf)], @@(If things go well, the places(join, ...) will notify everyone))
-
-
-
-
-&c.join Places Global Object=$^\+join( at| with)?( .*)?:@assert t(%2)={@pemit %#=[alert(places)] Join where?}; @eval case(1, strmatch(%1, %bat), [setq(t, a)][setq(a, if(isint(%2), trim(%2), u(f.get-num-by-name, loc(%#), %2)))], strmatch(%1, %bwith), [setq(t, w)][setq(w, u(f.get-num-by-player, loc(%#), locate(%#, %2, nP)))], isint(%2), [setq(t, at)][setq(a, trim(%2))], t(setr(w, locate(%#, %2, nP))), setq(t, w), t(setr(a, u(f.get-num-by-name, loc(%#), %2))), setq(t, a), setq(t, ))@pemit %#=case(0, comp(%qt, ), [alert(places)] I can't figure out where you want to join., lte(words(r(%qt)), 1), [alert(places)] Too many matches., words(r(%qt)), [alert(places)] [case(%qt, a, No such place, w, Not at a place)]., t(setr(f, places(join, loc(%#), r(%qt), %#))), [alert(places)] [titlestr(%qf)], @@(If things go well places() will notify everyone))
-
-
-&c.join Places Global Object=$^\+join( at| with)?\s?#?(.*)?:@pemit %#=>>> '%0' -- '%1' -- '%2' -- '%3' -- '%4' -- '%5'
+&c.join Places Global Object=$^join( at| with)?( #?(.*))?$:@assert t(%3)={@pemit %#=[alert(places)] Join where?}; @assert not(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're already at a place. Please 'depart' first.}; @eval case(1, strmatch(%1, %bat), [setq(t, a)][setq(a, if(isint(%3), %3, u(f.get-num-by-name, loc(%#), %3)))], strmatch(%1, %bwith), [setq(t, w)][setq(w, u(f.get-num-by-player, loc(%#), setr(d, locate(%#, %3, nP))))], isint(%3), [setq(t, a)][setq(a, trim(%3))], t(setr(d, locate(%#, %3, nP))), [setq(w, u(f.get-num-by-player, loc(%#), %qd))][setq(t, w)], t(setr(a, u(f.get-num-by-name, loc(%#), %3))), setq(t, a), setq(t, )); @pemit %#=case(0, comp(%qt, ), [alert(places)] I can't figure out where you want to join., comp(%#, %qd), [alert(places)] You can't join yourself!, lte(words(r(%qt)), 1), [alert(places)] Too many matches., words(r(%qt)), [alert(places)] [case(%qt, a, No such place, w, Not at a place)]., t(setr(f, places(join, loc(%#), r(%qt), %#))), [alert(places)] [titlestr(%qf)], @@(If things go well places() will notify everyone))
 
 
 --
@@ -620,11 +620,79 @@ qf: places() function results
 
 
 --------------------------------------------------------------------------------
+-- depart ----------------------------------------------------------------------
+
+Leave a place
+
+	depart
+
+In the future: depart[ for [#]<place/player>]
+
+qf: places() function results
+
+--
+
+&c.depart Places Global Object=$^depart( for #?(.*))?$:
+
+	@assert t(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're not at a place. Please 'join' first.}; 
+
+	@pemit %#=case(0, 
+		t(setr(f, places(depart, loc(%#), %#))), 
+		[alert(places)] [titlestr(%qf)], 
+
+		@@(If things go well places() will notify everyone)
+	)
+
+--
+
+&c.depart Places Global Object=$^depart( for #?(.*))?$:@assert t(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're not at a place. Please 'join' first.}; @pemit %#=case(0, t(setr(f, places(depart, loc(%#), %#))), [alert(places)] [titlestr(%qf)], @@(If things go well places() will notify everyone))
+
+-- 
+
+@set Places Global Object/c.depart=regexp
+
+
+--------------------------------------------------------------------------------
 -- tt: tabletalk ---------------------------------------------------------------
 
 The basic unit of places are for conversation.
 
-	tt <say/pose/emit>
+	tt[o[oc]] <say/pose/emit>
+
+--
+
+0: entire grab (ignore)
+1: 'o' if tto[oc]
+2: 'oc' if there (ignore)
+3: ' <say/pose/emit>'
+
+qn: place number person is at
+qf: places() function results
+
+
+--
+
+&c.tt Places Global Object=$^tt(o(oc)?)?(.*)?$:
+
+	@assert strlen(trim(%3))={[alert(places)] You need to 'tt <something>'.}; 
+
+	@assert t(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're not at a place. Please 'join' first.}; 
+
+	@pemit %#=
+		case(0, 
+			t(setr(f, places(tt, loc(%#), %#, trim(%3), if(t(%1), ooc)))), 
+			[alert(places)] [titlestr(%qf)], 
+
+			@@(If things go well places() will notify everyone)
+		)
+
+--
+
+&c.tt Places Global Object=$^tt(o(oc)?)?(.*)?$:@assert strlen(trim(%3))={[alert(places)] You need to 'tt <something>'.}; @assert t(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're not at a place. Please 'join' first.}; @pemit %#=case(0, t(setr(f, places(tt, loc(%#), %#, trim(%3), if(t(%1), ooc)))), [alert(places)] [titlestr(%qf)], @@(If things go well places() will notify everyone))
+
+--
+
+@set Places Global Object/c.tt=regexp
 
 
 ================================================================================
@@ -1572,7 +1640,7 @@ qe: possible error from set
 --------------------------------------------------------------------------------
 -- places(): tt ----------------------------------------------------------------
 
-	places(tt, <loc>, <person>, <msg>, ooc|loud)
+	places(tt, <loc>, <person>, <msg>, ooc)
 
 qp: dbref of target from pmatch()
 qn: current place number
@@ -1605,6 +1673,7 @@ qs: say/pose formatted
 				:*, %qp [rest(%2, :)], 
 				%;*, %qp[rest(%2, %;)], 
 				|*, [rest(%2, |)] [ansi(xh, <from %qp>)], 
+				"*, %qp says%, “[rest(%2, ")]”, 
 				%qp says%, “%2”
 			))
 		)]
@@ -1627,7 +1696,7 @@ qs: say/pose formatted
 
 --
 
-&action.tt Places Global Object=case(0, or(and(strmatch(%0, loc(%#)), strmatch(setr(p, pmatch(%1)), %#)), isstaff(%#)), #-1 TT MUST BE USED IN ROOM BY PERSON, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, t(setr(n, ulocal(action.whichplace, %0, %qp))), %qn, [setq(o, u(f.get.occupancy, %0, %qn))][setq(p, name(%qp))][setq(s, objeval(%#, switch(%2, :*, %qp [rest(%2, :)], %;*, %qp[rest(%2, %;)], |*, [rest(%2, |)] [ansi(xh, <from %qp>)], %qp says%, “%2”)))][case(1, strmatch(%3, ooc), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] [ansi(xh, <ooc>)] %qs), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] %qs))]1)
+&action.tt Places Global Object=case(0, or(and(strmatch(%0, loc(%#)), strmatch(setr(p, pmatch(%1)), %#)), isstaff(%#)), #-1 TT MUST BE USED IN ROOM BY PERSON, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, t(setr(n, ulocal(action.whichplace, %0, %qp))), %qn, [setq(o, u(f.get.occupancy, %0, %qn))][setq(p, name(%qp))][setq(s, objeval(%#, switch(%2, :*, %qp [rest(%2, :)], %;*, %qp[rest(%2, %;)], |*, [rest(%2, |)] [ansi(xh, <from %qp>)], "*, %qp says%, “[rest(%2, ")]”, %qp says%, “%2”)))][case(1, strmatch(%3, ooc), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] [ansi(xh, <ooc>)] %qs), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] %qs))]1)
 
 
 ---------------------------------------------------------------------------------- places(): get ---------------------------------------------------------------
