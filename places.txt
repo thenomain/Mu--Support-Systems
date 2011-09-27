@@ -540,76 +540,78 @@ Join a place
 
 0: matched command, ignore
 1: ' at'/' with' match
-2: <place>|<person> match -- assumed place unless ' with'
+2: <place>|<person> match
 
 qa: place number if 'at'
 qw: place number if 'with'
-qt: type of join (at/with)
+qt: register of place number (a/w/null)
 
 qf: places() function results
 
 --
 
-&c.join Places Global Object=$\+join( at| with)?( .*)?:
+&c.join Places Global Object=$^\+join( at| with)?( .*)?:
+@@ >> if nothing but 'join', fail
 	@assert t(%2)={@pemit %#=[alert(places)] Join where?}; 
 
-	@switch/first 1=
-		strmatch(%1, %bat), {
-			@eval [setq(t, at)]
-			[setq(a, if(
-				isint(%2), 
-				trim(%2), 
-				u(f.get-num-by-name, loc(%#), %2)
-			))]
-		}, 
-		strmatch(%1, %bwith), {
-			@eval [setq(t, with)]
-			[setq(w, u(f.get-num-by-player, loc(%#), locate(%#, %2, nP)))]
-		}, 
-		isint(%2), {@eval [setq(t, at)][setq(a, trim(%2))]}, 
-		t(setr(w, locate(%#, %2, nP))), {@eval setq(t, with)}, 
-		t(setr(a, u(f.get-num-by-name, loc(%#), %2))), {@eval setq(t, at)}, 
-		{@eval setq(t, unknown)}; 
+@@ >> guess for explicit/implicit 'at' or 'with'
+	@eval case(1, 
+@@ .. explicit 'at'
+		strmatch(%1, %bat), 
+		[setq(t, a)]
+		[setq(a, if(
+			isint(%2), 
+			trim(%2), 
+			u(f.get-num-by-name, loc(%#), %2)
+		))], 
 
-	@switch/first %qt=
-		at, {
-			@pemit %#=
-			case(0, 
-				gt(words(%qa), 1), [alert(places)] Too many matches., 
+@@ .. explicit 'with'
+		strmatch(%1, %bwith), 
+		[setq(t, w)]
+		[setq(w, u(f.get-num-by-player, loc(%#), locate(%#, %2, nP)))], 
 
-				words(%qa), [alert(places)] No such place., 
+@@ .. implicit 'at' (join <number>)
+		isint(%2), [setq(t, at)][setq(a, trim(%2))], 
 
-				t(setr(f, places(join, loc(%#), %qa, %#))), 
-				[alert(places)] [titlestr(%qf)], 
+@@ .. implicit 'with' (join <neighbor name>)
+		t(setr(w, locate(%#, %2, nP))), setq(t, w), 
 
-				@@(If things go well places() will notify everyone)
-			)
-		}, 
+@@ .. implicit 'at' (join <place name>)
+		t(setr(a, u(f.get-num-by-name, loc(%#), %2))), setq(t, a), 
 
-		with, {
-			@pemit %#=
-			case(0, 
-				words(%qw), [alert(places)] Not at a place., 
+@@ .. panic condition
+		setq(t, )
+	)
 
-				t(setr(f, places(join, loc(%#), %qw, %#))), 
-				[alert(places)] [titlestr(%qf)], 
+@@ >> start actual process
+	@pemit %#=
+		case(0, 
+			comp(%qt, ), 
+			[alert(places)] I can't figure out where you want to join., 
 
-				@@(If things go well places() will notify everyone)
-			)
-		}, 
+			lte(words(r(%qt)), 1), [alert(places)] Too many matches., 
 
-		{@pemit %#=[alert(places)] I can't figure out where you want to join.}
+			words(r(%qt)), 
+			[alert(places)] [case(%qt, a, No such place, w, Not at a place)]., 
+
+			t(setr(f, places(join, loc(%#), r(%qt), %#))), 
+			[alert(places)] [titlestr(%qf)], 
+
+			@@(If things go well places() will notify everyone)
+		)
 
 
 --
 
-&c.join Places Global Object=$\+join( at (.*)| with (.*))?:@eval [setq(p, if(isnum(%2), %2, u(f.get-num-by-name, loc(%#), %2)))][setq(d, u(f.get-num-by-player, loc(%#), locate(%#, %3, n)))]; @pemit %#=case(0, or(t(%2), t(%3)), [alert(places)] Join where?, or(strlen(%3), eq(words(%qp), 1)), [alert(places)] [if(words(%qp), Too many matches, I can't find that place)]., or(strlen(%2), strlen(%qd)), [alert(places)] I can't find [name(%qd)] at a place., t(setr(f, places(join, loc(%#), first(%qp %qd)))), [alert(places)] [titlestr(%qf)], @@(If things go well, the places(join, ...) will notify everyone))
+&c.join Places Global Object=$^\+join( at (.*)| with (.*))?:@eval [setq(p, if(isnum(%2), %2, u(f.get-num-by-name, loc(%#), %2)))][setq(d, u(f.get-num-by-player, loc(%#), locate(%#, %3, n)))]; @pemit %#=case(0, or(t(%2), t(%3)), [alert(places)] Join where?, or(strlen(%3), eq(words(%qp), 1)), [alert(places)] [if(words(%qp), Too many matches, I can't find that place)]., or(strlen(%2), strlen(%qd)), [alert(places)] I can't find [name(%qd)] at a place., t(setr(f, places(join, loc(%#), first(%qp %qd)))), [alert(places)] [titlestr(%qf)], @@(If things go well, the places(join, ...) will notify everyone))
 
 
 
 
-&c.join Places Global Object=$\+join( at| with)?( .*)?:@assert t(%2)={@pemit %#=[alert(places)] Join where?}; @switch/first 1=strmatch(%1, %bat), {@eval [setq(t, at)][setq(a, if(isint(%2), trim(%2), u(f.get-num-by-name, loc(%#), %2)))]}, strmatch(%1, %bwith), {@eval [setq(t, with)][setq(w, u(f.get-num-by-player, loc(%#), locate(%#, %2, nP)))]}, isint(%2), {@eval [setq(t, at)][setq(a, trim(%2))]}, t(setr(w, locate(%#, %2, nP))), {@eval setq(t, with)}, t(setr(a, u(f.get-num-by-name, loc(%#), %2))), {@eval setq(t, at)}, {@eval setq(t, unknown)}; @switch/first %qt=at, {@pemit %#=case(0, gt(words(%qa), 1), [alert(places)] Too many matches., words(%qa), [alert(places)] No such place., t(setr(f, places(join, loc(%#), %qa, %#))), [alert(places)] [titlestr(%qf)], @@(If things go well places() will notify everyone))}, with, {@pemit %#=case(0, words(%qw), [alert(places)] Not at a place., t(setr(f, places(join, loc(%#), %qw, %#))), [alert(places)] [titlestr(%qf)], @@(If things go well places() will notify everyone))}, {@pemit %#=[alert(places)] I can't figure out where you want to join. -- %qt}
+&c.join Places Global Object=$^\+join( at| with)?( .*)?:@assert t(%2)={@pemit %#=[alert(places)] Join where?}; @eval case(1, strmatch(%1, %bat), [setq(t, a)][setq(a, if(isint(%2), trim(%2), u(f.get-num-by-name, loc(%#), %2)))], strmatch(%1, %bwith), [setq(t, w)][setq(w, u(f.get-num-by-player, loc(%#), locate(%#, %2, nP)))], isint(%2), [setq(t, at)][setq(a, trim(%2))], t(setr(w, locate(%#, %2, nP))), setq(t, w), t(setr(a, u(f.get-num-by-name, loc(%#), %2))), setq(t, a), setq(t, ))@pemit %#=case(0, comp(%qt, ), [alert(places)] I can't figure out where you want to join., lte(words(r(%qt)), 1), [alert(places)] Too many matches., words(r(%qt)), [alert(places)] [case(%qt, a, No such place, w, Not at a place)]., t(setr(f, places(join, loc(%#), r(%qt), %#))), [alert(places)] [titlestr(%qf)], @@(If things go well places() will notify everyone))
 
+
+&c.join Places Global Object=$^\+join( at| with)?\s?#?(.*)?:@pemit %#=>>> '%0' -- '%1' -- '%2' -- '%3' -- '%4' -- '%5'
 
 
 --
