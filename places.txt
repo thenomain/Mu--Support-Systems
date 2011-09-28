@@ -1,65 +1,4 @@
 ================================================================================
-== PLANNING: Old Places ========================================================
-
-* mv from <#> to <#> Moves a vacancy from one place to another.                                                                              
-* join <place name> Puts you at <place name>                                                                                                 
-* join at #<num> Puts you at place #<num>.                                                                                                   
-* join with <name> Puts you at the place with <name>.                                                                                        
-* depart Removes you from your place.                                                                                                        
-* sit * Alias for Join.                                                                                                                      
-* depart Removes you from your place.                                                                                                        
-* places Lists who's present at all places.                                                                                                  
-* place <num> Lists who's present at place <num>.                                                                                            
-* plook Lists in column format everyone around the room.                                                                                     
-* plook <num> Lists name of <num> and virtual desc.                                                                                          
-* tt <message> (Tete a tete) Relays a message to all those at your place. This command takes the usual say/pose tokens, and TT |<message>    
-  will emit.                                                                                                                                   
-* ttooc <message> (Tete a tete) Relays an OOC message                                                                                        
-* update <#>/<Option>=<text> See "+help places-options"                                                                                      
-
-PLACES are virtual places to sit, stand or occupy. You remain in the same room, but join a group of people within that room who may or may not be having a quiet conversation only with others placed with them.
-
-For installation help, see "places-config".
-
---
-
-Update <Place #>/<Option>=<Configuration Text>
-
-Option Description - <Option> - Default Configuration Text
-* Place Name - NAME - Table x                                                                                                                
-* Maximum # of places - MAXPLACES - Random                                                                                                   
-* Current # of places - CURPLACES - Random (1 >= # >= MAXPLACES)                                                                             
-* Fixed fail message - FIXED - <NULL>                                                                                                        
-* Full fail message - FULL - That table has no more room.                                                                                    
-* Join message - JOIN - You sit down at <place>.                                                                                             
-* Ojoin message - OJOIN - sits down at <place>.                                                                                              
-* Depart message - DEPART - You stand and leave <place>.                                                                                     
-* Odepart message - ODEPART - stands and leaves <place>.                                                                                     
-* Say prefix - PREFIX - At your table                                                                                                        
-* Description - DESCRIBE - A table with 4 legs and some chairs                                                                              
-
---
-
-This code originally provided courtesy of Deirdre, Meg, and Osric of AmberMUSH. It has since been edited by Angel@Heaven
-
-* Configure <num> places                                                                                                                     
-* Unconfigure places                                                                                                                         
-
-Notes: A null fixed message means vacancies can be moved freely to and from the place. This does not make sense for things like couches and rugs. Set it to something like "That makes no sense." if you are using such a place.
-
-(O)Join and (O)depart messages take like this: %N. All Join and Depart messages are appended with the place name.
-
-Functions:
-* WHICHPLACE(<loc num>,<dbnum>) gives the number of a place where <dbnum> is.                                                                
-* ATPLACE(<loc num>,<place num>) gives you a list of things at a place.                                                                      
-* PLACEINFO(<loc num>,<place num>,<option>) gives the value of <option> at place.                                                           
-
-
-
-think [setq(w, whichplace)][setq(c, yh)][list(search(eval=grepi(##, *, %qw)), [wheader([name(%i0)] %(%i0%))]%r[iter(grepi(%i0, *, %qw), [ansi(%qc, >> %i0 <<)]%r[edit(get(%i1/%i0), %qw, ansi(%qc, %qw))], , %r)])][wfooter()]
-
-
-================================================================================
 == PLANNING: Setting Up Places =================================================
 
 The owner of a location should be able to set up places there, but the concept of "owner" is sometimes an iffy one.  Some games prefer that staff own all public hangouts, for example, even though a noncharbit has administrative control over it.
@@ -87,8 +26,8 @@ User-defined commands we'll need:
 	divider() - minor divider
 	wheader(), wdivider(), wfooter() - A width()-friendly version of the above
 
-	alert(<test>) - prefix for informational alerts
-	msg(<ansi>, <text>) - prefix for command notice
+	alert(<test>) - prefix for informational alerts, used on &f.alert
+	msg(<ansi>, <text>) - prefix for command notice, used on &f.notify
 	plural(<num>, <singular text>, <plural text>) - does what it looks like
 	titlestr(<string>) - Display text as something like book-title appropriate
 	crumple(<string> [, <delim>]) - trim() + squish()
@@ -161,7 +100,6 @@ If a places element is not set, or while setting up, use these defaults.
 &d.default.ojoin pgo=sits at #NAME (##LOC).
 &d.default.depart pgo=departs your table.
 &d.default.odepart pgo=departs #NAME (##LOC).
-
 
 ================================================================================
 == COMMAND SETUP ===============================================================
@@ -281,7 +219,7 @@ Show information about a particular place
 1: fake /switches, ignored
 
 ql: location of %#
-qn: number of location, if name passed
+qn: number of location, if name or #<num> passed
 
 --
 
@@ -290,21 +228,24 @@ qn: number of location, if name passed
 		not(attrcnt([setr(l, loc(%#))]/places.*.details)), 
 		There are no places here., 
 
-		and(isint(%0), hasattr(%ql, places.%0.details)), 
-		u(f.display.one-place-detailed, %ql, %0), 
+		and(
+			isint(setr(n, if(strmatch(%0, #*), rest(%0, #), %0))), 
+			hasattr(%ql, places.%qn.details)
+		), 
+		u(f.display.one-place-detailed, %ql, %qn), 
 		
 		and(
 			t(setr(n, u(f.get-num-by-name, %ql, %0))), 
 			hasattr(%ql, places.%qn.details)
 		), 
 		u(f.display.one-place-detailed, %ql, %qn), 
-		
-		[alert(places)] I can't find that place.
+
+		[u(f.alert, places)] I can't find that place.
 	)
 
 --
 
-&c.places.specific Places Global Object=case(1, not(attrcnt([setr(l, loc(%#))]/places.*.details)), There are no places here., and(isint(%0), hasattr(%ql, places.%0.details)), u(f.display.one-place-detailed, %ql, %0), and(t(setr(n, u(f.get-num-by-name, %ql, %0))), hasattr(%ql, places.%qn.details)), u(f.display.one-place-detailed, %ql, %qn), [alert(places)] I can't find that place.)
+&c.places.specific Places Global Object=case(1, not(attrcnt([setr(l, loc(%#))]/places.*.details)), There are no places here., and(isint(setr(n, if(strmatch(%0, #*), rest(%0, #), %0))), hasattr(%ql, places.%qn.details)), u(f.display.one-place-detailed, %ql, %qn), and(t(setr(n, u(f.get-num-by-name, %ql, %0))), hasattr(%ql, places.%qn.details)), u(f.display.one-place-detailed, %ql, %qn), [u(f.alert, places)] I can't find that place.)
 
 
 --------------------------------------------------------------------------------
@@ -323,8 +264,8 @@ qn: number of places the player wants configured (always 1)
 &c.places/configure Places Global Object=
 	case(0, 
 		not(comp(rest(%0, =), YES)), 
-		[alert(places/configure)] Please take note! Configuring up places will 
-		overwrite the room's @startup%, @ahear and @aleave attributes.  
+		[u(f.alert, places/configure)] Please take note! Configuring up places 
+		will overwrite the room's @startup%, @ahear and @aleave attributes.  
 		If the room has places set up already%, the existing places will be 
 		left but these attributes will still be overwritten.  If you are alright 
 		with this%, please type: [ansi(h, places/configure [before(%0, =)]=YES)], 
@@ -336,14 +277,14 @@ qn: number of places the player wants configured (always 1)
 				rest(before(%0, =), /)
 			)
 		)), 
-		[alert(places/configure)] [titlestr(rest(%qf))], 
+		[u(f.alert, places/configure)] [titlestr(rest(%qf))], 
 
 		CONFIGURED!
 	)
 
 --
 
-&c.places/configure Places Global Object=case(0, not(comp(rest(%0, =), YES)), [alert(places/configure)] Please take note! Configuring up places will overwrite the room's @startup%, @ahear and @aleave attributes.  If the room has places set up already%, the existing places will be left but these attributes will still be overwritten.  If you are alright with this%, please type: [ansi(h, places/configure [before(%0, =)]=YES)], t(setr(f, places(configure, before(before(%0, =), /), YES, rest(before(%0, =), /)))), [alert(places/configure)] [titlestr(rest(%qf))], CONFIGURED!)
+&c.places/configure Places Global Object=case(0, not(comp(rest(%0, =), YES)), [u(f.alert, places/configure)] Please take note! Configuring up places will overwrite the room's @startup%, @ahear and @aleave attributes.  If the room has places set up already%, the existing places will be left but these attributes will still be overwritten.  If you are alright with this%, please type: [ansi(h, places/configure [before(%0, =)]=YES)], t(setr(f, places(configure, before(before(%0, =), /), YES, rest(before(%0, =), /)))), [u(f.alert, places/configure)] [titlestr(rest(%qf))], CONFIGURED!)
 
 
 --------------------------------------------------------------------------------
@@ -358,20 +299,20 @@ qf: places() function results
 &c.places/breakdown Places Global Object=
 	case(0, 
 		not(comp(rest(%0, =), YES)), 
-		[alert(places/breakdown)] Please take note! Breaking down places will 
-		delete the room's @startup%, @ahear and @aleave attributes%, as well as the attributes set up to make places work.  
+		[u(f.alert, places/breakdown)] Please take note! Breaking down places 
+		will delete the room's @startup%, @ahear and @aleave attributes%, as well as the attributes set up to make places work.  
 		If you are alright with this%, please type: 
 		[ansi(h, places/breakdown <location>=YES)], 
 
 		t(setr(f, places(breakdown, first(%0, =), YES))), 
-		[alert(places/breakdown)] [titlestr(rest(%qf))], 
+		[u(f.alert, places/breakdown)] [titlestr(rest(%qf))], 
 
 		REMOVED!
 	)
 
 --
 
-&c.places/breakdown Places Global Object=case(0, not(comp(rest(%0, =), YES)), [alert(places/breakdown)] Please take note! Breaking down places will delete the room's @startup%, @ahear and @aleave attributes%, as well as the attributes set up to make places work.  If you are alright with this%, please type: [ansi(h, places/breakdown <location>=YES)], t(setr(f, places(breakdown, first(%0, =), YES))), [alert(places/breakdown)] [titlestr(rest(%qf))], REMOVED!)
+&c.places/breakdown Places Global Object=case(0, not(comp(rest(%0, =), YES)), [u(f.alert, places/breakdown)] Please take note! Breaking down places will delete the room's @startup%, @ahear and @aleave attributes%, as well as the attributes set up to make places work.  If you are alright with this%, please type: [ansi(h, places/breakdown <location>=YES)], t(setr(f, places(breakdown, first(%0, =), YES))), [u(f.alert, places/breakdown)] [titlestr(rest(%qf))], REMOVED!)
 
 
 --------------------------------------------------------------------------------
@@ -386,14 +327,14 @@ qf: places() function results
 &c.places/newplace Places Global Object=
 	case(0, 
 		t(setr(f, places(newplace, if(t(trim(first(%0, =))), trim(first(%0, =)), loc(%#)), rest(%0, =)))), 
-		[alert(places/newplace)] [titlestr(rest(%qf))], 
+		[u(f.alert, places/newplace)] [titlestr(rest(%qf))], 
 
-		[msg(h, places/newplace)]Created Place Number %qf
+		[u(f.notify, places/newplace)] Created Place Number %qf
 	)
 
 --
 
-&c.places/newplace Places Global Object=case(0, t(setr(f, places(newplace, if(t(trim(first(%0, =))), trim(first(%0, =)), loc(%#)), rest(%0, =)))), [alert(places/newplace)] [titlestr(rest(%qf))], [msg(h, places/newplace)]Created Place Number %qf)
+&c.places/newplace Places Global Object=case(0, t(setr(f, places(newplace, if(t(trim(first(%0, =))), trim(first(%0, =)), loc(%#)), rest(%0, =)))), [u(f.alert, places/newplace)] [titlestr(rest(%qf))], [u(f.notify, places/newplace)] Created Place Number %qf)
 
 
 --------------------------------------------------------------------------------
@@ -410,14 +351,14 @@ qf: places() function results
 &c.places/delplace Places Global Object=
 	case(0, 
 		t(setr(f, places(delplace, first(%0, =), rest(%0, =)))), 
-		[alert(places/delplace)] [titlestr(rest(%qf))], 
+		[u(f.alert, places/delplace)] [titlestr(rest(%qf))], 
 
-		[msg(h, places/delplace)]Deleted Place Number %qf
+		[u(f.notify, places/delplace)] Deleted Place Number %qf
 	)
 
 --
 
-&c.places/delplace Places Global Object=case(0, t(setr(f, places(delplace, first(%0, =), rest(%0, =)))), [alert(places/delplace)] [titlestr(rest(%qf))], [msg(h, places/delplace)]Deleted Place Number %qf)
+&c.places/delplace Places Global Object=case(0, t(setr(f, places(delplace, first(%0, =), rest(%0, =)))), [u(f.alert, places/delplace)] [titlestr(rest(%qf))], [u(f.notify, places/delplace)] Deleted Place Number %qf)
 
 
 --------------------------------------------------------------------------------
@@ -436,13 +377,13 @@ qo: output from
 &c.places/compress Places Global Object=
 	case(0, 
 		or(strmatch(owner(setr(l, locate(%#, %0, ha))), %#), isstaff(%#)), 
-		[alert(places/compress)] Staff or Owner Only., 
+		[u(f.alert, places/compress)] Staff or Owner Only., 
 
 		strmatch(type(%ql), ROOM), 
-		[alert(places/compress)] Room Not Found., 
+		[u(f.alert, places/compress)] Room Not Found., 
 
 		hasattr(%ql, places.1.details), 
-		[alert(places/compress)] Places Not Configured., 
+		[u(f.alert, places/compress)] Places Not Configured., 
 
 @@ .. set the oldkey:newkey list
 		[setq(n, 
@@ -453,7 +394,7 @@ qo: output from
 			)
 		)]
 @@ .. move those that need it
-		[msg(h, places/compress)]Compressed. 
+		[u(f.notify, places/compress)] Compressed.
 		[crumple(iter(%qn, 
 			if(neq(first(%i0, :), rest(%i0, :)), 
 				[null(trigger(%!/tr.moveplace, %ql, first(%i0, :), rest(%i0, :)))]
@@ -464,7 +405,7 @@ qo: output from
 
 --
 
-&c.places/compress Places Global Object=case(0, or(strmatch(owner(setr(l, locate(%#, %0, ha))), %#), isstaff(%#)), [alert(places/compress)] Staff or Owner Only., strmatch(type(%ql), ROOM), [alert(places/compress)] Room Not Found., hasattr(%ql, places.1.details), [alert(places/compress)] Places Not Configured., [setq(n, iter(places(list, %ql), [first(%i0, :)]:[inum()], |))][msg(h, places/compress)]Compressed. [crumple(iter(%qn, if(neq(first(%i0, :), rest(%i0, :)), [null(trigger(%!/tr.moveplace, %ql, first(%i0, :), rest(%i0, :)))][first(%i0, :)]->[rest(%i0, :)])))])
+&c.places/compress Places Global Object=case(0, or(strmatch(owner(setr(l, locate(%#, %0, ha))), %#), isstaff(%#)), [u(f.alert, places/compress)] Staff or Owner Only., strmatch(type(%ql), ROOM), [u(f.alert, places/compress)] Room Not Found., hasattr(%ql, places.1.details), [u(f.alert, places/compress)] Places Not Configured., [setq(n, iter(places(list, %ql), [first(%i0, :)]:[inum()], |))][u(f.notify, places/compress)] Compressed. [crumple(iter(%qn, if(neq(first(%i0, :), rest(%i0, :)), [null(trigger(%!/tr.moveplace, %ql, first(%i0, :), rest(%i0, :)))][first(%i0, :)]->[rest(%i0, :)])))])
 
 
 --------------------------------------------------------------------------------
@@ -477,14 +418,14 @@ qo: output from
 &c.places/cleanup Places Global Object=
 	case(0, 
 		t(setr(f, places(cleanup, %0))), 
-		[alert(places/cleanup)] [titlestr(rest(%qf))], 
+		[u(f.alert, places/cleanup)] [titlestr(rest(%qf))], 
 
-		[msg(h, places/cleanup)]Cleaned.
+		[u(f.notify, places/cleanup)] Cleaned.
 	)
 
 --
 
-&c.places/cleanup Places Global Object=case(0, t(setr(f, places(cleanup, %0))), [alert(places/cleanup)] [titlestr(rest(%qf))], [msg(h, places/cleanup)]Cleaned.)
+&c.places/cleanup Places Global Object=case(0, t(setr(f, places(cleanup, %0))), [u(f.alert, places/cleanup)] [titlestr(rest(%qf))], [u(f.notify, places/cleanup)] Cleaned.)
 
 
 --------------------------------------------------------------------------------
@@ -516,17 +457,17 @@ qf: function result
 
 	[case(0, 
 		not(strmatch(%qe, occupancy)), 
-		[alert(places/set)] Please use 'places/cleanup [first(first(%0), /)]'., 
+		[u(f.alert, places/set)] Please use 'places/cleanup [first(first(%0), /)]'., 
 
 		t(setr(f, places(set, %ql, %qp, %qe, %qi))), 
-		[alert(places/set)] [rest(titlestr(%qf))], 
-		
-		[msg(h, places/set)]Set #%qp '[lcstr(%qe)]' to '[%qi]'.
+		[u(f.alert, places/set)] [rest(titlestr(%qf))], 
+
+		[u(f.notify, places/set)] Set #%qp '[lcstr(%qe)]' to '[%qi]'.
 	)]
 
 --
 
-&c.places/set Places Global Object=[setq(p, first(%0, /))][if(isint(%qp), setq(l, loc(%#)), [setq(l, trim(revwords(rest(revwords(%qp)))))][setq(p, trim(last(%qp)))])][setq(e, rest(first(%0, =), /))][setq(e, last(first(lattr(%!/f.set.%qe*)), .))][setq(i, rest(%0, =))][case(0, not(strmatch(%qe, occupancy)), [alert(places/set)] Please use 'places/cleanup [first(first(%0), /)]'., t(setr(f, places(set, %ql, %qp, %qe, %qi))), [alert(places/set)] [rest(titlestr(%qf))], [msg(h, places/set)]Set #%qp '[lcstr(%qe)]' to '[%qi]'.)]
+&c.places/set Places Global Object=[setq(p, first(%0, /))][if(isint(%qp), setq(l, loc(%#)), [setq(l, trim(revwords(rest(revwords(%qp)))))][setq(p, trim(last(%qp)))])][setq(e, rest(first(%0, =), /))][setq(e, last(first(lattr(%!/f.set.%qe*)), .))][setq(i, rest(%0, =))][case(0, not(strmatch(%qe, occupancy)), [u(f.alert, places/set)] Please use 'places/cleanup [first(first(%0), /)]'., t(setr(f, places(set, %ql, %qp, %qe, %qi))), [u(f.alert, places/set)] [rest(titlestr(%qf))], [u(f.notify, places/set)] Set #%qp '[lcstr(%qe)]' to '[%qi]'.)]
 
 
 ================================================================================
@@ -558,8 +499,8 @@ qf: places() function results
 
 &c.join Places Global Object=$^join( at| with)?( #?(.*))?$:
 @@ >> if nothing but 'join', fail
-	@assert t(%3)={@pemit %#=[alert(places)] Join where?}; 
-	@assert not(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're already at a place. Please 'depart' first.}; 
+	@assert t(%3)={@pemit %#=[u(f.alert, places)] Join where?}; 
+	@assert not(places(whichplace, loc(%#), %#))={@pemit %#=[u(f.alert, places)] You're already at a place. Please 'depart' first.}; 
 
 @@ >> guess for explicit/implicit 'at' or 'with'
 	@eval case(1, 
@@ -596,18 +537,18 @@ qf: places() function results
 	@pemit %#=
 		case(0, 
 			comp(%qt, ), 
-			[alert(places)] I can't figure out where you want to join., 
+			[u(f.alert, places)] I can't figure out where you want to join., 
 
 			comp(%#, %qd), 
-			[alert(places)] You can't join yourself!, 
+			[u(f.alert, places)] You can't join yourself!, 
 
-			lte(words(r(%qt)), 1), [alert(places)] Too many matches., 
+			lte(words(r(%qt)), 1), [u(f.alert, places)] Too many matches., 
 
 			words(r(%qt)), 
-			[alert(places)] [case(%qt, a, No such place, w, Not at a place)]., 
+			[u(f.alert, places)] [case(%qt, a, No such place, w, Not at a place)]., 
 
 			t(setr(f, places(join, loc(%#), r(%qt), %#))), 
-			[alert(places)] [rest(titlestr(%qf))], 
+			[u(f.alert, places)] [rest(titlestr(%qf))], 
 
 			@@(If things go well places() will notify everyone)
 		)
@@ -615,7 +556,7 @@ qf: places() function results
 
 --
 
-&c.join Places Global Object=$^join( at| with)?( #?(.*))?$:@assert t(%3)={@pemit %#=[alert(places)] Join where?}; @assert not(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're already at a place. Please 'depart' first.}; @eval case(1, strmatch(%1, %bat), [setq(t, a)][setq(a, if(isint(%3), %3, u(f.get-num-by-name, loc(%#), %3)))], strmatch(%1, %bwith), [setq(t, w)][setq(w, u(f.get-num-by-player, loc(%#), setr(d, locate(%#, %3, nP))))], isint(%3), [setq(t, a)][setq(a, trim(%3))], t(setr(d, locate(%#, %3, nP))), [setq(w, u(f.get-num-by-player, loc(%#), %qd))][setq(t, w)], t(setr(a, u(f.get-num-by-name, loc(%#), %3))), setq(t, a), setq(t, )); @pemit %#=case(0, comp(%qt, ), [alert(places)] I can't figure out where you want to join., comp(%#, %qd), [alert(places)] You can't join yourself!, lte(words(r(%qt)), 1), [alert(places)] Too many matches., words(r(%qt)), [alert(places)] [case(%qt, a, No such place, w, Not at a place)]., t(setr(f, places(join, loc(%#), r(%qt), %#))), [alert(places)] [rest(titlestr(%qf))], @@(If things go well places() will notify everyone))
+&c.join Places Global Object=$^join( at| with)?( #?(.*))?$:@assert t(%3)={@pemit %#=[u(f.alert, places)] Join where?}; @assert not(places(whichplace, loc(%#), %#))={@pemit %#=[u(f.alert, places)] You're already at a place. Please 'depart' first.}; @eval case(1, strmatch(%1, %bat), [setq(t, a)][setq(a, if(isint(%3), %3, u(f.get-num-by-name, loc(%#), %3)))], strmatch(%1, %bwith), [setq(t, w)][setq(w, u(f.get-num-by-player, loc(%#), setr(d, locate(%#, %3, nP))))], isint(%3), [setq(t, a)][setq(a, trim(%3))], t(setr(d, locate(%#, %3, nP))), [setq(w, u(f.get-num-by-player, loc(%#), %qd))][setq(t, w)], t(setr(a, u(f.get-num-by-name, loc(%#), %3))), setq(t, a), setq(t, )); @pemit %#=case(0, comp(%qt, ), [u(f.alert, places)] I can't figure out where you want to join., comp(%#, %qd), [u(f.alert, places)] You can't join yourself!, lte(words(r(%qt)), 1), [u(f.alert, places)] Too many matches., words(r(%qt)), [u(f.alert, places)] [case(%qt, a, No such place, w, Not at a place)]., t(setr(f, places(join, loc(%#), r(%qt), %#))), [u(f.alert, places)] [rest(titlestr(%qf))], @@(If things go well places() will notify everyone))
 
 
 --
@@ -638,18 +579,18 @@ qf: places() function results
 
 &c.depart Places Global Object=$^depart( for #?(.*))?$:
 
-	@assert t(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're not at a place. Please 'join' first.}; 
+	@assert t(places(whichplace, loc(%#), %#))={@pemit %#=[u(f.alert, places)] You're not at a place. Please 'join' first.}; 
 
 	@pemit %#=case(0, 
 		t(setr(f, places(depart, loc(%#), %#))), 
-		[alert(places)] [rest(titlestr(%qf))], 
+		[u(f.alert, places)] [rest(titlestr(%qf))], 
 
 		@@(If things go well places() will notify everyone)
 	)
 
 --
 
-&c.depart Places Global Object=$^depart( for #?(.*))?$:@assert t(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're not at a place. Please 'join' first.}; @pemit %#=case(0, t(setr(f, places(depart, loc(%#), %#))), [alert(places)] [rest(titlestr(%qf))], @@(If things go well places() will notify everyone))
+&c.depart Places Global Object=$^depart( for #?(.*))?$:@assert t(places(whichplace, loc(%#), %#))={@pemit %#=[u(f.alert, places)] You're not at a place. Please 'join' first.}; @pemit %#=case(0, t(setr(f, places(depart, loc(%#), %#))), [u(f.alert, places)] [rest(titlestr(%qf))], @@(If things go well places() will notify everyone))
 
 -- 
 
@@ -678,21 +619,21 @@ qf: places() function results
 
 &c.tt Places Global Object=$^tt(o(oc)?)?(.*)?$:
 
-	@assert strlen(trim(%3))={[alert(places)] You need to 'tt <something>'.}; 
+	@assert strlen(trim(%3))={[u(f.alert, places)] You need to 'tt <something>'.}; 
 
-	@assert t(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're not at a place. Please 'join' first.}; 
+	@assert t(places(whichplace, loc(%#), %#))={@pemit %#=[u(f.alert, places)] You're not at a place. Please 'join' first.}; 
 
 	@pemit %#=
 		case(0, 
 			t(setr(f, places(tt, loc(%#), %#, trim(%3), if(t(%1), ooc)))), 
-			[alert(places)] [rest(titlestr(%qf))], 
+			[u(f.alert, places)] [rest(titlestr(%qf))], 
 
 			@@(If things go well places() will notify everyone)
 		)
 
 --
 
-&c.tt Places Global Object=$^tt(o(oc)?)?(.*)?$:@assert strlen(trim(%3))={[alert(places)] You need to 'tt <something>'.}; @assert t(places(whichplace, loc(%#), %#))={@pemit %#=[alert(places)] You're not at a place. Please 'join' first.}; @pemit %#=case(0, t(setr(f, places(tt, loc(%#), %#, trim(%3), if(t(%1), ooc)))), [alert(places)] [rest(titlestr(%qf))], @@(If things go well places() will notify everyone))
+&c.tt Places Global Object=$^tt(o(oc)?)?(.*)?$:@assert strlen(trim(%3))={[u(f.alert, places)] You need to 'tt <something>'.}; @assert t(places(whichplace, loc(%#), %#))={@pemit %#=[u(f.alert, places)] You're not at a place. Please 'join' first.}; @pemit %#=case(0, t(setr(f, places(tt, loc(%#), %#, trim(%3), if(t(%1), ooc)))), [u(f.alert, places)] [rest(titlestr(%qf))], @@(If things go well places() will notify everyone))
 
 --
 
@@ -714,13 +655,13 @@ These are commands that are aliased from the old places system to the new, or a 
 
 &c.old.stand pgo=$stand*:@fo %#=depart%0
 
-&c.old.mv pgo=$mv from*:@pemit %#=[alert(places)] Moving vacancies for places has been depreciated.  Please ask the room owner to add more places to this location.
+&c.old.mv pgo=$mv from*:@pemit %#=[u(f.alert, places)] Moving vacancies for places has been depreciated.  Please ask the room owner to add more places to this location.
 
-&c.old.update pgo=$update */*=*:@pemit %#=[alert(places)] Update has been depreciated.  Please use 'place/set'.
+&c.old.update pgo=$update */*=*:@pemit %#=[u(f.alert, places)] Update has been depreciated.  Please use 'place/set'.
 
-&c.old.configure pgo=$configure * places:@pemit %#=[alert(places)] Configure has been depreciated.  Please use 'places/configure'.
+&c.old.configure pgo=$configure * places:@pemit %#=[u(f.alert, places)] Configure has been depreciated.  Please use 'places/configure'.
 
-&c.old.unconfigure pgo=$unconfigure places:@pemit %#=[alert(places)] Unconfigure has been depreciated.  Please use 'places/breakdown'.
+&c.old.unconfigure pgo=$unconfigure places:@pemit %#=[u(f.alert, places)] Unconfigure has been depreciated.  Please use 'places/breakdown'.
 
 
 ================================================================================
@@ -793,7 +734,7 @@ Pulls the numbers of all locations a particular dbref is at.
 
 
 ================================================================================
-== FUNCTIONS: Set XXX ==========================================================
+== FUNCTION:= Set XXX ==========================================================
 
 Replaces elements entirely.  No checking first; using this on a place that hasn't been set up first will cause the information to not be written, due to the nature of replace() on TinyMUX (does not create, only replaces).
 
@@ -811,10 +752,11 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 &f.set.depart pgo=trigger(%!/tr.set-element, %0, notices, %1, 4, %2)
 &f.set.odepart pgo=trigger(%!/tr.set-element, %0, notices, %1, 5, %2)
 
+@@ .. "occupancy" sets without a trigger to avoid timing issues w/'tt'
+&f.set.occupancy pgo=[set(%0, places.%1.occupancy:%2)][trigger(%!/tr.chown, %0, places.%1.occupancy)]
 
-&f.set.occupancy pgo=trigger(%!/tr.set-direct, %0, places.%1.occupancy, %2)
-
---
+--------------------------------------------------------------------------------
+-- Trigger: Set Element --------------------------------------------------------
 
 0: dbref
 1: attribtue data is on
@@ -822,13 +764,12 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 3: location in attribute
 4: new value
 
-&tr.set-element pgo=&places.%2.%1 %0=replace(get(%0/places.%2.%1), %3, %4, |); @chown %0/places.%2.%1=[owner(%0)]; 
+&tr.set-element pgo=&places.%2.%1 %0=replace(get(%0/places.%2.%1), %3, %4, |); @trigger %!/tr.chown=%0, places.%2.%1; 
 
-&tr.set-direct pgo=&%1 %0=%2; @chown %0/%1=[owner(%0)]
-
+&tr.set-direct pgo=&%1 %0=%2; @trigger %!/tr.chown=%0, places.%2.%1; 
 
 ================================================================================
-== FUNCTIONS: Validate XXX =====================================================
+== FUNCTION: Validate XXX ======================================================
 
 Used primarially with &f.set.*, and should relate 1:1
 
@@ -1006,6 +947,14 @@ Almost all the triggers on the object.
 
 
 --------------------------------------------------------------------------------
+-- Trigger: Chown --------------------------------------------------------------
+
+Keep Your Room Tidy.
+
+&tr.chown pgo=@chown %0/%1=[owner(%0)]
+
+
+--------------------------------------------------------------------------------
 -- Trigger: Configure ----------------------------------------------------------
 
 The room configure functions.  Since someone can run some of these multiple times, we'll unlock things that we lock first.
@@ -1123,6 +1072,14 @@ Removes up Place #%1 in room %0.
 == FUNCTIONS: Support Functions ================================================
 
 Some functions used for various different aspects of the system.
+
+
+--------------------------------------------------------------------------------
+-- Configurable Display Functions ----------------------------------------------
+
+&f.notify pgo=trim(msg(h, %0))
+
+&f.alert pgo=alert(%0)
 
 
 --------------------------------------------------------------------------------
