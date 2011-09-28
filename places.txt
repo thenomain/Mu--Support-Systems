@@ -671,11 +671,11 @@ These are commands that are aliased from the old places system to the new, or a 
 
 &c.old.plook pgo=$plook*:@pemit %#=case(1, t(%0), u(c.places.specific, trim(%0)), u(c.places.default))
 
-&c.old.sit pgo=$sit*:@fo %#=join%0
+&c.old.sit pgo=$sit*:@if hasflag(%#, HALT)={@pemit %#=[u(f.alert, sit)] While you are set HALT please use 'join'.}, {@force %#=join%0}
 
-&c.old.leave pgo=$leave*:@fo %#=depart%0
+&c.old.leave pgo=$leave*:@if hasflag(%#, HALT)={@pemit %#=[u(f.alert, leave)] While you are set HALT please use 'depart'.}, {@force %#=depart%0}
 
-&c.old.stand pgo=$stand*:@fo %#=depart%0
+&c.old.stand pgo=$stand*:@if hasflag(%#, HALT)={@pemit %#=[u(f.alert, stand)] While you are set HALT please use 'depart'.}, {@force %#=depart%0}
 
 &c.old.mv pgo=$mv from*:@pemit %#=[u(f.alert, places)] Moving vacancies for places has been depreciated.  Please ask the room owner to add more places to this location.
 
