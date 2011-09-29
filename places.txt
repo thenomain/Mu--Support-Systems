@@ -70,6 +70,20 @@ Extend '*.occupancy' to <at place>|<evesdropping> so 'tt' triggers for them, but
 &prefix.user_function_actions pgo=action.
 
 
+--------------------------------------------------------------------------------
+-- @adisconnect ----------------------------------------------------------------
+
+Because TinyMUX and PennMUSH, as of this writing, don't have rooms checking @adisconnect for their contents, allowing only zones to do this, we're forced to do some mental gymnastics.  We could override the room's @listen/@ahear, but I'd rather this clearner solution.
+
+Using @eval so it only hits the command queue once, in unlikely fringe timing cases.
+
+Using iter() to catch all rooms needing cleaned.  Again unlikely, but there.
+
+-
+
+@adisconnect pgo=@eval iter(search(eroom=grep(##, places.*.occupancy, %#)), places(depart, ##, %#))
+
+
 ================================================================================
 == PLACES GLOBAL OBJECT <pgo> ==================================================
 
@@ -1219,8 +1233,8 @@ qp: player dbref
 		#-1 CLEANUP PLAYER MUST BE USED BY PLAYER, 
 
 @@ no specific dbref(s), clean up everyone
-		comp(%qp, ), 
-		[setq(c, lcon(%1, connect))]
+		t(%qp), 
+		[setq(c, lcon(%0, connect))]
 		[setq(e, 
 			iter(lattr(%0/places.*.occupancy), 
 				set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@
@@ -1231,23 +1245,22 @@ qp: player dbref
 			1
 		)], 
 
-@@ specific dbref(s), clean up only them
+@@ specific dbref(s), clean up only them - if they're not connected
+		[setq(c, lcon(%0, connect))]
 		[setq(e, 
 			iter(lattr(%0/places.*.occupancy), 
-				set(%0, %i0:[setdiff(get(%0/%i0), %qp)]), , @@
+				set(%0, %i0:[setdiff(get(%0/%i0), setdiff(%qp, %qc))]), , @@
 			)
 		)]
 		[if(comp(%qe, ), 
 			#-1 [ucstr(%qe)], 
 			1
-		)], 
-		
-		#-1 FUNCTION PANIC IN 'CLEANUP'
+		)]
 	)
 
 --
 
-&action.cleanup Places Global Object=case(0, or(t(%1), or(strmatch(%0, loc(%#)), isstaff(%#))), #-1 CLEANUP MUST BE USED IN ROOM, or(strmatch(%1, ), strmatch(setr(p, pmatch(%1)), %#), isstaff(%#)), #-1 CLEANUP PLAYER MUST BE USED BY PLAYER, comp(%qp, ), [setq(c, lcon(%1, connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], [setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setdiff(get(%0/%i0), %qp)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], #-1 FUNCTION PANIC IN 'CLEANUP')
+&action.cleanup Places Global Object=case(0, or(t(%1), or(strmatch(%0, loc(%#)), isstaff(%#))), #-1 CLEANUP MUST BE USED IN ROOM, or(strmatch(%1, ), strmatch(setr(p, pmatch(%1)), %#), isstaff(%#)), #-1 CLEANUP PLAYER MUST BE USED BY PLAYER, t(%qp), [setq(c, lcon(%0, connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], [setq(c, lcon(%0, connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setdiff(get(%0/%i0), setdiff(%qp, %qc))]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)])
 
 
 --------------------------------------------------------------------------------
