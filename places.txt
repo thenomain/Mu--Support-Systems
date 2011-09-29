@@ -205,7 +205,7 @@ Show default places setup.
 
 >> DO NOT WORK IF ROOM IS SET HALT <<
 
-Because of the @aleave/@adisconnect/@startup that's placed on a room, if it's set halt then the cleanup code won't work properly.  Annoy people to unset it.
+Because of the @aleave/@startup that's placed on a room, if it's set halt then the cleanup code won't work properly.  Annoy people to unset it.
 
 --
 
@@ -242,7 +242,7 @@ Show information about a particular place
 
 >> DO NOT WORK IF ROOM IS SET HALT <<
 
-Because of the @aleave/@adisconnect/@startup that's placed on a room, if it's set halt then the cleanup code won't work properly.  Annoy people to unset it.
+Because of the @aleave/@startup that's placed on a room, if it's set halt then the cleanup code won't work properly.  Annoy people to unset it.
 
 --
 
@@ -995,32 +995,28 @@ Keep Your Room Tidy.
 
 The room configure functions.  Since someone can run some of these multiple times, we'll unlock things that we lock first.
 
-Setting up WILL clobber a room's @adisconnect, @aleave, and @startup
+Setting up WILL clobber a room's @aleave, and @startup
 
 0: Our target room.
 
 --
 
 &tr.configure Places Global Object=
-	@unlock %0/adisconnect; 
 	@unlock %0/aleave; 
 	@unlock %0/startup; 
 
-	@adisconnect %0=@eval places%(depart, %%!, %%#%); 
 	@aleave %0=@eval places%(depart, %%!, %%#%); 
 	@startup %0=@eval places%(cleanup, %%!%); 
 
-	@chown %0/adisconnect=[owner(%0)]; 
 	@chown %0/aleave=[owner(%0)]; 
 	@chown %0/startup=[owner(%0)]; 
 
-	@lock %0/adisconnect=%0; 
 	@lock %0/aleave=%0; 
 	@lock %0/startup=%0; 
 
 --
 
-&tr.configure Places Global Object=@unlock %0/adisconnect; @unlock %0/aleave; @unlock %0/startup; @adisconnect %0=@eval places%(depart, %%!, %%#%); @aleave %0=@eval places%(depart, %%!, %%#%); @startup %0=@eval places%(cleanup, %%!%); @chown %0/adisconnect=[owner(%0)]; @chown %0/aleave=[owner(%0)]; @chown %0/startup=[owner(%0)]; @lock %0/adisconnect=%0; @lock %0/aleave=%0; @lock %0/startup=%0; 
+&tr.configure Places Global Object=@unlock %0/aleave; @unlock %0/startup; @aleave %0=@eval places%(depart, %%!, %%#%); @startup %0=@eval places%(cleanup, %%!%); @chown %0/aleave=[owner(%0)]; @chown %0/startup=[owner(%0)]; @lock %0/aleave=%0; @lock %0/startup=%0; 
 
 
 --------------------------------------------------------------------------------
@@ -1028,24 +1024,23 @@ Setting up WILL clobber a room's @adisconnect, @aleave, and @startup
 
 The places removal function.
 
-This WILL clobber a room's @adisconnect, @aleave, and @startup
+This WILL clobber a room's @aleave, and @startup
 
 0: Our target room.
 
 --
 
 &tr.breakdown Places Global Object=
-	@unlock %0/adisconnect; 
 	@unlock %0/aleave; 
 	@unlock %0/startup; 
 
-	@adisconnect %0=; @aleave %0=; @startup %0=; 
+	@aleave %0=; @startup %0=; 
 
 	@dolist [lattr(%0/places.*)]={&## %0=}; 
 
 --
 
-&tr.breakdown Places Global Object=@unlock %0/adisconnect; @unlock %0/aleave; @unlock %0/startup; @adisconnect %0=; @aleave %0=; @startup %0=; @dolist [lattr(%0/places.*)]={&## %0=}; 
+&tr.breakdown Places Global Object=@unlock %0/aleave; @unlock %0/startup; @aleave %0=; @startup %0=; @dolist [lattr(%0/places.*)]={&## %0=}; 
 
 
 --------------------------------------------------------------------------------
@@ -1265,7 +1260,7 @@ qp: player dbref
 --------------------------------------------------------------------------------
 -- places(): configure ---------------------------------------------------------
 
-Configure (or re-configure) a room.  Clobbers @startup, @aleave, @adisconnect.
+Configure (or re-configure) a room.  Clobbers @startup, @aleave.
 
 Must be used by room owner or staffer.
 
@@ -1315,7 +1310,7 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 
 Remove places from a room permenantly. 
 
-Clobbers @startup, @aleave, @adisconnect.
+Clobbers @startup, @aleave.
 
 	places(breakdown, <room> [, YES])
 
