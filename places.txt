@@ -1245,11 +1245,10 @@ qp: player dbref
 			1
 		)], 
 
-@@ specific dbref(s), clean up only them - if they're not connected
-		[setq(c, lcon(%0, connect))]
+@@ specific dbref(s), clean up only them - even if they're connected
 		[setq(e, 
 			iter(lattr(%0/places.*.occupancy), 
-				set(%0, %i0:[setdiff(get(%0/%i0), setdiff(%qp, %qc))]), , @@
+				set(%0, %i0:[setdiff(get(%0/%i0), %qp)]), , @@
 			)
 		)]
 		[if(comp(%qe, ), 
@@ -1260,7 +1259,7 @@ qp: player dbref
 
 --
 
-&action.cleanup Places Global Object=case(0, or(t(%1), or(strmatch(%0, loc(%#)), isstaff(%#))), #-1 CLEANUP MUST BE USED IN ROOM, or(strmatch(%1, ), strmatch(setr(p, pmatch(%1)), %#), isstaff(%#)), #-1 CLEANUP PLAYER MUST BE USED BY PLAYER, t(%qp), [setq(c, lcon(%0, connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], [setq(c, lcon(%0, connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setdiff(get(%0/%i0), setdiff(%qp, %qc))]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)])
+&action.cleanup Places Global Object=case(0, or(t(%1), or(strmatch(%0, loc(%#)), isstaff(%#))), #-1 CLEANUP MUST BE USED IN ROOM, or(strmatch(%1, ), strmatch(setr(p, pmatch(%1)), %#), isstaff(%#)), #-1 CLEANUP PLAYER MUST BE USED BY PLAYER, t(%qp), [setq(c, lcon(%0, connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], [setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setdiff(get(%0/%i0), %qp)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)])
 
 
 --------------------------------------------------------------------------------
@@ -1623,7 +1622,7 @@ qp: dbref from pmatch()
 qn: current place number
 
 qo: new place occupancy list (sans %qp)
-qs: spaces (max)e
+qs: spaces (max)
 qe: possible error from set
 
 --
@@ -1646,7 +1645,7 @@ qe: possible error from set
 		%qn, 
 
 @@ >> if the character cleanup is okay...
-		comp(setr(e, u(action.cleanup, %0, %qp)), ), 
+		not(setr(e, u(action.cleanup, %0, %qp))), 
 
 @@ .. get who's left at that location (edit probably redundant)
 		[setq(o, edit(u(f.get.occupancy, %0, %qn), %qp, ))]
@@ -1669,7 +1668,7 @@ qe: possible error from set
 
 --
 
-&action.depart Places Global Object=case(0, or(strmatch(setr(p, pmatch(%1)), %#), isstaff(%#)), #-1 DEPART MUST BE TRIGGERED BY TARGET, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, not(hasflag(%0, HALT)), #-1 DEPART CANNOT BE USED IF ROOM IS SET HALT, t(setr(n, ulocal(action.whichplace, %0, %qp))), %qn, comp(setr(e, u(action.cleanup, %0, %qp)), ), [setq(o, edit(u(f.get.occupancy, %0, %qn), %qp, ))][pemit(setdiff(lcon(%0), %qo), [name(%qp)] [u(f.display.element, %0, %qn, odepart)])][pemit(setinter(lcon(%0), %qo), [name(%qp)] [u(f.display.element, %0, %qn, depart)])]1, %qe)
+&action.depart Places Global Object=case(0, or(strmatch(setr(p, pmatch(%1)), %#), isstaff(%#)), #-1 DEPART MUST BE TRIGGERED BY TARGET, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, not(hasflag(%0, HALT)), #-1 DEPART CANNOT BE USED IF ROOM IS SET HALT, t(setr(n, ulocal(action.whichplace, %0, %qp))), %qn, not(setr(e, u(action.cleanup, %0, %qp))), [setq(o, edit(u(f.get.occupancy, %0, %qn), %qp, ))][pemit(setdiff(lcon(%0), %qo), [name(%qp)] [u(f.display.element, %0, %qn, odepart)])][pemit(setinter(lcon(%0), %qo), [name(%qp)] [u(f.display.element, %0, %qn, depart)])]1, %qe)
 
 
 --------------------------------------------------------------------------------
