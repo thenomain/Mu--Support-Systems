@@ -734,7 +734,7 @@ If it becomes a problem, start fixing it here.
 &f.get.depart pgo=u(f.get-element, %0, notices, %1, 4, %2, depart)
 &f.get.odepart pgo=u(f.get-element, %0, notices, %1, 5, %2, odepart)
 
-&f.get.occupancy pgo=strcat(null(u(action.cleanup, %0)), get(%0/places.%1.occupancy))
+&f.get.occupancy pgo=strcat(null(ulocal(action.cleanup, %0)), get(%0/places.%1.occupancy))
 
 --
 
@@ -803,7 +803,7 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 @@ .. "occupancy" sets without a trigger to avoid timing issues w/'tt'
 @@ .. "cleanup" after for the same reason as &f.get.occupancy, above
 
-&f.set.occupancy pgo=strcat(set(%0, places.%1.occupancy:%2), trigger(%!/tr.chown, %0, places.%1.occupancy), null(u(action.cleanup, %0)))
+&f.set.occupancy pgo=strcat(set(%0, places.%1.occupancy:%2), trigger(%!/tr.chown, %0, places.%1.occupancy), null(ulocal(action.cleanup, %0)))
 
 
 --------------------------------------------------------------------------------
@@ -1234,11 +1234,12 @@ qp: player dbref
 --
 
 &action.cleanup Places Global Object=
+localize(
 	case(0, 
 		cor(t(%1), or(strmatch(%0, loc(%#)), isstaff(%#))), 
 		#-1 CLEANUP MUST BE USED IN ROOM, 
 
-		cor(strmatch(%1, ), strmatch(setr(p, pmatch(%1)), %#), isstaff(%#)), 
+		cor(strmatch(setr(p, pmatch(%1)), %#), strmatch(%1, ), isstaff(%#)), 
 		#-1 CLEANUP PLAYER MUST BE USED BY PLAYER, 
 
 @@ no specific dbref(s), clean up everyone
@@ -1265,10 +1266,11 @@ qp: player dbref
 			1
 		)]
 	)
+)
 
 --
 
-&action.cleanup Places Global Object=case(0, cor(t(%1), or(strmatch(%0, loc(%#)), isstaff(%#))), #-1 CLEANUP MUST BE USED IN ROOM, cor(strmatch(%1, ), strmatch(setr(p, pmatch(%1)), %#), isstaff(%#)), #-1 CLEANUP PLAYER MUST BE USED BY PLAYER, t(%qp), [setq(c, lcon(%0, connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], [setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setdiff(get(%0/%i0), %qp)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)])
+&action.cleanup Places Global Object=localize(case(0, cor(t(%1), or(strmatch(%0, loc(%#)), isstaff(%#))), #-1 CLEANUP MUST BE USED IN ROOM, cor(strmatch(setr(p, pmatch(%1)), %#), strmatch(%1, ), isstaff(%#)), #-1 CLEANUP PLAYER MUST BE USED BY PLAYER, t(%qp), [setq(c, lcon(%0, connect))][setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)], [setq(e, iter(lattr(%0/places.*.occupancy), set(%0, %i0:[setdiff(get(%0/%i0), %qp)]), , @@))][if(comp(%qe, ), #-1 [ucstr(%qe)], 1)]))
 
 
 --------------------------------------------------------------------------------
@@ -1522,7 +1524,7 @@ qe: possible error from set
 		#-1 NO SUCH PLACE, 
 
 @@ >> any space left? (0 spaces = infinite)
-		cor(
+		or(
 			eq(setr(s, u(f.get.spaces, %0, %1)), 0), 
 			lt(
 				words(setr(o, u(f.get.occupancy, %0, %1))), 
@@ -1558,7 +1560,7 @@ qe: possible error from set
 
 --
 
-&action.join Places Global Object=case(0, cand(strmatch(%0, loc(setr(p, pmatch(%2)))), cor(strmatch(%0, loc(%qp)), isstaff(%#))), #-1 JOIN MUST BE TRIGGERED BY PLAYER FOR THAT ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, not(hasflag(%0, HALT)), #-1 JOIN CANNOT BE USED IF ROOM IS SET HALT, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, cor(eq(setr(s, u(f.get.spaces, %0, %1)), 0), lt(words(setr(o, u(f.get.occupancy, %0, %1))), %qs)), #-1 NO SPACES AVAILABLE, not(match(%qo, %qp)), #-1 ALREADY AT THAT LOCATION, comp(setr(e, u(f.set.occupancy, %0, %1, trim(%qo %qp))), ), [pemit(setdiff(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, ojoin)])][pemit(setinter(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, join)])][pemit(%qp, You join [u(f.display.element, %0, %1, name)] (#%1).)]1, #-1 [ucstr(%qe)])
+&action.join Places Global Object=case(0, cand(strmatch(%0, loc(setr(p, pmatch(%2)))), cor(strmatch(%0, loc(%qp)), isstaff(%#))), #-1 JOIN MUST BE TRIGGERED BY PLAYER FOR THAT ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, not(hasflag(%0, HALT)), #-1 JOIN CANNOT BE USED IF ROOM IS SET HALT, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, or(eq(setr(s, u(f.get.spaces, %0, %1)), 0), lt(words(setr(o, u(f.get.occupancy, %0, %1))), %qs)), #-1 NO SPACES AVAILABLE, not(match(%qo, %qp)), #-1 ALREADY AT THAT LOCATION, comp(setr(e, u(f.set.occupancy, %0, %1, trim(%qo %qp))), ), [pemit(setdiff(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, ojoin)])][pemit(setinter(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, join)])][pemit(%qp, You join [u(f.display.element, %0, %1, name)] (#%1).)]1, #-1 [ucstr(%qe)])
 
 
 --------------------------------------------------------------------------------
@@ -1639,7 +1641,7 @@ qe: possible error from set
 
 &action.depart Places Global Object=
 	case(0, 
-		xor(strmatch(setr(p, pmatch(%1)), %#), isstaff(%#)), 
+		cor(strmatch(setr(p, pmatch(%1)), %#), isstaff(%#)), 
 		#-1 DEPART MUST BE TRIGGERED BY TARGET, 
 
 @@ >> check that it's set up
@@ -1697,7 +1699,7 @@ qs: say/pose formatted
 
 &action.tt Places Global Object=
 	case(0, 
-		cor(and(strmatch(%0, loc(%#)), strmatch(setr(p, pmatch(%1)), %#)), isstaff(%#)), 
+		cor(strmatch(setr(p, pmatch(%1)), %#), and(strmatch(%0, loc(%#))), isstaff(%#)), 
 		#-1 TT MUST BE USED IN ROOM BY PERSON, 
 
 @@ >> check that it's set up
@@ -1726,7 +1728,7 @@ qs: say/pose formatted
 			))
 		)]
 		[case(1, 
-@@ .. >> staff evesdropping?
+@@ .. >> staff evesdropping? (placeholder)
 
 @@ .. >> ooc?
 			strmatch(%3, ooc), 
@@ -1744,7 +1746,7 @@ qs: say/pose formatted
 
 --
 
-&action.tt Places Global Object=case(0, cor(and(strmatch(%0, loc(%#)), strmatch(setr(p, pmatch(%1)), %#)), isstaff(%#)), #-1 TT MUST BE USED IN ROOM BY PERSON, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, not(hasflag(%0, HALT)), #-1 TT CANNOT BE USED IF ROOM IS SET HALT, t(setr(n, ulocal(action.whichplace, %0, %qp))), %qn, [setq(o, u(f.get.occupancy, %0, %qn))][setq(p, name(%qp))][setq(s, objeval(%#, switch(%2, :*, %qp [rest(%2, :)], %;*, %qp[rest(%2, %;)], |*, [rest(%2, |)] [ansi(xh, <from %qp>)], "*, %qp says%, “[rest(%2, ")]”, %qp says%, “%2”)))][case(1, strmatch(%3, ooc), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] [ansi(xh, <ooc>)]%, %qs), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)]%, %qs))]1)
+&action.tt Places Global Object=case(0, cor(strmatch(setr(p, pmatch(%1)), %#), and(strmatch(%0, loc(%#))), isstaff(%#)), #-1 TT MUST BE USED IN ROOM BY PERSON, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, not(hasflag(%0, HALT)), #-1 TT CANNOT BE USED IF ROOM IS SET HALT, t(setr(n, ulocal(action.whichplace, %0, %qp))), %qn, [setq(o, u(f.get.occupancy, %0, %qn))][setq(p, name(%qp))][setq(s, objeval(%#, switch(%2, :*, %qp [rest(%2, :)], %;*, %qp[rest(%2, %;)], |*, [rest(%2, |)] [ansi(xh, <from %qp>)], "*, %qp says%, “[rest(%2, ")]”, %qp says%, “%2”)))][case(1, strmatch(%3, ooc), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] [ansi(xh, <ooc>)]%, %qs), pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)]%, %qs))]1)
 
 
 ---------------------------------------------------------------------------------- places(): get ---------------------------------------------------------------
