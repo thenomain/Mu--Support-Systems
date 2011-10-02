@@ -710,6 +710,18 @@ A bunch of functions to get specific information.  An easy way to get informatio
 
 --
 
+The cleanup on &f.get.occupancy may require a little explanation:
+
+In Tiny code, back to TinyMUSH 1.6, movement with the /quiet switch, 
+such as @teleport/quiet, will avoid triggering a room's @aleave.  
+In order to sidestep the cleanup issue, we'll make every action that
+lists a location clean up the places.  This will cause some extra overhead
+and is excessive, but easy.
+
+If it becomes a problem, start fixing it here.
+
+--
+
 &f.get pgo=iter(%2, udefault(first(lattr(%!/f.get.%i0*)), #-1, %0, %1), |, |)
 
 &f.get.name pgo=u(f.get-element, %0, details, %1, 1, %2, name)
@@ -789,7 +801,10 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 &f.set.odepart pgo=trigger(%!/tr.set-element, %0, notices, %1, 5, %2)
 
 @@ .. "occupancy" sets without a trigger to avoid timing issues w/'tt'
-&f.set.occupancy pgo=[set(%0, places.%1.occupancy:%2)][trigger(%!/tr.chown, %0, places.%1.occupancy)]
+@@ .. "cleanup" after for the same reason as &f.get.occupancy, above
+
+&f.set.occupancy pgo=strcat(set(%0, places.%1.occupancy:%2), trigger(%!/tr.chown, %0, places.%1.occupancy), null(u(action.cleanup, %0)))
+
 
 --------------------------------------------------------------------------------
 -- Trigger: Set Element --------------------------------------------------------
@@ -803,6 +818,7 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 &tr.set-element pgo=&places.%2.%1 %0=replace(get(%0/places.%2.%1), %3, %4, |); @trigger %!/tr.chown=%0, places.%2.%1; 
 
 &tr.set-direct pgo=&%1 %0=%2; @trigger %!/tr.chown=%0, places.%2.%1; 
+
 
 ================================================================================
 == FUNCTION: Validate XXX ======================================================
@@ -1160,18 +1176,6 @@ List places in the room and who is at it, or list everyone in a certain place.
 	places(list, <room> [, <place>])
 
 Returns: #-1 ERROR or '<num>:<name>:<max>:<list of dbrefs>', |-delim
-
---
-
-The cleanup may require a little explanation:
-
-In Tiny code, back to TinyMUSH 1.6, movement with the /quiet switch, 
-such as @teleport/quiet, will avoid triggering a room's @aleave.  
-In order to sidestep the cleanup issue, we'll make every action that
-lists a location clean up the places.  This will cause some extra overhead
-and is excessive, but easy.
-
-If it becomes a problem, start fixing it here.
 
 --
 
