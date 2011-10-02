@@ -722,7 +722,7 @@ A bunch of functions to get specific information.  An easy way to get informatio
 &f.get.depart pgo=u(f.get-element, %0, notices, %1, 4, %2, depart)
 &f.get.odepart pgo=u(f.get-element, %0, notices, %1, 5, %2, odepart)
 
-&f.get.occupancy pgo=get(%0/places.%1.occupancy)
+&f.get.occupancy pgo=strcat(null(u(action.cleanup, %0)), get(%0/places.%1.occupancy))
 
 --
 
@@ -1157,21 +1157,26 @@ Rather than have one function per item, let's just have one function.
 
 List places in the room and who is at it, or list everyone in a certain place.
 
-List is available only to the room itself, people in the room, or to a staffer.
-
-(note: I'm using isstaff(%#), but for parent room setups it may be better to use isstaff(%@))
-
 	places(list, <room> [, <place>])
 
 Returns: #-1 ERROR or '<num>:<name>:<max>:<list of dbrefs>', |-delim
 
 --
 
-&action.list Places Global Object=
-@@ >> always clean up place
-	[null(u(action.cleanup, %0))]
+The cleanup may require a little explanation:
 
-	[case(0, 
+In Tiny code, back to TinyMUSH 1.6, movement with the /quiet switch, 
+such as @teleport/quiet, will avoid triggering a room's @aleave.  
+In order to sidestep the cleanup issue, we'll make every action that
+lists a location clean up the places.  This will cause some extra overhead
+and is excessive, but easy.
+
+If it becomes a problem, start fixing it here.
+
+--
+
+&action.list Places Global Object=
+	case(0, 
 		cor(strmatch(%0, loc(%#)), isstaff(%#)), 
 		#-1 LIST MUST BE TRIGGERED IN ROOM, 
 
@@ -1202,12 +1207,11 @@ Returns: #-1 ERROR or '<num>:<name>:<max>:<list of dbrefs>', |-delim
 		[u(f.get.name, %0, %1, name)]:
 		[u(f.get.spaces, %0, %1, spaces)]:
 		[u(f.get.occupancy, %0, %1)]
-	)]
+	)
 
 --
 
-&action.list Places Global Object=[null(u(action.cleanup, %0))][case(0, cor(strmatch(%0, loc(%#)), isstaff(%#)), #-1 LIST MUST BE TRIGGERED IN ROOM OR BY ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, comp(%1, ), sort(iter(lattr(%0/places.*.details), [setr(n, elements(%i0, 2, .))]:[u(f.get.name, %0, %qn, name)]:[u(f.get.spaces, %0, %qn, spaces)]:[u(f.get.occupancy, %0, %qn)], , |), n, |, |), hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, %1:[u(f.get.name, %0, %1, name)]:[u(f.get.spaces, %0, %1, spaces)]:[u(f.get.occupancy, %0, %1)])]
-
+&action.list Places Global Object=case(0, cor(strmatch(%0, loc(%#)), isstaff(%#)), #-1 LIST MUST BE TRIGGERED IN ROOM OR BY ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, comp(%1, ), sort(iter(lattr(%0/places.*.details), [setr(n, elements(%i0, 2, .))]:[u(f.get.name, %0, %qn, name)]:[u(f.get.spaces, %0, %qn, spaces)]:[u(f.get.occupancy, %0, %qn)], , |), n, |, |), hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, %1:[u(f.get.name, %0, %1, name)]:[u(f.get.spaces, %0, %1, spaces)]:[u(f.get.occupancy, %0, %1)])
 
 --------------------------------------------------------------------------------
 -- places(): cleanup -----------------------------------------------------------
@@ -1215,6 +1219,7 @@ Returns: #-1 ERROR or '<num>:<name>:<max>:<list of dbrefs>', |-delim
 Cleanup is available only to the room itself, people in the room, or to a staffer.
 
 NOTE: Remember to scan for/clean null "gatherings" when it's installed.
+NOTE: See "places(): list", above, for when this code is called.
 
 	places(cleanup, <room> [, <dbrefs to remove>])
 
@@ -1405,7 +1410,8 @@ Returns: #-1 ERROR or ex-place #, if successful.
 		dec(%1), 
 		#-1 CANNOT DELETE PLACE #1, 
 
-		not(hasattr(%0, places.%1.occupancy)), 
+		[null(u(action.cleanup, %0))]
+		[not(hasattr(%0, places.%1.occupancy))], 
 		#-1 PLACE IS OCCUPIED, 
 
 		%1
@@ -1414,7 +1420,7 @@ Returns: #-1 ERROR or ex-place #, if successful.
 
 --
 
-&action.delplace Places Global Object=case(0, cor(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 PLACE NUMBER NOT VALID, dec(%1), #-1 CANNOT DELETE PLACE #1, not(hasattr(%0, places.%1.occupancy)), #-1 PLACE IS OCCUPIED, %1[trigger(%!/tr.delplace, %0, %1)])
+&action.delplace Places Global Object=case(0, cor(strmatch(%#, owner(%0)), isstaff(%#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 PLACE NUMBER NOT VALID, dec(%1), #-1 CANNOT DELETE PLACE #1, [null(u(action.cleanup, %0))][not(hasattr(%0, places.%1.occupancy))], #-1 PLACE IS OCCUPIED, %1[trigger(%!/tr.delplace, %0, %1)])
 
 
 --------------------------------------------------------------------------------
