@@ -692,13 +692,13 @@ These are commands that are aliased from the old places system to the new, or a 
 
 &c.old.stand pgo=$stand*:@if hasflag(%#, HALT)={@pemit %#=[u(f.alert, stand)] While you are set HALT please use 'depart'.}, {@force %#=depart%0}
 
-&c.old.mv pgo=$mv from*:@pemit %#=[u(f.alert, places)] Moving vacancies for places has been depreciated.  Please ask the room owner to add more places to this location.
+&c.old.mv pgo=$mv from*:@pemit %#=[u(f.alert, places)] Moving vacancies for places has been deprecated.  Please ask the room owner to add more places to this location.
 
-&c.old.update pgo=$update */*=*:@pemit %#=[u(f.alert, places)] Update has been depreciated.  Please use 'place/set'.
+&c.old.update pgo=$update */*=*:@pemit %#=[u(f.alert, places)] Update has been deprecated.  Please use 'place/set'.
 
-&c.old.configure pgo=$configure * places:@pemit %#=[u(f.alert, places)] Configure has been depreciated.  Please use 'places/configure'.
+&c.old.configure pgo=$configure * places:@pemit %#=[u(f.alert, places)] Configure has been deprecated.  Please use 'places/configure'.
 
-&c.old.unconfigure pgo=$unconfigure places:@pemit %#=[u(f.alert, places)] Unconfigure has been depreciated.  Please use 'places/breakdown'.
+&c.old.unconfigure pgo=$unconfigure places:@pemit %#=[u(f.alert, places)] Unconfigure has been deprecated.  Please use 'places/breakdown'.
 
 
 ================================================================================
