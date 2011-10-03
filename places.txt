@@ -17,17 +17,18 @@ If we get this far, lock to the places system object:
 	places.administrators: <list of people who can set up places here>
 
 User-defined commands we'll need:
+(If your game does not have one of these, look for "&f.funcname")
 
-	isstaff(<player>) - return '1' if player has staff access - &f.isstaff
-	lmin(<list> [, <delimiter>]) - min() with delimiter - &f.lmin
+	isstaff(<player>) - return '1' if player has staff access
+	lmin(<list> [, <delimiter>]) - min() with delimiter
 
-	header(<text>) - game's default command header - &f.header
-	footer(<text>) - game's default command footer - &f.footer
-	divider() - minor divider - &f.divider
+	header(<text>) - game's default command header
+	footer(<text>) - game's default command footer
+	divider() - minor divider
 	wheader(), wdivider(), wfooter() - A width()-friendly version of the above
 
-	alert(<test>) - prefix for informational alerts, used on &f.alert
-	msg(<ansi>, <text>) - prefix for command notice, used on &f.notify
+	alert(<test>) - prefix for informational alerts
+	msg(<ansi>, <text>) - prefix for command notice
 	plural(<num>, <singular text>, <plural text>) - does what it looks like
 	titlestr(<string>) - Display text as something like book-title appropriate
 	crumple(<string> [, <delim>]) - trim() + squish()
@@ -882,7 +883,7 @@ localize(
 	[ansi(h, capstr(first(%qi, |)))] (#%1) has 
 	[if(%qs, 
 		[if(setr(f, sub(%qs, words(%qo))), %qf, no)] 
-		empty [plural(%qf, place, places)], 
+		empty [u(f.plural, %qf, place, places)], 
 		no limit
 	)].
 
@@ -894,7 +895,7 @@ localize(
 
 --
 
-&f.display.one-place-brief Places Global Object=localize([setq(i, u(f.get, %0, %1, name|spaces|occupancy))][setq(s, elements(%qi, 2, |))][setq(o, last(%qi, |))][ansi(h, capstr(first(%qi, |)))] (#%1) has [if(%qs, [if(setr(f, sub(%qs, words(%qo))), %qf, no)] empty [plural(%qf, place, places)], no limit)].[if(words(%qo), %r%b Present is: [itemize(iter(%qo, name(%i0), , |), |)])])
+&f.display.one-place-brief Places Global Object=localize([setq(i, u(f.get, %0, %1, name|spaces|occupancy))][setq(s, elements(%qi, 2, |))][setq(o, last(%qi, |))][ansi(h, capstr(first(%qi, |)))] (#%1) has [if(%qs, [if(setr(f, sub(%qs, words(%qo))), %qf, no)] empty [u(f.plural, %qf, place, places)], no limit)].[if(words(%qo), %r%b Present is: [itemize(iter(%qo, name(%i0), , |), |)])])
 
 
 ================================================================================
@@ -1132,6 +1133,8 @@ For cross-game compatability.  Default message formatting goes here.
 
 &f.isstaff pgo=isstaff(%0)
 &f.lmin pgo=lmin(%0, %1)
+&f.crumple pgo=crumple(%0)
+&f.plural pgo=plural(%0, %1, %2)
 
 -
 
@@ -1557,19 +1560,23 @@ localize(
 		hasattr(%0, places.%1.details), 
 		#-1 NO SUCH PLACE, 
 
+@@ >> already there
+		not(match(
+			setr(o, u(f.get.occupancy, %0, %1)), 
+			%qp
+		)), 
+		#-1 ALREADY AT THAT LOCATION, 
+
+@@ >> already somewhere
+		not(u(action.whichplace, %0, %qp)), 
+		#-1 PLEASE DEPART BEFORE JOINING, 
+
 @@ >> any space left? (0 spaces = infinite)
 		or(
 			eq(setr(s, u(f.get.spaces, %0, %1)), 0), 
-			lt(
-				words(setr(o, u(f.get.occupancy, %0, %1))), 
-				%qs
-			)
+			lt(words(%qo), %qs)
 		), 
 		#-1 NO SPACES AVAILABLE, 
-
-@@ >> already there
-		not(match(%qo, %qp)), 
-		#-1 ALREADY AT THAT LOCATION, 
 
 @@ >> dbref has to be player (c.f. pmatch), add it to .occupancy
 		comp(setr(e, u(f.set.occupancy, %0, %1, trim(%qo %qp))), ), 
@@ -1595,7 +1602,7 @@ localize(
 
 --
 
-&action.join Places Global Object=localize(case(0, cand(strmatch(%0, loc(setr(p, pmatch(%2)))), cor(strmatch(%0, loc(%qp)), u(f.isstaff, %#))), #-1 JOIN MUST BE TRIGGERED BY PLAYER FOR THAT ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, not(hasflag(%0, HALT)), #-1 JOIN CANNOT BE USED IF ROOM IS SET HALT, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, or(eq(setr(s, u(f.get.spaces, %0, %1)), 0), lt(words(setr(o, u(f.get.occupancy, %0, %1))), %qs)), #-1 NO SPACES AVAILABLE, not(match(%qo, %qp)), #-1 ALREADY AT THAT LOCATION, comp(setr(e, u(f.set.occupancy, %0, %1, trim(%qo %qp))), ), [pemit(setdiff(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, ojoin)])][pemit(setinter(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, join)])][pemit(%qp, You join [u(f.display.element, %0, %1, name)] (#%1).)]1, #-1 [ucstr(%qe)]))
+&action.join Places Global Object=localize(case(0, cand(strmatch(%0, loc(setr(p, pmatch(%2)))), cor(strmatch(%0, loc(%qp)), u(f.isstaff, %#))), #-1 JOIN MUST BE TRIGGERED BY PLAYER FOR THAT ROOM, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, not(hasflag(%0, HALT)), #-1 JOIN CANNOT BE USED IF ROOM IS SET HALT, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, not(match(setr(o, u(f.get.occupancy, %0, %1)), %qp)), #-1 ALREADY AT THAT LOCATION, not(u(action.whichplace, %0, %qp)), #-1 PLEASE DEPART BEFORE JOINING, or(eq(setr(s, u(f.get.spaces, %0, %1)), 0), lt(words(%qo), %qs)), #-1 NO SPACES AVAILABLE, comp(setr(e, u(f.set.occupancy, %0, %1, trim(%qo %qp))), ), [pemit(setdiff(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, ojoin)])][pemit(setinter(lcon(%0), %qo %qp), [name(%qp)] [u(f.display.element, %0, %1, join)])][pemit(%qp, You join [u(f.display.element, %0, %1, name)] (#%1).)]1, #-1 [ucstr(%qe)]))
 
 
 --------------------------------------------------------------------------------
@@ -1649,13 +1656,13 @@ localize(
 		t(setr(n, sort(u(f.get-num-by-name, %0, %1)))), 
 		#-1 NO MATCH, 
 
-		crumple(%qn)
+		u(f.crumple, %qn)
 	)
 )
 
 --
 
-&action.nameplace Places Global Object=localize(case(0, cor(strmatch(%0, loc(%#)), u(f.isstaff, %#)), #-1 NAMEPLACE MUST BE USED IN ROOM, t(setr(n, sort(u(f.get-num-by-name, %0, %1)))), #-1 NO MATCH, crumple(%qn)))
+&action.nameplace Places Global Object=localize(case(0, cor(strmatch(%0, loc(%#)), u(f.isstaff, %#)), #-1 NAMEPLACE MUST BE USED IN ROOM, t(setr(n, sort(u(f.get-num-by-name, %0, %1)))), #-1 NO MATCH, u(f.crumple, %qn)))
 
 
 --------------------------------------------------------------------------------
@@ -1688,7 +1695,7 @@ localize(
 		not(hasflag(%0, HALT)), 
 		#-1 DEPART CANNOT BE USED IF ROOM IS SET HALT, 
 
-@@ >> check player is at a place - calls 'whichplace'
+@@ >> check player is at a place - calls 'whichplace' - report #-1 ERROR
 		t(setr(n, ulocal(action.whichplace, %0, %qp))), 
 		%qn, 
 
