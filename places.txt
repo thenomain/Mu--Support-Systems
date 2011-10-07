@@ -110,10 +110,10 @@ If a places element is not set, or while setting up, use these defaults.
 &d.default.spaces pgo=5
 &d.default.description pgo=A table with a couple of chairs.
 
-&d.default.say_prefix pgo=At your table,
-&d.default.join pgo=You sit at #NAME.
-&d.default.ojoin pgo=sits at #NAME (##LOC).
-&d.default.depart pgo=You stand and leave #NAME.
+&d.default.say_prefix pgo=At your table
+&d.default.join pgo=You join #NAME.
+&d.default.ojoin pgo=joins at #NAME (##LOC).
+&d.default.depart pgo=You depart #NAME.
 &d.default.odepart pgo=departs #NAME (##LOC).
 
 
@@ -357,7 +357,7 @@ qf: places() function results
 --------------------------------------------------------------------------------
 -- places/newplace -------------------------------------------------------------
 
-	places/newplace [<location>][=<placenum>]
+	places/newplace [<location>, <placenum>, <location>=<placenum>, or nothing]
 
 qf: places() function results
 
@@ -365,7 +365,23 @@ qf: places() function results
 
 &c.places/newplace Places Global Object=
 	case(0, 
-		t(setr(f, ulocal(ufunc.places, newplace, if(t(trim(first(%0, =))), trim(first(%0, =)), loc(%#)), rest(%0, =)))), 
+		t(setr(f, 
+			ulocal(ufunc.places, 
+				newplace, 
+@@ .. find location
+				case(1, 
+					strmatch(%0, *=*), trim(first(%0, =)), 
+					or(isint(%0), strmatch(trim(%0), )), loc(%#), 
+					%0
+				), 
+@@ .. placenum
+				case(1, 
+					strmatch(%0, *=*), trim(rest(%0, =)), 
+					isint(%0), %0, 
+					@@(pass null for 'next place')
+				)
+			)
+		)), 
 		[u(f.alert, places/newplace)] [titlestr(rest(%qf))], 
 
 		[u(f.notify, places/newplace)] Created Place Number %qf
@@ -373,15 +389,13 @@ qf: places() function results
 
 --
 
-&c.places/newplace Places Global Object=case(0, t(setr(f, ulocal(ufunc.places, newplace, if(t(trim(first(%0, =))), trim(first(%0, =)), loc(%#)), rest(%0, =)))), [u(f.alert, places/newplace)] [titlestr(rest(%qf))], [u(f.notify, places/newplace)] Created Place Number %qf)
+&c.places/newplace Places Global Object=case(0, t(setr(f, ulocal(ufunc.places, newplace, case(1, strmatch(%0, *=*), trim(first(%0, =)), or(isint(%0), strmatch(trim(%0), )), loc(%#), %0), case(1, strmatch(%0, *=*), trim(rest(%0, =)), isint(%0), %0, @@(pass null for 'next place'))))), [u(f.alert, places/newplace)] [titlestr(rest(%qf))], [u(f.notify, places/newplace)] Created Place Number %qf)
 
 
 --------------------------------------------------------------------------------
 -- places/delplace -------------------------------------------------------------
 
-	places/delplace <location>=<placenum>
-
-Feels too short.
+	places/delplace [<location>=]<placenum>
 
 qf: places() function results
 
@@ -389,7 +403,13 @@ qf: places() function results
 
 &c.places/delplace Places Global Object=
 	case(0, 
-		t(setr(f, ulocal(ufunc.places, delplace, first(%0, =), rest(%0, =)))), 
+		t(setr(f, 
+			ulocal(ufunc.places, 
+				delplace, 
+				if(strmatch(%0, *=*), trim(first(%0, =)), loc(%#)), 
+				if(strmatch(%0, *=*), trim(rest(%0, =)), %0)
+			)
+		)), 
 		[u(f.alert, places/delplace)] [titlestr(rest(%qf))], 
 
 		[u(f.notify, places/delplace)] Deleted Place Number %qf
@@ -397,7 +417,7 @@ qf: places() function results
 
 --
 
-&c.places/delplace Places Global Object=case(0, t(setr(f, ulocal(ufunc.places, delplace, first(%0, =), rest(%0, =)))), [u(f.alert, places/delplace)] [titlestr(rest(%qf))], [u(f.notify, places/delplace)] Deleted Place Number %qf)
+&c.places/delplace Places Global Object=case(0, t(setr(f, ulocal(ufunc.places, delplace, if(strmatch(%0, *=*), trim(first(%0, =)), loc(%#)), if(strmatch(%0, *=*), trim(rest(%0, =)), %0)))), [u(f.alert, places/delplace)] [titlestr(rest(%qf))], [u(f.notify, places/delplace)] Deleted Place Number %qf)
 
 
 --------------------------------------------------------------------------------
@@ -405,7 +425,7 @@ qf: places() function results
 
 Moves the places together, filling any gaps.  Does not correlate to a places() function, so do the normal set of access & validation checks.  Staff or owner only.
 
-	places/compress <location>
+	places/compress [<location>]
 
 ql: location dbref
 qn: new place numbers list, <old>:<new> <old>:<new> <old>:<new>
@@ -415,8 +435,11 @@ qo: output from
 
 &c.places/compress Places Global Object=
 	case(0, 
-		or(strmatch(owner(setr(l, locate(%#, %0, ha))), %#), u(f.isstaff, %#)), 
-		[u(f.alert, places/compress)] Staff or Owner Only., 
+		or(
+			strmatch(setr(l, if(setr(l, locate(%#, %0, ha)), %ql, loc(%#))), loc(%#)), 
+			u(f.isstaff, %#)
+		), 
+		[u(f.alert, places/compress)] Compress at location only., 
 
 		strmatch(type(%ql), ROOM), 
 		[u(f.alert, places/compress)] Room Not Found., 
@@ -433,7 +456,7 @@ qo: output from
 			)
 		)]
 @@ .. move those that need it
-		[u(f.notify, places/compress)] Compressed.
+		[u(f.notify, places/compress)] Compressed. 
 		[crumple(iter(%qn, 
 			if(neq(first(%i0, :), rest(%i0, :)), 
 				[null(trigger(%!/tr.moveplace, %ql, first(%i0, :), rest(%i0, :)))]
@@ -444,7 +467,7 @@ qo: output from
 
 --
 
-&c.places/compress Places Global Object=case(0, or(strmatch(owner(setr(l, locate(%#, %0, ha))), %#), u(f.isstaff, %#)), [u(f.alert, places/compress)] Staff or Owner Only., strmatch(type(%ql), ROOM), [u(f.alert, places/compress)] Room Not Found., hasattr(%ql, places.1.details), [u(f.alert, places/compress)] Places Not Configured., [setq(n, iter(ulocal(ufunc.places, list, %ql), [first(%i0, :)]:[inum()], |))][u(f.notify, places/compress)] Compressed. [crumple(iter(%qn, if(neq(first(%i0, :), rest(%i0, :)), [null(trigger(%!/tr.moveplace, %ql, first(%i0, :), rest(%i0, :)))][first(%i0, :)]->[rest(%i0, :)])))])
+&c.places/compress Places Global Object=case(0, or(strmatch(setr(l, if(setr(l, locate(%#, %0, ha)), %ql, loc(%#))), loc(%#)), u(f.isstaff, %#)), [u(f.alert, places/compress)] Compress at location only., strmatch(type(%ql), ROOM), [u(f.alert, places/compress)] Room Not Found., hasattr(%ql, places.1.details), [u(f.alert, places/compress)] Places Not Configured., [setq(n, iter(ulocal(ufunc.places, list, %ql), [first(%i0, :)]:[inum()], |))][u(f.notify, places/compress)] Compressed. [crumple(iter(%qn, if(neq(first(%i0, :), rest(%i0, :)), [null(trigger(%!/tr.moveplace, %ql, first(%i0, :), rest(%i0, :)))][first(%i0, :)]->[rest(%i0, :)])))])
 
 
 --------------------------------------------------------------------------------
@@ -680,7 +703,7 @@ qf: places() function results
 
 
 ================================================================================
-== COMPATIBLE COMMANDS =========================================================
+== LEGACY COMMANDS =============================================================
 
 These are commands that are aliased from the old places system to the new, or a notice that the command no longer works.
 
@@ -1409,6 +1432,9 @@ localize(
 		cor(not(strlen(%1)), and(gte(%1, 1), isint(%1))), 
 		#-1 PLACE NUMBER NOT VALID, 
 
+		not(hasattr(%0, places.%1.details)), 
+		#-1 PLACE ALREADY EXISTS, 
+
 		[setr(n, 
 			if(strlen(%1),
 				%1, 
@@ -1423,7 +1449,7 @@ localize(
 
 --
 
-&action.newplace Places Global Object=localize(case(0, cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, cor(not(strlen(%1)), and(gte(%1, 1), isint(%1))), #-1 PLACE NUMBER NOT VALID, [setr(n, if(strlen(%1), %1, u(f.lowest-available-number, iter(lattr(%0/places.*.details), elements(%i0, 2, .)))))][trigger(%!/tr.newplace, %0, %qn)]))
+&action.newplace Places Global Object=localize(case(0, cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, cor(not(strlen(%1)), and(gte(%1, 1), isint(%1))), #-1 PLACE NUMBER NOT VALID, not(hasattr(%0, places.%1.details)), #-1 PLACE ALREADY EXISTS, [setr(n, if(strlen(%1), %1, u(f.lowest-available-number, iter(lattr(%0/places.*.details), elements(%i0, 2, .)))))][trigger(%!/tr.newplace, %0, %qn)]))
 
 
 --------------------------------------------------------------------------------
