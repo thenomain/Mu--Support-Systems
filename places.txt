@@ -49,7 +49,8 @@ You could, essentially, 'go stand next to' someone and it'd make the place spont
 
 And it ceases to be when all are gone.
 
-Same, but &gathering.* (?) -- no, because the rest of the places system needs to be able to interface with it.
+Same, but &gathering.* (?) -- no, because the rest of the places system needs to 
+be able to interface with it.
 
 Instead: &place.<# of places + 1> and 
 		 &_gatherings: <list of place numbers that are gatherings>
@@ -57,7 +58,14 @@ Instead: &place.<# of places + 1> and
 
 *** Evesdropping Staff ***
 
-Extend '*.occupancy' to <at place>|<evesdropping> so 'tt' triggers for them, but join/leave does not.  Be loud about evesdropping.  Staff-only.
+Extend '*.occupancy' to <at place>|<evesdropping> so 'tt' triggers for them, but 
+join/leave does not.  Be loud about evesdropping.  Staff-only.
+
+
+*** Dark Staff ***
+
+Wiz-Inherit-Dark objects or dark staff are not detected or rejected and will 
+notify the room.
 
 
 ================================================================================
