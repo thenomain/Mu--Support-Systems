@@ -959,9 +959,9 @@ localize(
 	[setq(o, elements(%qi, 3, |))]
 	[setq(d, elements(%qi, 4, |))]
 
-	[u(f.wheader, [titlestr(first(%qi, |))] (#%1))]%r
+	[u(f.header, [titlestr(first(%qi, |))] (#%1))]%r
 	%qd%r
-	[u(f.wdivider)]%r
+	[u(f.divider)]%r
 	%b This place has 
 	[if(%qs, 
 		[if(setr(f, sub(%qs, words(%qo))), %qf, no)] 
@@ -974,12 +974,12 @@ localize(
 			[itemize(iter(%qo, name(%i0), , |), |)]
 	)]%r
 	
-	[u(f.wfooter)]
+	[u(f.footer)]
 )
 
 --
 
-&f.display.one-place-detailed Places Global Object=localize([setq(i, u(f.get, %0, %1, name|spaces|occupancy|description))][setq(s, elements(%qi, 2, |))][setq(o, elements(%qi, 3, |))][setq(d, elements(%qi, 4, |))][[u(f.wheader, [titlestr(first(%qi, |))] (#%1))]]%r%qd%r[u(f.wdivider)]%r%b This place has [if(%qs, [if(setr(f, sub(%qs, words(%qo))), %qf, no)] empty [plural(%qf, place, places)] out of %qs, no occupancy limit)].[if(t(%qo), %r%b Present is: [itemize(iter(%qo, name(%i0), , |), |)])]%r[u(f.wfooter)])
+&f.display.one-place-detailed Places Global Object=localize([setq(i, u(f.get, %0, %1, name|spaces|occupancy|description))][setq(s, elements(%qi, 2, |))][setq(o, elements(%qi, 3, |))][setq(d, elements(%qi, 4, |))][[u(f.header, [titlestr(first(%qi, |))] (#%1))]]%r%qd%r[u(f.divider)]%r%b This place has [if(%qs, [if(setr(f, sub(%qs, words(%qo))), %qf, no)] empty [plural(%qf, place, places)] out of %qs, no occupancy limit)].[if(t(%qo), %r%b Present is: [itemize(iter(%qo, name(%i0), , |), |)])]%r[u(f.footer)])
 
 
 ================================================================================
@@ -1175,15 +1175,9 @@ For cross-game compatability.  Default message formatting goes here.
 
 -
 
-&f.header pgo=header(%0)
-&f.footer pgo=footer(%0)
-&f.divider pgo=divider(%0)
-
--
-
-&f.wheader pgo=wheader(%0)
-&f.wfooter pgo=wfooter(%0)
-&f.wdivider pgo=wdivider(%0)
+&f.header pgo=wheader(%0)
+&f.footer pgo=wfooter(%0)
+&f.divider pgo=wdivider(%0)
 
 
 --------------------------------------------------------------------------------
