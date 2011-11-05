@@ -833,7 +833,7 @@ qv: new value
 		lte(words(%1, /), 2), [alert(+map/info)] Set one item only, 
 
 @@ too tired to do this correctly right now, %1 must be /<item>, nothing more
-		t(setr(i, grab(location ansi lock, [rest(%1,/)]*))), 
+		t(setr(i, grab(location ansi lock, [rest(%1, /)]*))), 
 		[alert(+map/info)] Item not found, 
 
 		comp(setr(m, locate(%!, first(%0, .), i)), #-1), 
@@ -843,7 +843,7 @@ qv: new value
 		[alert(+map/info)] Map name matched multiple maps, 
 
 @@ pass things to the &f.set.<item> handlers - layer, section, value
-		[setq(l, edit(elements(%0, 2, .), %b, _))]
+		[setq(l, edit(elements(before(%0, =), 2, .), %b, _))]
 		[setq(s, edit(elements(before(%0, =), 3, .), %b, _))]
 		[setq(v, rest(%0, =))]
 
@@ -852,7 +852,7 @@ qv: new value
 
 --
 
-&c.map/set #3341=[case(0, isstaff(%#), [alert(+map/info)] Staff Only, gt(words(%1, /), 1), [alert(+map/info)] Set what?, lte(words(%1, /), 2), [alert(+map/info)] Set one item only, t(setr(i, grab(location ansi lock, [rest(%1,/)]*))), [alert(+map/info)] Item not found, comp(setr(m, locate(%!, first(%0, .), i)), #-1), [alert(+map/info)] Map not found, comp(%qm, #-2), [alert(+map/info)] Map name matched multiple maps, [setq(l, edit(elements(%0, 2, .), %b, _))][setq(s, edit(elements(before(%0, =), 3, .), %b, _))][setq(v, rest(%0, =))][u(f.set.%qi)])]
+&c.map/set #3341=[case(0, isstaff(%#), [alert(+map/info)] Staff Only, gt(words(%1, /), 1), [alert(+map/info)] Set what?, lte(words(%1, /), 2), [alert(+map/info)] Set one item only, t(setr(i, grab(location ansi lock, [rest(%1,/)]*))), [alert(+map/info)] Item not found, comp(setr(m, locate(%!, first(%0, .), i)), #-1), [alert(+map/info)] Map not found, comp(%qm, #-2), [alert(+map/info)] Map name matched multiple maps, [setq(l, edit(elements(before(%0, =), 2, .), %b, _))][setq(s, edit(elements(before(%0, =), 3, .), %b, _))][setq(v, rest(%0, =))][u(f.set.%qi)])]
 
 
 
