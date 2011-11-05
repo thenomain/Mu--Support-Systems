@@ -908,12 +908,12 @@ ql: list of visible people in that faction
 	[case(0, 
 		isdbref(%qf), [alert(+faction)] No faction by that name., 
 		u(fil.see-faction, %qf, %#), [alert(+faction)] No faction by that name., 
-		u(f.display.list-who, %qf, %ql)
+		u(f.display.list-who, %qf, sortby(f.sortby.object-name, %ql))
 	)]
 
 --
 
-&c.faction/who afo=[setq(f, ifelse(strmatch(%0, ), before(after(u(%#/_faction-member), !), |), locate(me, %0, i)))][setq(l, iter(lattr(%qf/member-*), [setq(p, extract(%i0, 2, 1, -))][if(and(hasflag(%qp, connected), or(orflags(%qp, !D), isstaff(%#))), %qp)]))][case(0, isdbref(%qf), [alert(+faction)] No faction by that name., u(fil.see-faction, %qf, %#), [alert(+faction)] You cannot see that faction., u(f.display.list-who, %qf, %ql))]
+&c.faction/who afo=[setq(f, ifelse(strmatch(%0, ), before(after(u(%#/_faction-member), !), |), locate(me, %0, i)))][setq(l, iter(lattr(%qf/member-*), [setq(p, extract(%i0, 2, 1, -))][if(and(hasflag(%qp, connected), or(orflags(%qp, !D), isstaff(%#))), %qp)]))][case(0, isdbref(%qf), [alert(+faction)] No faction by that name., u(fil.see-faction, %qf, %#), [alert(+faction)] No faction by that name., u(f.display.list-who, %qf, sortby(f.sortby.object-name, %ql)))]
 
 &c.fwho afo=$+fwho*:@pemit %#=[u(c.faction/who, trim(%0))]
 
