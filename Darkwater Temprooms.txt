@@ -1,37 +1,33 @@
--==-=--=--=
-MUX PORTING - Virtual Gridspace
-=--=-==--==
+TEMPROOMS -
 
-Seamus' Rhost anywhere rooms code uses the rp-room nexus concept, where all rp rooms are available from a central location.  It then expands that concept and makes an "anywhere zone".  The unfortunate side-effect of this is that it requires all the exits to be dark, else all exits would be available to everyone anywhere in the zone.
-
-The below takes the concept a step further and turns the entire zone into something resembling a virtual gridspace, limiting temp rooms to a size of one.  (Or each grid room can be thought of as an expanding and contracting nexus.)
-
-This required an entire re-write.
+Create a temporary room anywhere people want it.  By default, players can only build temprooms in locations that are 'ic' (or in the exceptions list, like an RP nexus).
 
 We use a "Digger" object because MUX doesn't have a dig() side-effect function.
 
-================================================================================
-== THE TEMPROOM ZMO (#xxx) =====================================================
-================================================================================
-
-In case you need it:
-	@create Temproom ZMO=10
-
 
 ================================================================================
-== THE KEEPER (#359) ===========================================================
+== THE TEMPROOM ZMO ============================================================
+================================================================================
+
+@create Temproom ZMO=10
+
+
+================================================================================
+== THE KEEPER ==================================================================
 ================================================================================
 
 The Keeper (Temporary Room Maker <trm>) is the home for the Digger.
 
-Remember to:
-	@create Temproom Maker <trm>=10
-	@set Temproom Maker <trm>=inherit
-	@set Temproom Maker <trm>=safe
+--
+
+@create Temproom Maker <trm>=10
+@set Temproom Maker <trm>=inherit
+@set Temproom Maker <trm>=safe
 
 
 --------------------------------------------------------------------------------
 -- ROOMS IN USE ON MAIN OBJECT'S @DESC -----------------------------------------
+--------------------------------------------------------------------------------
 
 This doesn't need to be on the @descformat, but it is useful.  It probably should also be on a +temproom/list or some such so staff can see what's going on.  Sample:
 
@@ -54,11 +50,10 @@ Temporary Rooms In Use:
 
 &f.scrub_name trm=strip(%0, %%%,;<>%[%])
 
-@chzone trm=#396 <-- This is the 'temp room zone' object
+@fo me=@chzone trm=Temproom ZMO
 
-&d.parent trm=#355 <-- This is the 'temp room parent'
-&d.temproom-zmo trm=#396 <-- 'temp room zone' object again
-&d.digger trm=#358 <-- the digger's dbref
+		&d.parent trm=#355 <-- This is the 'temp room parent'
+		&d.temproom-zmo trm=#396 <-- 'temp room zone' object again
 
 The above dbrefs mainly won't be set until you're done, which is why these all get their own attributes
 
@@ -143,7 +138,7 @@ qc: creator's dbref
 	{@pemit %#=[alert(temproom)] Room is set permanent%, unset then undo.}, 
 
 @@ .. room has connected players besides invoker
-	[eq(1, words(lcon(%ql, connected)))], 
+	[eq(1, words(lcon(%ql, connect)))], 
 	{@pemit %#=[alert(temproom)] Room must have no other connected players before you may undo it.}, 
 
 @@ .. OK!
@@ -156,7 +151,7 @@ qc: creator's dbref
 
 --
 
-&c.temproom/destroy trm=$+temproom/destroy*:@eval [setq(l, loc(%#))][setq(r, v(room.%ql))][setq(c, extract(%qr, 5, 1, .))]; @switch/first 0=[t(%qr)], {@pemit %#=[alert(temproom)] You're not in a temproom.}, [or(isstaff(%#), strmatch(%#, %qc))], {@pemit %#=[alert(temproom)] Room may only be undone by staff or creator.}, [orflags(%ql, !s)], {@pemit %#=[alert(temproom)] Room is set permanent%, unset then undo.}, [eq(1, words(lcon(%ql, connected)))], {@pemit %#=[alert(temproom)] Room must have no other connected players before you may undo it.}, {@pemit %#=You bid the shadows reclaim this place...; @trig %!/tr.destroy-a-room=%ql}
+&c.temproom/destroy trm=$+temproom/destroy*:@eval [setq(l, loc(%#))][setq(r, v(room.%ql))][setq(c, extract(%qr, 5, 1, .))]; @switch/first 0=[t(%qr)], {@pemit %#=[alert(temproom)] You're not in a temproom.}, [or(isstaff(%#), strmatch(%#, %qc))], {@pemit %#=[alert(temproom)] Room may only be undone by staff or creator.}, [orflags(%ql, !s)], {@pemit %#=[alert(temproom)] Room is set permanent%, unset then undo.}, [eq(1, words(lcon(%ql, connect)))], {@pemit %#=[alert(temproom)] Room must have no other connected players before you may undo it.}, {@pemit %#=You bid the shadows reclaim this place...; @trig %!/tr.destroy-a-room=%ql}
 
 
 ================================================================================
@@ -168,7 +163,18 @@ l: lost rooms -- belong to temproom ZMO, but aren't registered
 
 --
 
-&c.temproom/list trm=$+temproom/list:@pemit %#=
+@desc trm=u(f.display.temproom-usage)
+
+&c.temproom/list trm=$+temproom/list:@pemit %#=u(f.display.temproom-usage)
+
+&c.temprooms-null trm=$+temprooms:@pemit %#=u(f.display.temproom-usage)
+
+
+--------------------------------------------------------------------------------
+-- Display: Temproom Usage -----------------------------------------------------
+
+
+&f.display.temproom-usage trm=
 	case(0, 
 		isstaff(%#), [alert(temproom)] Staff Only, 
 		[header(Temporary Rooms In Use)]%r
@@ -213,7 +219,7 @@ l: lost rooms -- belong to temproom ZMO, but aren't registered
 
 --
 
-&c.temproom/list trm=$+temproom/list:@pemit %#=case(0, isstaff(%#), [alert(temproom)] Staff Only, [header(Temporary Rooms In Use)]%r[setq(r, lattr(%!/room.*))][setq(l, setdiff(inzone(u(d.temproom-zmo)), edit(%qr, ROOM., )))][if(t(%qr), [columns(iter(sort(%qr), %([rest(%i0, .)]%) [ansi(h, before(name(rest(%i0, .)), <))][setq(0, if(hasflag(rest(%i0, .), safe), perm))][if(t(%q0), %b[ansi(xh, <%q0>)])], , `), 38, `, 2)], %b [ansi(h, No rooms in use.)]%r)][if(t(%ql), [divider(Lost Rooms)]%r[center(%(not in temproom db%), 78)]%r[columns(iter(sort(%ql), %([%i0]%) [ansi(h, before(name(%i0), <))][setq(0, if(hasflag(%i0, safe), perm))][if(t(%q0), %b[ansi(xh, <%q0>)])], , `), 38, `, 2)])][footer([words(%qr)] rooms[if(t(%ql), %b& [words(%ql)] lost)])])
+&f.display.temproom-usage trm=case(0, isstaff(%#), [alert(temproom)] Staff Only, [header(Temporary Rooms In Use)]%r[setq(r, lattr(%!/room.*))][setq(l, setdiff(inzone(u(d.temproom-zmo)), edit(%qr, ROOM., )))][if(t(%qr), [columns(iter(sort(%qr), %([rest(%i0, .)]%) [ansi(h, before(name(rest(%i0, .)), <))][setq(0, if(hasflag(rest(%i0, .), safe), perm))][if(t(%q0), %b[ansi(xh, <%q0>)])], , `), 38, `, 2)], %b [ansi(h, No rooms in use.)]%r)][if(t(%ql), [divider(Lost Rooms)]%r[center(%(not in temproom db%), 78)]%r[columns(iter(sort(%ql), %([%i0]%) [ansi(h, before(name(%i0), <))][setq(0, if(hasflag(%i0, safe), perm))][if(t(%q0), %b[ansi(xh, <%q0>)])], , `), 38, `, 2)])][footer([words(%qr)] rooms[if(t(%ql), %b& [words(%ql)] lost)])])
 
 
 --------------------------------------------------------------------------------
@@ -231,12 +237,21 @@ Here are some functions it calls:
 
 &f.first_letters trm=ucstr(iter(tr(%0, _/-%(%), %b%b%b%b%b), strtrunc(%i0, 1), , @@))
 
-&f.valid-room? trm=t(match(v(d.zone-include), zone(%0)))
+&f.valid-room? trm=or(t(match(v(d.zone-include), zone(%0))), t(match(v(d.room-include), %0)))
+
+@@ for games with an 'ic?' system:
+&f.valid-room? trm=and(or(t(get(%0/_ic)), strmatch(v(d.room-include), %0)), not(strmatch(zone(%0), v(d.temproom-zmo))))
 
 --
 
-&d.zone-include trm=#64 #65 #66 #67 #120 <-- explicitly allow zones
-&d.zone-exclude trm=#68 <-- don't let players use anything in the ooc zone
+@@ explicitly allow these zones:
+&d.zone-include trm=#64 #65 #66 #67 #120
+
+@@ explicitly allow these rooms:
+&d.room-include trm=#1124
+
+@@ don't let players use anything in the ooc zone
+&d.zone-exclude trm=#68
 
 
 --------------------------------------------------------------------------------
@@ -418,27 +433,10 @@ Because the various platforms are inconsistent about things like, say, Cron, I'm
 
 
 ================================================================================
-== THE DIGGER (#358) ===========================================================
+== THE DIGGER ==================================================================
 ================================================================================
 
 Create it first.  The digger is a simple object that we need to do the actual @dig command on its own because TinyMUX doesn't have a dig() function.
-
-@create The Wyrd of New Paths=10
-
-@desc The Wyrd=This aspect of the tumultuous Wyrd opens and closes trods, in the world and elsewhere.
-@set The Wyrd=inherit
-@set The Wyrd=dark <-- very important
-@lock The Wyrd=#1
-
-@@ Set 'home' of Digger to Keeper
-@fo me=@link The Wyrd=[num(Temproom Maker <trm>)]
-@fo me=&d.home The Wyrd=[num(Temproom Maker <trm>)]
-
---
-
-@fo me=&d.digger Temproom Maker <trm>=[num(The Wyrd of New Paths)]
-
---
 
 This relies on this trigger being dumped on the command queue all at once. In order to grab the dbref of the entrance, the digger must be in the room. (I could do this with a single function, but it'd be annoying.)
 
@@ -448,7 +446,26 @@ The Digger then phones home and the Keeper finishes up its cleanup work.
 
 There is ambiance for fun.
 
+
+--------------------------------------------------------------------------------
+-- Creating the Digger ---------------------------------------------------------
+
+@create The Wyrd of New Paths=10
+
+@desc The Wyrd=This aspect of the tumultuous Wyrd opens and closes trods, in the world and elsewhere.
+@set The Wyrd=inherit
+@set The Wyrd=dark
+@lock The Wyrd=#1
+
 --
+
+@fo me=&d.digger Temproom Maker <trm>=[num(The Wyrd of New Paths)]
+
+--
+
+@@ Set 'home' of Digger to Keeper
+@fo me=@link The Wyrd=[num(Temproom Maker <trm>)]
+@fo me=&d.home The Wyrd=[num(Temproom Maker <trm>)]
 
 &tr.dig-room The Wyrd=@tel %0; @dig %1=%2,%3; @trigger [v(d.home)]/tr.finish-entrance=%0, %2, %4
 
@@ -459,61 +476,71 @@ There is ambiance for fun.
 
 
 ================================================================================
-== TEMPORARY ROOM PARENT (#355) ================================================
+== TEMPORARY ROOM PARENT =======================================================
 ================================================================================
 
 The temporary rooms have a set of commands for setting up the temproom itself.  When I get around to coding "last one out turn off the lights" (destroy a temproom), here is where it will start.
 
 Remember to @dig the room and set it Floating.
 
+--
 
+@dig/teleport Temporary Room Parent
+@set here=float
+
+
+--------------------------------------------------------------------------------
 -- Master Room Parent Setup ----------------------------------------------------
-#104 is our master room parent
 
-@parent #355=#104
-&hood #355=Temporary Room <-- used by master room parent
-&outside #355=0 <-- ditto
+#xxx is your master room parent
 
-@desc #355=A temporary room for your use!
-@succ #355=center(%(Type +here/help for room help.%), 79)
+@parent here=#xxx
 
-&d.attention #355=ansi(hw, >>>) <-- when someone uses a room command, do this
+@desc here=A temporary room for your use!
+@succ here=center(%(Type +here/help for room help.%), 79)
 
+@@ the room commands are prefixed by the 'attention'
+&d.attention here=ansi(hw, >>>)
+
+
+--------------------------------------------------------------------------------
 -- Options ---------------------------------------------------------------------
 
 Here is where we can set up new ("public") rooms to be unfindable, their entrance dark, and so on, otherwise things to happen when a room is flipped between Public and Private.  @@(<blah>) are placeholders.  Notice I'm ready for some other coder to want private rooms to also be 'unfindable', but made it a placeholder for our own use.
 
 
-&d.flags.private.room #355=@@(unfindable)
-&d.flags.private.entrance #355=dark
-&d.flags.private.exit #355=@@(placeholder)
-&d.actions.private.entrace #355=@lock [u(f.num.entrance, %1)]=%0
+&d.flags.private.room here=@@(unfindable)
+&d.flags.private.entrance here=dark
+&d.flags.private.exit here=@@(placeholder)
+&d.actions.private.entrace here=@lock [u(f.num.entrance, %1)]=%0
 
-&d.flags.public.room #355=@@(!unfindable)
-&d.flags.public.entrance #355=!dark
-&d.flags.public.exit #355=@@(placeholder)
-&d.actions.public.entrace #355=@unlock [u(f.num.entrance, %1)]
+&d.flags.public.room here=@@(!unfindable)
+&d.flags.public.entrance here=!dark
+&d.flags.public.exit here=@@(placeholder)
+&d.actions.public.entrace here=@unlock [u(f.num.entrance, %1)]
 
 
+--------------------------------------------------------------------------------
 -- Who Am I? -------------------------------------------------------------------
 
 Yes this can be considered horribly redundant.  I could also put it on the master object.  Maybe later.
 
 
-@fo me=&d.master-object #355=[num(Temproom Master <trm>)] <-- set to the Keeper's dbref
+@fo me=&d.master-object here=[num(Temproom Master <trm>)]
 
-&f.num.room #355=extract(get([v(d.master-object)]/room.%0), 2, 1, .)
-&f.num.entrance #355=extract(get([v(d.master-object)]/room.%0), 3, 1, .)
-&f.num.exit #355=extract(get([v(d.master-object)]/room.%0), 4, 1, .)
-&f.num.creator #355=extract(get([v(d.master-object)]/room.%0), 5, 1, .)
+&f.num.room here=extract(get([v(d.master-object)]/room.%0), 2, 1, .)
+&f.num.entrance here=extract(get([v(d.master-object)]/room.%0), 3, 1, .)
+&f.num.exit here=extract(get([v(d.master-object)]/room.%0), 4, 1, .)
+&f.num.creator here=extract(get([v(d.master-object)]/room.%0), 5, 1, .)
 
 
+--------------------------------------------------------------------------------
 -- Set Room Privateness --------------------------------------------------------
 
 I'm not bothering with the pseudo-mistress code for this.
 
 
-&c.here/private #355=$+here/pr*:
+&c.here/private here=$+here/pr*:
 @@ a knot for nested dolists, we'll just do it one at a time
 	@dolist [v(d.flags.private.room)]={@set [u(f.num.room, %!)]=##};
 	@dolist [v(d.flags.private.entrance)]={@set [u(f.num.entrance, %!)]=##};
@@ -524,7 +551,7 @@ I'm not bothering with the pseudo-mistress code for this.
 	@trigger %!/d.actions.private.exit=%#, %!; 
 	@remit %!=[u(d.attention)] This location has been made private by %N.
 
-&c.here/public #355=$+here/pu*:
+&c.here/public here=$+here/pu*:
 @@ a knot for nested dolists, we'll just do it one at a time
 	@dolist [v(d.flags.private.room)]={@set [u(f.num.room, %!)]=##};
 	@dolist [v(d.flags.private.entrance)]={@set [u(f.num.entrance, %!)]=##};
@@ -535,16 +562,38 @@ I'm not bothering with the pseudo-mistress code for this.
 	@trigger %!/d.actions.private.exit=%#, %!; 
 	@remit %!=[u(d.attention)] This location has been made public by %N.
 
+--
 
+&c.here/public here=$+here/pu*:
+@@ a knot for nested dolists, we'll just do it one at a time
+	@dolist [v(d.flags.public.room)]={@set [u(f.num.room, %!)]=##};
+	@dolist [v(d.flags.public.entrance)]={@set [u(f.num.entrance, %!)]=##};
+	@dolist [v(d.flags.public.exit)]={@set [u(f.num.exit, %!)]=##};
+@@ same, for actions
+	@trigger %!/d.actions.public.room=%#, %!; 
+	@trigger %!/d.actions.public.entrace=%#, %!; 
+	@trigger %!/d.actions.public.exit=%#, %!; 
+	@remit %!=[u(d.attention)] This location has been made private by %N.
+
+&c.here/public here=$+here/pu*:
+@@ a knot for nested dolists, we'll just do it one at a time
+	@dolist [v(d.flags.public.room)]={@set [u(f.num.room, %!)]=##};
+	@dolist [v(d.flags.public.entrance)]={@set [u(f.num.entrance, %!)]=##};
+	@dolist [v(d.flags.public.exit)]={@set [u(f.num.exit, %!)]=##};
+@@ same, for actions
+	@trigger %!/d.actions.public.room=%#, %!; 
+	@trigger %!/d.actions.public.entrace=%#, %!; 
+	@trigger %!/d.actions.public.exit=%#, %!; 
+	@remit %!=[u(d.attention)] This location has been made public by %N.
+
+
+--------------------------------------------------------------------------------
 -- Desc ------------------------------------------------------------------------
 
-@@ >> @desc #355=A temporary room for your use!
-@@ >> it used to be that +here/desc was setting the master room
+&c.here/desc here=$+here/desc* *:@desc %!=[escape(%1)]; @remit %!=[u(d.attention)] Description changed by %N.
 
 
-&c.here/desc #355=$+here/desc* *:@desc %!=[escape(%1)]; @remit %!=[u(d.attention)] Description changed by %N.
-
-
+--------------------------------------------------------------------------------
 -- Name ------------------------------------------------------------------------
 
 0: new name
@@ -557,7 +606,7 @@ qc: "creator" dbref
 
 @@ ******* INCOMPLETE *******
 
-&c.here/name #355=$+here/name *:
+&c.here/name here=$+here/name *:
 @eval
 	[setq(h, %!)]
 	[setq(r, get([v(d.master-object)]/room.%qh))]
@@ -567,11 +616,12 @@ qc: "creator" dbref
 @@ check ownership & name validity
 
 
+--------------------------------------------------------------------------------
 -- Undo ------------------------------------------------------------------------
 
 Staffer or owner can destroy "here", if no connected people other than self is there.  (Calling it "dest" would be too close to "desc".)
 
-&c.here/undo #355=$+here/undo:
+&c.here/undo here=$+here/undo:
 	@switch/first 0=
 
 @@ .. not staff or room's creator
@@ -592,12 +642,13 @@ Staffer or owner can destroy "here", if no connected people other than self is t
 	{@pemit [v(d.master-object)]=<< undo >> %! << for >> %#}
 
 
+--------------------------------------------------------------------------------
 -- [!]Perm ---------------------------------------------------------------------
 
 Staffer can set the location to avoid the room-delete timer.
 
 
-&c.here/perm #355=$+here/perm*:
+&c.here/perm here=$+here/perm*:
 	@if [isstaff(%#)]=
 		{
 			@set %!=SAFE; 
@@ -606,7 +657,7 @@ Staffer can set the location to avoid the room-delete timer.
 		{@pemit %#=Only staff may set and unset the permenance of a temproom.}
 
 
-&c.here/!perm #355=$+here/!perm*:
+&c.here/!perm here=$+here/!perm*:
 	@if [isstaff(%#)]=
 		{
 			@set %!=!SAFE; 
@@ -615,15 +666,16 @@ Staffer can set the location to avoid the room-delete timer.
 		{@pemit %#=Only staff may set and unset the permenance of a temproom.}
 
 
+--------------------------------------------------------------------------------
 -- Help! -----------------------------------------------------------------------
 
-&c.here/help #355=$+here/help:@pemit %#=
+&c.here/help here=$+here/help:@pemit %#=
 	[header(Temproom Help)]%r
 	[wrap(u(d.here/help), 75, l, %b%b)]%r
 	[footer()]
 
 
-&d.here/help #355=
+&d.here/help here=
 		+here/desc : set the description for here. %r %r
 		+here/priv : set here private%, darks and locks the entrance. %r
 		+here/pub %b: set here public again.%r%r
@@ -634,102 +686,19 @@ Staffer can set the location to avoid the room-delete timer.
 
 
 ================================================================================
-== TEMPORARY ROOM ZMO (#396) ===================================================
+== TEMPORARY ROOM ZMO ==========================================================
 ================================================================================
 
-I'm having problems getting the code on the parent room to do what it's supposed to do.  /desc works (the important one).  /private seems to work but /public is not?  Work this out later.
-
-Remember to @create or @dig the ZMO.
-
-
--- Master Room Parent Setup ----------------------------------------------------
-#104 is our master room parent; Hood and Outside are used by that. (see notes under "temp parent room")
-
-@parent #396=#104
-&hood #396=Temporary Room
-&outside #396=0
-
-@desc #396=A temporary room for your use!
-@succ #396=center(%(Type +here/help for room help.%), 79)
-
-&d.attention #396=ansi(hw, >>>)
-
--- Options ---------------------------------------------------------------------
-
-@@ some people might want areas that are unfindable and impossible to find.
-@@ some might not.  below is how we're doing it.
-
-&d.flags.private.room #396=@@(unfindable)
-&d.flags.private.entrance #396=dark
-&d.flags.private.exit #396=@@(placeholder)
-&d.actions.private.entrace #396=@lock [u(f.num.entrance, %1)]=%0
-
-&d.flags.public.room #396=@@(!unfindable)
-&d.flags.public.entrance #396=!dark
-&d.flags.public.exit #396=@@(placeholder)
-&d.actions.public.entrace #396=@unlock [u(f.num.entrance, %1)]
-
--- Who Am I? -------------------------------------------------------------------
-
-Yes this can be considered horribly redundant.  I could also put it on the master object.  Maybe later.
-
-@fo me=&d.master-object #396=[num(Temproom Maker <trm>)]
-
-&f.num.room #396=extract(get([v(d.master-object)]/room.%0), 2, 1, .)
-&f.num.entrance #396=extract(get([v(d.master-object)]/room.%0), 3, 1, .)
-&f.num.exit #396=extract(get([v(d.master-object)]/room.%0), 4, 1, .)
-
--- Set Room Privateness --------------------------------------------------------
-
-#355 is the Temp Room Parent, #396 is the ZMO. Good luck with this.  I gave up once /desc worked.
-
-
-TESTING:
-&c.here/private #396=$+here/pr*:@pemit %#=%@:[name(%@)]
-&c.here/private #396=$+here/pr*:@pemit %#=[u(d.attention)] %!:[name(%!)]
-&c.here/private #396=
-&c.here/private #355=$+here/pr*:@pemit %#=[u(d.attention)] %!:[name(%!)]
-&c.here/private #355=$+here/pr*:@pemit %#=%@:[name(%@)]
-
-ACTUAL:
-&c.here/private #355=
-@@ a knot for nested dolists, we'll just do it one at a time
-	@dolist [v(d.flags.private.room)]={@set [u(f.num.room, %!)]=##};
-	@dolist [v(d.flags.private.entrance)]={@set [u(f.num.entrance, %!)]=##};
-	@dolist [v(d.flags.private.exit)]={@set [u(f.num.exit, %!)]=##};
-@@ same, for actions
-	@trigger %!/d.actions.private.room=%#, %!; 
-	@trigger %!/d.actions.private.entrace=%#, %!; 
-	@trigger %!/d.actions.private.exit=%#, %!; 
-	@remit [loc(%#)]=[u(d.attention)] This location has been made private by %N.
-
-&c.here/public #396=$+here/pu*:
-@@ a knot for nested dolists, we'll just do it one at a time
-	@dolist [v(d.flags.private.room)]={@set [u(f.num.room, %!)]=##};
-	@dolist [v(d.flags.private.entrance)]={@set [u(f.num.entrance, %!)]=##};
-	@dolist [v(d.flags.private.exit)]={@set [u(f.num.exit, %!)]=##};
-@@ same, for actions
-	@trigger %!/d.actions.private.room=%#, %!; 
-	@trigger %!/d.actions.private.entrace=%#, %!; 
-	@trigger %!/d.actions.private.exit=%#, %!; 
-	@remit [loc(%#)]=[u(d.attention)] This location has been made public by %N.
-
-
-&c.here/private #355=
-&c.here/public #355=
-
-&c.here/private #355=$+here/pr*:@pemit %#=Disabled during debugging period, sorry.
-&c.here/public #355=$+here/pu*:@pemit %#=Disabled during debugging period, sorry.
-
+Nothing needed here.
 
 
 ================================================================================
 == HELP ========================================================================
 ================================================================================
 
-&help~ic_commands~temp_rooms #96=Temporary Rooms~[ansi(h, +temproom <room name>)]%r%rCreates a temporary room anywhere on the grid. (Staff can create temporary rooms anywhere.) Exit names are based upon the name of the room name you've created and are by default visible and unlocked, rooms findable (but not jump_ok). Additional instructions are available within the room itself.%r%rEmpty rooms are cleared out every thirty minutes, unless excluded by a staffer.%r%r[ansi(h, +temproom/destroy)]%r%rDestroys a temproom you are in, if you are the creator or a staffer, and if the room is otherwise empty of connected players.  Temprooms set "permanent" by staff may not be destroyed in this manner, either.
+&help~ic_commands~temp_rooms #xxx=Temporary Rooms~[ansi(h, +temproom <room name>)]%r%rCreates a temporary room anywhere on the grid. (Staff can create temporary rooms anywhere.) Exit names are based upon the name of the room name you've created and are by default visible and unlocked, rooms findable (but not jump_ok). Additional instructions are available within the room itself.%r%rEmpty rooms are cleared out every thirty minutes, unless excluded by a staffer.%r%r[ansi(h, +temproom/destroy)]%r%rDestroys a temproom you are in, if you are the creator or a staffer, and if the room is otherwise empty of connected players.  Temprooms set "permanent" by staff may not be destroyed in this manner, either.
 
 
-&shelp~staff_commands~temp_rooms #96=Temporary Rooms~[ansi(h, +temproom/list)]%r%rList all registered temprooms and their dbref.  If they are permanent, this will be noted as well.%r%rAny "Lost Rooms" are linked to the Temproom ZMO but are not in the temproom database and will not be removed at the time-out.  Information about these rooms has been lost and must have the room, exit and entrance deleted by hand.
+&shelp~staff_commands~temp_rooms #xxx=Temporary Rooms~[ansi(h, +temproom/list)]%r%rList all registered temprooms and their dbref.  If they are permanent, this will be noted as well.%r%rAny "Lost Rooms" are linked to the Temproom ZMO but are not in the temproom database and will not be removed at the time-out.  Information about these rooms has been lost and must have the room, exit and entrance deleted by hand.
 
 
