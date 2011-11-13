@@ -1152,7 +1152,7 @@ returns:
 Can see a faction if one of the following:
 	The faction is not dark
 	Player is Staff
-	Player belongs to the faction
+	Player passes 'view permissions' (usually 'is faction member')
 
 Called with:
 	filter(fil.see-faction, <dbref list>, , , %#)
@@ -1162,13 +1162,12 @@ Called with:
 &fil.see-faction afo=or(
 		orflags(%0, !D), 
 		isstaff(%1), 
-		t(match(get(%1/_faction-member), *%0, |)), 
 		u(f.check-view-permissions, %0, %1)
 	)
 
 --
 
-&fil.see-faction afo=or(orflags(%0, !D), isstaff(%1), t(match(get(%1/_faction-member), *%0, |)), u(f.check-view-permissions, %0, %1))
+&fil.see-faction afo=or(orflags(%0, !D), isstaff(%1), u(f.check-view-permissions, %0, %1))
 
 
 --------------------------------------------------------------------------------
@@ -1182,6 +1181,9 @@ Looks for: &view-permission: <list>|<of>|<locks>
 	faction:<faction dbref>
 	attribute:<attr name>[:<value>]
 
+Note: If 'Faction:!<this faction>', then do not show it to people even if they're on the faction, UNLESS they are a faction-head.
+
+
 "Check View Permissions" must NOT evaluate code.
 
 0: dbref of faction object
@@ -1191,39 +1193,26 @@ returns: 1 or 0
 --
 
 &f.check-view-permissions afo=
-	lor(
-		iter(get(%0/d_view-permission), 
-			switch(%i0, 
-
-@@ .. in faction?
-				faction:*, 
-				t(match(
-					get(%1/_faction-member), 
-					?![locate(%!, rest(%i0, :), i)], 
-					|
-				)), 
-@@ .. in sphere? (specific for The Reach)
-				sphere:*, 
-				t(match(sphere(%1), rest(%i0, :))), 
-
-@@ .. attribute matches? (remember not to evaluate)
-				attribute:*:*, 
-				t(match(get(%1/[elements(%i0, 2, :)]), last(%i0, :))), 
-
-@@ .. attribute exists?
-				attribute:*, 
-				hasattr(%1, rest(%i0, :)), 
-
-@@ .. else: permission not found: 0
-				0
-			), 
-			|
-		)
+localize(
+	or(
+@@ faction member can always see the faction, unless '!faction:<faction name>'
+		and(
+			t(match(get(%1/_faction-member), ?!%0, |)), 
+			not(match(
+				setr(v, get(%0/d_view-permission)), !faction:[name(%0)], |
+			))
+		), 
+@@ faction head can always see the faction
+		t(match(get(%1/_faction-member), H!%0, |)), 
+@@ if pass view access can always see the faction -- temp to new access setup
+		u(#3233/f.access, %1, %qv)
 	)
+)
+
 
 --
 
-&f.check-view-permissions afo=lor(iter(get(%0/d_view-permission), switch(%i0, faction:*, t(match(get(%1/_faction-member), ?![locate(%!, rest(%i0, :), i)], |)), attribute:*:*, t(match(get(%1/[elements(%i0, 2, :)]), last(%i0, :))), attribute:*, hasattr(%1, rest(%i0, :)), 0), |))
+&f.check-view-permissions afo=localize(or(and(t(match(get(%1/_faction-member), ?!%0, |)), not(match(setr(v, get(%0/d_view-permission)), !faction:[name(%0)], |))), t(match(get(%1/_faction-member), H!%0, |)), u(#3233/f.access, %1, %qv)))
 
 --
 
