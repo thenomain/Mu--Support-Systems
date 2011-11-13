@@ -444,11 +444,9 @@ qs: permissions list
 
 	)]
 
-
-
 --
 
-&f.display.roster afo=[list(1, [header([name(%0)][if(isstaff(%#), %b%(%0%))])]%r%b [ljust(Name, 25)] [ljust(Title, 45)] Rank%r%b[ansi(g, repeat(-, 77))])][list(setr(m, sortby(f.sortby.rank, lattr(%0/member-*))), [setq(p, extract(%i0, 2, 1, -))][setq(r, extract(%i0, 3, 1, -))][setq(t, after(get(%0/%i0),  /))][if(u(f.factionhead?, %qp, %0), >, %b)] [ljust(name(%qp), 25)] [ljust(%qt,  45)] [center(%qr, 4)])][list(1, %b[ansi(g, repeat(-, 77))]%r[wrap(udefault(%0/information,  No Information Set.), 76, , %b%b)]%r[if(and(t(setr(s, get(%0/d_view-permission))), or(t(match(get(%#/_faction-member), ?!%0, |)), isstaff(%#)), or(isstaff(%#), hasflag(%0, dark))), %b[ansi(g, repeat(-, 77))]%r[setq(s, iter(%qs, switch(%i0, faction:*, Faction is [titlestr(rest(%i0, :))], sphere:*, Sphere is [titlestr(rest(%i0, :))], attribute:*:*, Attribute '[lcstr(elements(%i0, 2, :))]' is set to '[lcstr(last(%i0, :))]', attribute:*, Attribute '[lcstr(rest(%i0, :))]' exists, Unknown permission '[lcstr(first(%i0, :))]'), |, |))]%b View Permissions[if(not(hasflag(%0, dark)), %b[ansi(xh, (if set dark))])]: [itemize(%qs, |)]%r)][footer([words(%qm)] members)])]
+&f.display.roster afo=[list(1, [header([name(%0)][if(isstaff(%#), %b%(%0%))])]%r%b [ljust(Name, 25)] [ljust(Title, 45)] Rank%r%b[ansi(g, repeat(-, 77))])][list(setr(m, sortby(f.sortby.rank, lattr(%0/member-*))), [setq(p, extract(%i0, 2, 1, -))][setq(r, extract(%i0, 3, 1, -))][setq(t, after(get(%0/%i0),  /))][if(u(f.factionhead?, %qp, %0), >, %b)] [ljust(name(%qp), 25)] [ljust(%qt,  45)] [center(%qr, 4)])][list(1, %b[ansi(g, repeat(-, 77))]%r[wrap(udefault(%0/information,  No Information Set.), 76, , %b%b)]%r[if(and(t(setr(s, get(%0/d_view-permission))), or(t(match(get(%#/_faction-member), ?!%0, |)), isstaff(%#)), or(isstaff(%#), hasflag(%0, dark))), %b[ansi(g, repeat(-, 77))]%r%b View Permissions[if(not(hasflag(%0, dark)), %b[ansi(xh, (if set dark))])]: [itemize(iter(u(#3233/f.translate-access, %qs), capstr(%i0), |, |), |)]%r)][footer([words(%qm)] members)])]
 
 
 --------------------------------------------------------------------------------
