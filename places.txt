@@ -812,7 +812,15 @@ Pulls the numbers of all locations a particular dbref is at.
 
 --
 
-&f.get-num-by-player pgo=iter(grepi(%0, places.*.occupancy, %1), elements(%i0, 2, .))
+&f.get-num-by-player pgo=iter(filter(fil.player-at-place, lattr(%0/places.*.occupancy), , , %0, %1), elements(%i0, 2, .))
+
+
+--------------------------------------------------------------------------------
+-- Filter: Player At Place -----------------------------------------------------
+
+&fil.player-at-place pgo=t(match(get(%1/%0), %2))
+
+think filter(#4619/fil.player-at-place, lattr(here/places.*.occupancy), , , %L, #5)
 
 
 ================================================================================
