@@ -1,0 +1,61 @@
+================================================================================
+== PLANNING ====================================================================
+
+--------------------------------------------------------------------------------
+-- PLANNING: Outline -----------------------------------------------------------
+
+FACTIONS REWRITE FROM COMPLETE AND TOTAL SCRATCH
+
+The purpose of this project is to replace the tried-and-true, but much-aged Aether Factions system (originally written for TinyMUSH 3.2).
+
+This may be a mid-step between an all-Mu* setup and an SQL system.
+
+Actions apply <faction> to <player>
+	+faction/add <player>=<faction>
+	+faction/title <player>/<faction>=<title>
+
+
+---------------------------------------------------------------------------------- PLANNING: API ---------------------------------------------------------------
+
+A usable function-based API is a must.  I'll be doing my favorite method:
+	faction(<action>, <input>)
+
+e.g.: faction(factions[, <partial faction name>])
+      faction(list, <faction name>)
+      faction(add, <player name>, <faction name>)
+
+
+---------------------------------------------------------------------------------- PLANNING: Cross-Platform ----------------------------------------------------
+
+All user-defined or cross-platform function issues should (should, mind you) go in their own function class.
+
+	&cross.<function name>
+
+
+--------------------------------------------------------------------------------
+-- PLANNING: Actions -----------------------------------------------------------
+
+System actions:
+	factions: List all active factions
+	create: Create a faction
+	destroy: Destroy a faction
+	undestroy: Save a faction from being destroyed
+
+Faction actions:
+	list/fwho/swho: List all active players in <faction>
+	information: Change the faction description
+	permissions: Change the permissions (view:<perms>)
+		- This replaces [!]dark
+	mail: Starts a @mail to everyone in that faction
+	clean: Run the faction's clean-up script
+
+Individual actions:
+	add: Add a player to faction
+	remove: Remove a player from a faction
+	status: Change the status level of a player ([!]admin)
+	title: Change the player's title (can be formula)
+	rank: Change the player's numeric rank (can be formula)
+
+Function add-ons:
+	isfaction: Is a player in the faction?
+
