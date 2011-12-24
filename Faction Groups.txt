@@ -15,7 +15,8 @@ Actions apply <faction> to <player>
 	+faction/title <player>/<faction>=<title>
 
 
----------------------------------------------------------------------------------- PLANNING: API ---------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- PLANNING: API ---------------------------------------------------------------
 
 A usable function-based API is a must.  I'll be doing my favorite method:
 	faction(<action>, <input>)
@@ -25,7 +26,8 @@ e.g.: faction(factions[, <partial faction name>])
       faction(add, <player name>, <faction name>)
 
 
----------------------------------------------------------------------------------- PLANNING: Cross-Platform ----------------------------------------------------
+--------------------------------------------------------------------------------
+-- PLANNING: Cross-Platform ----------------------------------------------------
 
 All user-defined or cross-platform function issues should (should, mind you) go in their own function class.
 
@@ -52,10 +54,289 @@ Faction actions:
 Individual actions:
 	add: Add a player to faction
 	remove: Remove a player from a faction
-	status: Change the status level of a player ([!]admin)
+	power: Change the power level of a player ([!]admin)
 	title: Change the player's title (can be formula)
 	rank: Change the player's numeric rank (can be formula)
 
-Function add-ons:
+API/Function add-ons:
 	isfaction: Is a player in the faction?
+		- isfaction(<player>, <faction>) maintained for backwards compatability
+
+
+--------------------------------------------------------------------------------
+-- PLANNING: Data Object Format ------------------------------------------------
+
+* Faction Object Parent
+
+NOTE: May use the aJobs approach of calling functions through the end faction.  I'm not keen on how this makes the code harder to read, but it assures faction validation has taken place.
+
+* Faction Object
+
+Faction objects must be inside the Faction Groups object and must be parented to the Factions Parent.  If not, do not process them.
+
+	@description: Base information about the faction
+	&faction.permission.<type>: Permission of type <type>
+		view: Permission formula for can see this faction
+	&member.power.<dbref>: Power/responsibility level (admin/member)
+		not-null, its existence says <dbref> is faction member
+
+	&member.title.<dbref>: Faction title for <dbref>
+	&member.rank.<dbref>: Faction rank of <dbref>
+
+	&member.title.default: Allows a default (formula) for title
+	&member.rank.default: Allows a default (formula) for rank
+
+
+The system will determine if to use title./rank.default thus:
+
+	udefault(<faction>/<element>.<dbref>, 
+		u(<faction>/<element>.default, <dbref>)
+	)
+
+
+================================================================================
+== FACTIONS ====================================================================
+
+@create Faction Groups <fg>=10
+@desc Faction Groups=A system to list people by their affiliation(s)
+
+@set Faction Groups=inherit
+@set Faction Groups=safe
+
+@parent Faction Groups=codp
+&prefix.cross_platform Faction Groups=cross.
+&prefix.user_function_actions Faction Groups=action.
+
+--
+
+@create Faction Parent=10
+@desc Faction Parent=Please replace this with basic information about the faction!
+@fo me=&d.faction_parent Faction Groups=[num(Faction Parent)]
+
+@parent Faction Parent=codp
+
+@tel Faction Parent=Faction Groups
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Cross-Platform Functions ------------------------------------------
+
+&cross.header Faction Groups=wheader(%0)
+&cross.footer Faction Groups=wfooter(%0)
+&cross.divider Faction Groups=wdivider(%0)
+
+&cross.error Faction Groups=[alert(Factions)] %0
+
+&cross.isstaff Faction Groups=isstaff(%0)
+
+&cross.isapproved Faction Groups=isapproved(%0)
+
+================================================================================
+== COMMAND SETUP ===============================================================
+
+The "Mistress System" funnels everything through a single command.  For this command, like many others, an optional 's' on it is valid.  e.g., faction/factions.
+
+	+command(s) -> &c.<command>.default
+	+command(s) <stuff> -> &c.<command>.specific
+	+command(s)/switches [<stuff>] -> &c.<command>/<switch>
+
+To each of these (including the first), the following are passed:
+	%0: <stuff>
+	%1: </other/switches>
+
+In the case of the switches, the first valid switch has their command called, if all switches are invalid we call &c.<name>.default or &c.<name>.specific, depending on the above rules.
+
+--
+
+&c.factions Faction Groups=$faction*:@pemit %#=
+	[setq(n, factions)]
+	[switch(%0, 
+@@ Without 's' ending
+		, u(c.%qn.default), 
+		/*, u(c.%qn.switch, first(%0), rest(%0)), 
+		%b*, u(c.%qn.specific, trim(%0)), 
+
+@@ With 's' ending
+		s, u(c.%qn.default), 
+		s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), 
+		s%b*, u(c.%qn.specific, trim(rest(%0))), 
+
+@@ No match
+		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
+	)]
+
+--
+
+&c.factions Faction Groups=$faction*:@pemit %#=[setq(n, factions)][switch(%0, , u(c.%qn.default), /*, u(c.%qn.switch, first(%0), rest(%0)), %b*, u(c.%qn.specific, trim(%0)), s, u(c.%qn.default), s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), s%b*, u(c.%qn.specific, trim(rest(%0))), Error: I don't know what you mean. Please see [ansi(h, +help %qn)])]
+
+
+
+--------------------------------------------------------------------------------
+-- factions/<switch> -----------------------------------------------------------
+
+Handles all /switches, which is to say it makes sure they exist and passes them on.
+
+Also handles pseudo-switches, passing them on as elements to any switched item.
+
+Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if %1 is empty.
+
+--
+
+0: /<switch>[/<switch>/<switch>, etc.]
+1: [<more>], stuff to pass to c.<name>/<switch>, if any
+qn: Name of the command, global register set in &c.<name> (above)
+
+qa: all c.<name>/* on this object
+qs: /valid/command/switches/found
+qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
+
+--
+
+&c.factions.switch Faction Groups=
+	[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))]
+	[iter(rest(%0, /), 
+		if(
+			t(grab(%qa, c.%qn/%i0*)), 
+			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
+			setq(p, %qp/%i0)
+		), 
+		/, @@
+	)]
+	[if(t(%qs), 
+		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+		if(t(%1), 
+			ulocal(c.%qn.specific, %1, %qp), 
+			ulocal(c.%qn.default, %1, %qp)
+		)
+	)]
+
+--
+
+&c.factions.switch Faction Groups=[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))][iter(rest(%0, /), if(t(grab(%qa, c.%qn/%i0*)), setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), setq(p, %qp/%i0)), /, @@)][if(t(%qs), ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), if(t(%1), ulocal(c.%qn.specific, %1, %qp), ulocal(c.%qn.default, %1, %qp)))]
+
+
+--------------------------------------------------------------------------------
+-- factions (default) ----------------------------------------------------------
+
+Show default factions setup: List factions
+
+--
+
+0: passed by fake /switches, ignored
+1: fake /switches, error
+
+--
+
+&c.factions.default Faction Groups=if(strlen(%1), u(cross.error, Factions doesn't take that switch. See +help factions), u(c.factions/default))
+
+
+
+--------------------------------------------------------------------------------
+-- factions <stuff> (specific) -------------------------------------------------
+
+Show information about a particular faction
+
+--
+
+0: faction name or dbref
+1: fake /switches, errored
+
+--
+
+&c.factions.specific Faction Groups=if(strlen(%1), u(cross.error, Factions doesn't take that switch. See +help factions), u(c.factions/faction))
+
+
+--------------------------------------------------------------------------------
+-- factions/list ---------------------------------------------------------------
+
+&c.factions/list Faction Groups=Factions/List
+
+--------------------------------------------------------------------------------
+-- factions/faction ------------------------------------------------------------
+
+&c.factions/faction Faction Groups=Factions/Group
+
+
+
+
+================================================================================
+== ACTIONS =====================================================================
+
+--------------------------------------------------------------------------------
+-- ACTION: Create Faction ------------------------------------------------------
+
+	faction(create, <faction name>[, <faction admin>])
+
+a: dbref of proposed faction admin
+f: faction dbref
+e: possible error from other actions, otherwise 1
+
+--
+
+&action.create Faction Groups=
+localize(
+	[setq(e, 1)]
+	case(0, 
+@@ staff only
+		u(cross.isstaff, %#), 
+		u(cross.error, #-1 Staff only), 
+
+@@ check existing name
+
+@@ check existing close-enough (first 5 character match)
+
+@@ .. if t(%1), try to add member to faction
+		[if(cand(t(%1), t(%qe)), setq(e, u(action.add, %qf, %qa)))]
+
+@@ .. if t(%1), pass off to u(action.power, <faction dbref>, <name>, <power>)
+		[if(cand(t(%1), t(%qe)), u(action.power, %qf, %qa, administrator))]
+
+@@ .. return error or '1' for no error
+		[if(strlen(%qe), %qe, 1)]
+
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Add to Faction ------------------------------------------------------
+
+
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Change Member's Power Level on Faction ------------------------------
+
+
+
+
+
+
+================================================================================
+== COMMAND SUPPORT =============================================================
+
+--------------------------------------------------------------------------------
+-- FILTER: Valid Factions ------------------------------------------------------
+
+Filters a list of dbrefs and returns those that meet the 'valid faction' criteria, for a bit of security.
+
+Sample Usage: filter(fil.valid_factions, lcon(%!))
+
+--
+
+&fil.valid_factions Faction Groups=and(strmatch(loc(%0), %!), strmatch(parent(%0), v(d.faction_parent)))
+
+--------------------------------------------------------------------------------
+-- FILTER: Visible Faction -----------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- FUNCTION: List Factions -----------------------------------------------------
+
+List all factions visible by a player, filtered by partial faction name.
+
+0: player dbref
+1: faction name (optional, for partial matching)
+
+
+
 
