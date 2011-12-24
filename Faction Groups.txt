@@ -277,20 +277,31 @@ e: possible error from other actions
 
 &action.create Faction Groups=
 localize(
-	[setq(r, cand(
+	[setq(r, 
+		cand(
 
 @@ .. staff only
-		t(if(u(cross.isstaff, %#), 1, #-1 Staff only)), 
+			t(if(u(cross.isstaff, %#), 1, setr(e, #-1 Staff only))), 
+
 @@ .. check existing name
+
 @@ .. check existing close-enough (first 5 character match)
+
 @@ .. if t(%1), try to add member to faction
-		cor(not(t(%1)), t(setr(e, u(action.add, %qf, %qa)))), 
+			cor(
+				not(t(%1)), 
+				t(setr(e, u(action.add, %qf, %qa)))
+			), 
+
 @@ .. if t(%1), try to add member to faction
-		cor(not(t(%1)), t(setr(e, u(action.power, %qf, %qa, administrator)))), 
+			cor(
+				not(t(%1)), 
+				t(setr(e, u(action.power, %qf, %qa, administrator)))
+			), 
 	))]
 
-@@ report results
-	[if(t(%qr), %qe, %qr)]
+@@ report results - if the cand() was 1, return 1, else return error
+	[if(t(%qr), %qr, %qe)]
 )
 
 
