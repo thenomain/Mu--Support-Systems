@@ -269,32 +269,28 @@ Show information about a particular faction
 
 a: dbref of proposed faction admin
 f: faction dbref
-e: possible error from other actions, otherwise 1
+
+r: result from cand() test
+e: possible error from other actions
 
 --
 
 &action.create Faction Groups=
 localize(
-	[setq(e, 1)]
-	case(0, 
-@@ staff only
-		u(cross.isstaff, %#), 
-		u(cross.error, #-1 Staff only), 
+	[setq(r, cand(
 
-@@ check existing name
-
-@@ check existing close-enough (first 5 character match)
-
+@@ .. staff only
+		t(if(u(cross.isstaff, %#), 1, #-1 Staff only)), 
+@@ .. check existing name
+@@ .. check existing close-enough (first 5 character match)
 @@ .. if t(%1), try to add member to faction
-		[if(cand(t(%1), t(%qe)), setq(e, u(action.add, %qf, %qa)))]
+		cor(not(t(%1)), t(setr(e, u(action.add, %qf, %qa)))), 
+@@ .. if t(%1), try to add member to faction
+		cor(not(t(%1)), t(setr(e, u(action.power, %qf, %qa, administrator)))), 
+	))]
 
-@@ .. if t(%1), pass off to u(action.power, <faction dbref>, <name>, <power>)
-		[if(cand(t(%1), t(%qe)), u(action.power, %qf, %qa, administrator))]
-
-@@ .. return error or '1' for no error
-		[if(strlen(%qe), %qe, 1)]
-
-	)
+@@ report results
+	[if(t(%qr), %qe, %qr)]
 )
 
 
