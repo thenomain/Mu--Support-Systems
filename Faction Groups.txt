@@ -43,8 +43,9 @@ System actions:
 	destroy: Destroy a faction
 	undestroy: Save a faction from being destroyed
 
-Faction actions:
-	list/fwho/swho: List all active players in <faction>
+Faction actions: 
+	details: Give all details (as appropriate) for a faction
+	list/fwho/swho: List all active players in faction
 	information: Change the faction description
 	permissions: Change the permissions (view:<perms>)
 		- This replaces [!]dark
@@ -263,9 +264,103 @@ Show information about a particular faction
 == ACTIONS =====================================================================
 
 --------------------------------------------------------------------------------
--- ACTION: Create Faction ------------------------------------------------------
+-- ACTION: Factions List (system) ----------------------------------------------
 
-	faction(create, <faction name>[, <faction admin>])
+List factions as appropriate for a certain player, which means throwing it through one or more filters.
+
+	faction(factions[, <faction name>])
+
+--
+
+&action.factions Faction Groups=
+	filter(fil.factions_byname, 
+		filter(fil.cansee_factions, 
+			filter(fil.valid_factions, lcon(%!)), 
+			@@(empty idelim), @@(empty odelim), 
+			%#
+		), 
+		@@(empty idelim), @@(empty odelim), 
+		%0
+	)
+
+--
+
+&action.factions Faction Groups=filter(fil.factions_byname, filter(fil.cansee_factions, filter(fil.valid_factions, lcon(%!)), @@(empty idelim), @@(empty odelim), %#), @@(empty idelim), @@(empty odelim), %0)
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Create Faction (system) ---------------------------------------------
+
+	faction(create, <faction name>)
+
+f: faction dbref
+m: exsting faction that matches on first 5 characters as %0
+
+Returns: #-1 <error> or dbref.
+
+--
+
+&action.create Faction Groups=
+localize(
+	case(0, 
+
+@@ .. staff only
+		t(u(cross.isstaff, %#)), 
+		#-1 Staff only, 
+
+@@ .. check for valid faction object name
+		valid(name, %0), 
+		#-1 That's a bad name for a faction, 
+
+@@ .. check for existing close-enough faction name (first 5 character match)
+		not(setr(m, 
+			grab(
+				iter(filter(fil.valid_factions, lcon(%!)), name(%i0), , |), 
+				[strtrunc(%0, 5)]*, 
+				|
+			)
+		)), 
+		#-1 A similar faction name already exists as '%qm', 
+
+@@ .. check created alright
+		t(setr(f, create(%0, ))), 
+		#-1 Error when creating faction '%0', 
+
+@@ .. check parented alright
+		strcat(parent(%qf, v(d.faction_parent)), strmatch(parent(%qf), v(d.faction_parent))), 
+		#-1 Error when setting faction parent. 
+		Please type: @parent %qf=[v(d.faction_parent)], 
+
+@@ .. ok: return object dbref
+		%qf
+	)
+)
+
+--
+
+&action.create Faction Groups=localize(case(0, t(u(cross.isstaff, %#)), #-1 Staff only, valid(name, %0), #-1 That's a bad name for a faction, not(setr(m, grab(iter(filter(fil.valid_factions, lcon(%!)), name(%i0), , |), [strtrunc(%0, 5)]*, |))), #-1 A similar faction name already exists as '%qm', t(setr(f, create(%0, ))), #-1 Error when creating faction '%0', strcat(parent(%qf, v(d.faction_parent)), strmatch(parent(%qf), v(d.faction_parent))), #-1 Error when setting faction parent. Please type: @parent %qf=[v(d.faction_parent)], %qf))
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Details About a Faction (faction) -----------------------------------
+
+	faction(details, <faction>)
+
+--
+
+&action.details Faction Groups=
+localize(
+	case(0, 
+		t(setr(f, u(........)))
+	)
+)
+
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Add Player to Faction (individual) ----------------------------------
+
+	faction(add, <player>, <faction>)
 
 a: dbref of proposed faction admin
 f: faction dbref
@@ -275,45 +370,31 @@ e: possible error from other actions
 
 --
 
-&action.create Faction Groups=
+&action.add Faction Groups=
 localize(
-	[setq(r, 
-		cand(
+	case(0, 
+@@ .. basic checks
+		u(cross.isstaff, %#), 
+		#-1 Staff only, 
 
-@@ .. staff only
-			t(if(u(cross.isstaff, %#), 1, setr(e, #-1 Staff only))), 
+		t(setr(a, pmatch(%0))), 
+		#-1 Player '%0' not found, 
 
-@@ .. check existing name
+		t(u(cross.isapproved, %qa)), 
+		#-1 Player is not approved for RP, 
 
-@@ .. check existing close-enough (first 5 character match)
+		t(setr(f, u(action.list, %1))), 
+		#-1 Faction '%1' not found, 
 
-@@ .. if t(%1), try to add member to faction
-			cor(
-				not(t(%1)), 
-				t(setr(e, u(action.add, %qf, %qa)))
-			), 
+		eq(words(%qf, |), 1), 
+		#-1 Multiple faction matches, 
 
-@@ .. if t(%1), try to add member to faction
-			cor(
-				not(t(%1)), 
-				t(setr(e, u(action.power, %qf, %qa, administrator)))
-			), 
-	))]
-
-@@ report results - if the cand() was 1, return 1, else return error
-	[if(t(%qr), %qr, %qe)]
+		...		
+	)
 )
 
-
 --------------------------------------------------------------------------------
--- ACTION: Add to Faction ------------------------------------------------------
-
-
-
-
---------------------------------------------------------------------------------
--- ACTION: Change Member's Power Level on Faction ------------------------------
-
+-- ACTION: Change Member's Power Level on Faction (individual) -----------------
 
 
 
@@ -333,16 +414,32 @@ Sample Usage: filter(fil.valid_factions, lcon(%!))
 
 &fil.valid_factions Faction Groups=and(strmatch(loc(%0), %!), strmatch(parent(%0), v(d.faction_parent)))
 
---------------------------------------------------------------------------------
--- FILTER: Visible Faction -----------------------------------------------------
 
 --------------------------------------------------------------------------------
--- FUNCTION: List Factions -----------------------------------------------------
+-- FILTER: Cansee Factions -----------------------------------------------------
 
-List all factions visible by a player, filtered by partial faction name.
+Filters a list of dbrefs (should be checked as 'valid factions') to only the ones that a player can see.
 
-0: player dbref
-1: faction name (optional, for partial matching)
+Sample Usage: 
+	filter(fil.cansee_factions, filter(fil.valid_factions, lcon(%!)), , , %#)
+
+--
+
+&fil.cansee_factions Faction Groups=1
+
+
+--------------------------------------------------------------------------------
+-- FILTER: Faction Name Filter -------------------------------------------------
+
+Filters a list of dbrefs (should be checked as 'valid factions') to only the ones that a player can see.
+
+Sample Usage: 
+	filter(fil.factions_byname, filter(fil.valid_factions, lcon(%!)), , , *est*)
+
+--
+
+&fil.factions_byname Faction Groups=strmatch(name(%0), %1*)
+
 
 
 
