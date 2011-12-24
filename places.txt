@@ -824,7 +824,7 @@ think filter(#4619/fil.player-at-place, lattr(here/places.*.occupancy), , , %L, 
 
 
 ================================================================================
-== FUNCTION:= Set XXX ==========================================================
+== FUNCTION: Set XXX ===========================================================
 
 Replaces elements entirely.  No checking first; using this on a place that hasn't been set up first will cause the information to not be written, due to the nature of replace() on TinyMUX (does not create, only replaces).
 
