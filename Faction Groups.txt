@@ -344,14 +344,42 @@ localize(
 --------------------------------------------------------------------------------
 -- ACTION: Details About a Faction (faction) -----------------------------------
 
-	faction(details, <faction>)
+	faction(details, <faction>[, <player dbref>])
+
+f: faction dbref
+
+output: <dbref>|<member dbrefs>|<permissions>|<desc>
 
 --
 
 &action.details Faction Groups=
 localize(
 	case(0, 
-		t(setr(f, u(........)))
+
+@@ .. faction checks
+		t(setr(f, u(action.factions, %0))), 
+		#-1 Faction '%0' not found, 
+
+		eq(words(%qf), 1), 
+		#-1 Too many matching factions found, 
+
+@@ .. faction details (no player dbref passed)
+		strlen(%1), 
+		%qf|
+		[iter()]|
+		[get(%qf/permissions.view)]|
+		[get(%qf/desc)]|, 
+
+@@ .. player checks 
+		t(setr(p, pmatch(%qp))), 
+		#-1 Player '%1' not found, 
+
+		t(get(%qf/member.power.%qd)), 
+		#-1 Player '[name(%qd)]' not a member of faction '[name(%qf)]', 
+
+@@ .. player details
+
+
 	)
 )
 
@@ -362,7 +390,7 @@ localize(
 
 	faction(add, <player>, <faction>)
 
-a: dbref of proposed faction admin
+p: dbref of player to add
 f: faction dbref
 
 r: result from cand() test
@@ -377,10 +405,10 @@ localize(
 		u(cross.isstaff, %#), 
 		#-1 Staff only, 
 
-		t(setr(a, pmatch(%0))), 
+		t(setr(p, pmatch(%0))), 
 		#-1 Player '%0' not found, 
 
-		t(u(cross.isapproved, %qa)), 
+		t(u(cross.isapproved, %qp)), 
 		#-1 Player is not approved for RP, 
 
 		t(setr(f, u(action.list, %1))), 
