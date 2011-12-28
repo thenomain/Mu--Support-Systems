@@ -400,11 +400,11 @@ localize(
 --------------------------------------------------------------------------------
 -- FUNCTION: Check & lookup faction/player/power level -------------------------
 
-	u(f.check.lookup, <checker dbref>, [<faction>], [<player>], [<power lvl>])
+	u(f.check.lookup, <checker dbref>, [<faction>], [<member>], [<power lvl>])
 
 0: dbref of who's asking
 1: faction name/dbref, if passed
-2: player name/dbref, if passed
+2: member name/dbref, if passed
 3: power level, if passed
 
 
@@ -415,9 +415,9 @@ Returns one or more of:
 
 	FACT:<dbref>/!FOUND/MULTIPLE
 	
-	PLAYER:<dbref>/!FOUND
-	PLAYER:!APPROVED
-	PLAYER:IN_FACTION/!IN_FACTION
+	MEMBER:<dbref>/!FOUND
+	MEMBER:!APPROVED
+	MEMBER:IN_FACTION/!IN_FACTION
 
 	POWER:<code/number/whatever>/!FOUND/MULTIPLE
 
@@ -435,7 +435,7 @@ localize(
 		)]
 
 
-@@ >> PLAYER
+@@ >> MEMBER
 		[if(t(%2), 
 			...
 		)]
