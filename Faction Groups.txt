@@ -23,6 +23,7 @@ A usable function-based API is a must.  I'll be doing my favorite method:
 
 e.g.: faction(factions[, <partial faction name>])
       faction(list, <faction name>)
+      faction(details, <faction name>[, <player name>])
       faction(add, <player name>, <faction name>)
 
 
@@ -75,6 +76,7 @@ NOTE: May use the aJobs approach of calling functions through the end faction.  
 
 Faction objects must be inside the Faction Groups object and must be parented to the Factions Parent.  If not, do not process them.
 
+	@name: Name of the faction
 	@description: Base information about the faction
 	&faction.permission.<type>: Permission of type <type>
 		view: Permission formula for can see this faction
@@ -347,8 +349,10 @@ localize(
 	faction(details, <faction>[, <player dbref>])
 
 f: faction dbref
+p: player dbref, if passed
 
-output: <dbref>|<member dbrefs>|<permissions>|<desc>
+note: | is a protected symbol here, but we'll keep things that could use it
+	  at the end of the returned information
 
 --
 
@@ -363,7 +367,8 @@ localize(
 		eq(words(%qf), 1), 
 		#-1 Too many matching factions found, 
 
-@@ .. faction details (no player dbref passed)
+@@ .. faction details (no player dbref passed): 
+@@ .. <dbref>|<member dbrefs>|<permissions>|<desc>
 		strlen(%1), 
 		%qf|
 		[iter()]|
@@ -372,17 +377,76 @@ localize(
 
 @@ .. player checks 
 		t(setr(p, pmatch(%qp))), 
-		#-1 Player '%1' not found, 
+		#-1 Player '%1' has too many matches or not found, 
 
 		t(get(%qf/member.power.%qd)), 
 		#-1 Player '[name(%qd)]' not a member of faction '[name(%qf)]', 
 
 @@ .. player details
-
-
+@@ .. <dbref>|<power>|<rank>|<title>
+@@ .. (<rank> and <title> may be determined via code on faction or parent)
+		%qa|
+		[get(%qf/member.power.%qa)]|
+		[udefault(%qf/member.rank.%qa, u(%qf/default.rank, %qa))]|
+		[udefault(%qf/member.title.%qa, u(%qf/default.title, %qa))]
 	)
 )
 
+--
+
+&action.details Faction Groups=localize(case(0, t(setr(f, u(action.factions, %0))), #-1 Faction '%0' not found, eq(words(%qf), 1), #-1 Too many matching factions found, strlen(%1), %qf|[iter()]|[get(%qf/permissions.view)]|[get(%qf/desc)]|, t(setr(p, pmatch(%qp))), #-1 Player '%1' has too many matches or not found, t(get(%qf/member.power.%qd)), #-1 Player '[name(%qd)]' not a member of faction '[name(%qf)]', %qa|[get(%qf/member.power.%qa)]|[udefault(%qf/member.rank.%qa, u(%qf/default.rank, %qa))]|[udefault(%qf/member.title.%qa, u(%qf/default.title, %qa))]))
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Check & lookup faction/player/power level -------------------------
+
+	u(f.check.lookup, <checker dbref>, [<faction>], [<player>], [<power lvl>])
+
+0: dbref of who's asking
+1: faction name/dbref, if passed
+2: player name/dbref, if passed
+3: power level, if passed
+
+
+Returns one or more of: 
+	OK: Everything passed checks out (no other msgs)
+	NULL: Nothing was passed, you dork (no other msgs)
+	DENIED: Doesn't have the proper power level to check (???)
+
+	FACT:<dbref>/!FOUND/MULTIPLE
+	
+	PLAYER:<dbref>/!FOUND
+	PLAYER:!APPROVED
+	PLAYER:IN_FACTION/!IN_FACTION
+
+	POWER:<code/number/whatever>/!FOUND/MULTIPLE
+
+--
+
+&f.check.lookup Faction Groups=
+localize(
+@@ .. if nothing passed, return NULL
+	if(not(or(t(%1), t(%2), t(%3))), 
+		NULL, 
+
+@@ >> FACTION
+		[if(t(%1), 
+			...
+		)]
+
+
+@@ >> PLAYER
+		[if(t(%2), 
+			...
+		)]
+
+@@ >> POWER
+		[if(t(%3), 
+			...
+		)]
+
+	)
+)
 
 
 --------------------------------------------------------------------------------
@@ -411,15 +475,30 @@ localize(
 		t(u(cross.isapproved, %qp)), 
 		#-1 Player is not approved for RP, 
 
-		t(setr(f, u(action.list, %1))), 
+		t(setr(f, u(action.factions, %1))), 
 		#-1 Faction '%1' not found, 
 
-		eq(words(%qf, |), 1), 
+		eq(words(%qf), 1), 
 		#-1 Multiple faction matches, 
 
-		...		
+		hasattr(%qf, member.power.%qp), 
+		#-1 '[name(%qp)]' is already member of faction '[name(%qf)]', 
+
+@@ power check here
+@@ 		xxx
+
+		eq(strlen(setr(e, set(%qf, member.power.%qp:<<< power lvl >>>))), 0), 
+		#-1 %qe, 
+
+@@ OK
+		1
 	)
 )
+
+--
+
+&action.add Faction Groups=localize(case(0, u(cross.isstaff, %#), #-1 Staff only, t(setr(p, pmatch(%0))), #-1 Player '%0' not found, t(u(cross.isapproved, %qp)), #-1 Player is not approved for RP, t(setr(f, u(action.factions, %1))), #-1 Faction '%1' not found, eq(words(%qf), 1), #-1 Multiple faction matches, hasattr(%qf, member.power.%qp), #-1 '[name(%qp)]' is already member of faction '[name(%qf)]', eq(strlen(setr(e, set(%qf, member.power.%qp:<<< power lvl >>>))), 0), #-1 %qe, 1))
+
 
 --------------------------------------------------------------------------------
 -- ACTION: Change Member's Power Level on Faction (individual) -----------------
