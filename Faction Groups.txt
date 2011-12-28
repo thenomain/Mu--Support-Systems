@@ -134,6 +134,9 @@ The system will determine if to use title./rank.default thus:
 
 &cross.isapproved Faction Groups=isapproved(%0)
 
+&cross.crumple Faction Groups=trim(squish(%0))
+
+
 ================================================================================
 == COMMAND SETUP ===============================================================
 
@@ -413,40 +416,64 @@ Returns one or more of:
 	NULL: Nothing was passed, you dork (no other msgs)
 	DENIED: Doesn't have the proper power level to check (???)
 
-	FACT:<dbref>/!FOUND/MULTIPLE
+	FACTION:<dbref>/!FOUND/MULTIPLE
 	
 	MEMBER:<dbref>/!FOUND
 	MEMBER:!APPROVED
 	MEMBER:IN_FACTION/!IN_FACTION
 
 	POWER:<code/number/whatever>/!FOUND/MULTIPLE
+	MEMBER:HAS_POWER/!HAS_POWER
+
+--
+
+f: faction messages
+m: member messages
+p: power messages
 
 --
 
 &f.check.lookup Faction Groups=
-localize(
+localize(u(cross.crumple, 
 @@ .. if nothing passed, return NULL
 	if(not(or(t(%1), t(%2), t(%3))), 
 		NULL, 
 
 @@ >> FACTION
 		[if(t(%1), 
-			...
-		)]
+			cat(
+				setq(f, u(action.factions, %1)), 
+				case(1, 
+					words(%qf), FACTION:%qf, 
+					t(%qf), FACTION:MULTIPLE, 
+					FACTION:!FOUND
+				)
+			)
+		)] 
 
 
 @@ >> MEMBER
 		[if(t(%2), 
-			...
-		)]
+			cat(
+				setq(m, pmatch(%2)), 
+				case(1, 
+					 t(%qm), MEMBER:%qm, 
+					 MEMBER:!FOUND
+				), 
+				if(and(eq(words(%qf), 1), t(u(action.ismember, %qf, %qm))), 
+					MEMBER:IN_FACTION, 
+					MEMBER:!IN_FACTION
+				)
+			)
+		)] 
 
 @@ >> POWER
 		[if(t(%3), 
 			...
-		)]
+		)] 
 
 	)
-)
+))
 
 
 --------------------------------------------------------------------------------
