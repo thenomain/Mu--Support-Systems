@@ -56,7 +56,10 @@ Faction actions:
 	clean: Run the faction's clean-up script
 
 Faction queries:
-	list/fwho/swho: List all active members in faction
+	roster: List all (active) members in faction
+		- faction(roster, <faction>[, active|all|inactive])
+	who: List all (active) connected members in a faction
+		- faction(who, <faction>[, active|all|inactive])
 	details: Give all details (as appropriate) for a faction
 		- faction(details, <faction>)
 	permissions: View the permission(s)
