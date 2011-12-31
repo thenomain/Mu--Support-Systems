@@ -32,7 +32,7 @@ e.g.: faction(factions[, <partial faction name>])
 
 All user-defined or cross-platform function issues should (should, mind you) go in their own function class.
 
-	&cross.<function name>
+	&_<function name>
 
 
 --------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ The system will determine if to use title./rank.default thus:
 @set Faction Groups=safe
 
 @parent Faction Groups=codp
-&prefix.cross_platform Faction Groups=cross.
+&prefix.cross_platform Faction Groups=_
 &prefix.user_function_actions Faction Groups=action.
 
 --
@@ -124,17 +124,17 @@ The system will determine if to use title./rank.default thus:
 --------------------------------------------------------------------------------
 -- FUNCTION: Cross-Platform Functions ------------------------------------------
 
-&cross.header Faction Groups=wheader(%0)
-&cross.footer Faction Groups=wfooter(%0)
-&cross.divider Faction Groups=wdivider(%0)
+&_header Faction Groups=wheader(%0)
+&_footer Faction Groups=wfooter(%0)
+&_divider Faction Groups=wdivider(%0)
 
-&cross.error Faction Groups=[alert(Factions)] %0
+&_error Faction Groups=[alert(Factions)] %0
 
-&cross.isstaff Faction Groups=isstaff(%0)
+&_isstaff Faction Groups=isstaff(%0)
 
-&cross.isapproved Faction Groups=isapproved(%0)
+&_isapproved Faction Groups=isapproved(%0)
 
-&cross.crumple Faction Groups=trim(squish(%0))
+&_crumple Faction Groups=trim(squish(%0))
 
 
 ================================================================================
@@ -233,7 +233,7 @@ Show default factions setup: List factions
 
 --
 
-&c.factions.default Faction Groups=if(strlen(%1), u(cross.error, Factions doesn't take that switch. See +help factions), u(c.factions/default))
+&c.factions.default Faction Groups=if(strlen(%1), u(_error, Factions doesn't take that switch. See +help factions), u(c.factions/default))
 
 
 
@@ -249,7 +249,7 @@ Show information about a particular faction
 
 --
 
-&c.factions.specific Faction Groups=if(strlen(%1), u(cross.error, Factions doesn't take that switch. See +help factions), u(c.factions/faction))
+&c.factions.specific Faction Groups=if(strlen(%1), u(_error, Factions doesn't take that switch. See +help factions), u(c.factions/faction))
 
 
 --------------------------------------------------------------------------------
@@ -310,7 +310,7 @@ localize(
 	case(0, 
 
 @@ .. staff only
-		t(u(cross.isstaff, %#)), 
+		t(u(_isstaff, %#)), 
 		#-1 Staff only, 
 
 @@ .. check for valid faction object name
@@ -343,7 +343,7 @@ localize(
 
 --
 
-&action.create Faction Groups=localize(case(0, t(u(cross.isstaff, %#)), #-1 Staff only, valid(name, %0), #-1 That's a bad name for a faction, not(setr(m, grab(iter(filter(fil.valid_factions, lcon(%!)), name(%i0), , |), [strtrunc(%0, 5)]*, |))), #-1 A similar faction name already exists as '%qm', t(setr(f, create(%0, ))), #-1 Error when creating faction '%0', strcat(parent(%qf, v(d.faction_parent)), strmatch(parent(%qf), v(d.faction_parent))), #-1 Error when setting faction parent. Please type: @parent %qf=[v(d.faction_parent)], %qf))
+&action.create Faction Groups=localize(case(0, t(u(_isstaff, %#)), #-1 Staff only, valid(name, %0), #-1 That's a bad name for a faction, not(setr(m, grab(iter(filter(fil.valid_factions, lcon(%!)), name(%i0), , |), [strtrunc(%0, 5)]*, |))), #-1 A similar faction name already exists as '%qm', t(setr(f, create(%0, ))), #-1 Error when creating faction '%0', strcat(parent(%qf, v(d.faction_parent)), strmatch(parent(%qf), v(d.faction_parent))), #-1 Error when setting faction parent. Please type: @parent %qf=[v(d.faction_parent)], %qf))
 
 
 --------------------------------------------------------------------------------
@@ -419,7 +419,7 @@ Returns one or more of:
 	FACTION:<dbref>/!FOUND/MULTIPLE
 	
 	MEMBER:<dbref>/!FOUND
-	MEMBER:!APPROVED
+	MEMBER:APPROVED/!APPROVED (only check if found)
 	MEMBER:IN_FACTION/!IN_FACTION
 
 	POWER:<code/number/whatever>/!FOUND/MULTIPLE
@@ -434,7 +434,7 @@ p: power messages
 --
 
 &f.check.lookup Faction Groups=
-localize(u(cross.crumple, 
+localize(u(_crumple, 
 @@ .. if nothing passed, return NULL
 	if(not(or(t(%1), t(%2), t(%3))), 
 		NULL, 
@@ -460,6 +460,10 @@ localize(u(cross.crumple,
 					 t(%qm), MEMBER:%qm, 
 					 MEMBER:!FOUND
 				), 
+				if(and(t(%qm), u(_isapproved, %qm)), 
+					MEMBER:APPROVED, 
+					MEMBER:!APPROVED
+				), 
 				if(and(eq(words(%qf), 1), t(u(action.ismember, %qf, %qm))), 
 					MEMBER:IN_FACTION, 
 					MEMBER:!IN_FACTION
@@ -484,8 +488,7 @@ localize(u(cross.crumple,
 p: dbref of player to add
 f: faction dbref
 
-r: result from cand() test
-e: possible error from other actions
+e: possible error from functions: set()
 
 --
 
@@ -493,13 +496,13 @@ e: possible error from other actions
 localize(
 	case(0, 
 @@ .. basic checks
-		u(cross.isstaff, %#), 
+		u(_isstaff, %#), 
 		#-1 Staff only, 
 
 		t(setr(p, pmatch(%0))), 
 		#-1 Player '%0' not found, 
 
-		t(u(cross.isapproved, %qp)), 
+		t(u(_isapproved, %qp)), 
 		#-1 Player is not approved for RP, 
 
 		t(setr(f, u(action.factions, %1))), 
@@ -524,7 +527,7 @@ localize(
 
 --
 
-&action.add Faction Groups=localize(case(0, u(cross.isstaff, %#), #-1 Staff only, t(setr(p, pmatch(%0))), #-1 Player '%0' not found, t(u(cross.isapproved, %qp)), #-1 Player is not approved for RP, t(setr(f, u(action.factions, %1))), #-1 Faction '%1' not found, eq(words(%qf), 1), #-1 Multiple faction matches, hasattr(%qf, member.power.%qp), #-1 '[name(%qp)]' is already member of faction '[name(%qf)]', eq(strlen(setr(e, set(%qf, member.power.%qp:<<< power lvl >>>))), 0), #-1 %qe, 1))
+&action.add Faction Groups=localize(case(0, u(_isstaff, %#), #-1 Staff only, t(setr(p, pmatch(%0))), #-1 Player '%0' not found, t(u(_isapproved, %qp)), #-1 Player is not approved for RP, t(setr(f, u(action.factions, %1))), #-1 Faction '%1' not found, eq(words(%qf), 1), #-1 Multiple faction matches, hasattr(%qf, member.power.%qp), #-1 '[name(%qp)]' is already member of faction '[name(%qf)]', eq(strlen(setr(e, set(%qf, member.power.%qp:<<< power lvl >>>))), 0), #-1 %qe, 1))
 
 
 --------------------------------------------------------------------------------
@@ -573,8 +576,5 @@ Sample Usage:
 --
 
 &fil.factions_byname Faction Groups=strmatch(name(%0), %1*)
-
-
-
 
 
