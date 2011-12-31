@@ -36,33 +36,49 @@ All user-defined or cross-platform function issues should (should, mind you) go 
 
 
 --------------------------------------------------------------------------------
--- PLANNING: Actions -----------------------------------------------------------
+-- PLANNING: Actions & Queries -------------------------------------------------
 
 System actions:
-	factions: List all active factions
 	create: Create a faction
 	destroy: Destroy a faction
 	undestroy: Save a faction from being destroyed
 
+System queries:
+	factions: List all active factions
+		- faction(factions, <faction>[*])
+
 Faction actions: 
-	details: Give all details (as appropriate) for a faction
-	list/fwho/swho: List all active players in faction
 	information: Change the faction description
-	permissions: Change the permissions (view:<perms>)
+	permissions: Change the permissions
+		- faction(permissions, <faction>, <permission>, <set to>)
 		- This replaces [!]dark
 	mail: Starts a @mail to everyone in that faction
 	clean: Run the faction's clean-up script
 
-Individual actions:
-	add: Add a player to faction
-	remove: Remove a player from a faction
-	power: Change the power level of a player ([!]admin)
-	title: Change the player's title (can be formula)
-	rank: Change the player's numeric rank (can be formula)
+Faction queries:
+	list/fwho/swho: List all active members in faction
+	details: Give all details (as appropriate) for a faction
+		- faction(details, <faction>)
+	permissions: View the permission(s)
+		- faction(permissions, <faction>, [<permission(s)>])
+
+Member actions:
+	add: Add a member to faction
+	remove: Remove a member from a faction
+	power: Change the power level of a member ([!]admin)
+	title: Change the member's title (can be formula)
+	rank: Change the member's numeric rank (can be formula)
+
+Member queries:
+	details: Give all details of matching member(s) in a faction
+		- faction(details, <faction>, <member>[*])
+		- aka "isfaction()"
+	memberof(????): List every faction and their power level of a member
+		-faction(memberof, <member>)
 
 API/Function add-ons:
-	isfaction: Is a player in the faction?
-		- isfaction(<player>, <faction>) maintained for backwards compatability
+	isfaction: Is a member in the faction?
+		- isfaction(<member>, <faction>) maintained for backwards compatability
 
 
 --------------------------------------------------------------------------------
@@ -135,6 +151,92 @@ The system will determine if to use title./rank.default thus:
 &_isapproved Faction Groups=isapproved(%0)
 
 &_crumple Faction Groups=trim(squish(%0))
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Check & lookup faction/player/power level -------------------------
+
+*** IT WAS SUGGESTED that instead of doing this, have a more robust API.  
+*** Will pause on this concept to try it out.
+
+	u(f.check.lookup, <checker dbref>, [<faction>], [<member>], [<power lvl>])
+
+0: dbref of who's asking
+1: faction name/dbref, if passed
+2: member name/dbref, if passed
+3: power level, if passed
+
+
+Returns one or more of: 
+	OK: Everything passed checks out (no other msgs)
+	NULL: Nothing was passed, you dork (no other msgs)
+	DENIED: Doesn't have the proper power level to check (???)
+
+	FACTION:<dbref>/!FOUND/MULTIPLE
+	
+	MEMBER:<dbref>/!FOUND
+	MEMBER:APPROVED/!APPROVED (only check if found)
+	MEMBER:IN_FACTION/!IN_FACTION
+
+	POWER:<code/number/whatever>/!FOUND/MULTIPLE
+	MEMBER:HAS_POWER/!HAS_POWER
+
+--
+
+f: faction messages
+m: member messages
+p: power messages
+
+--
+
+&f.check.lookup Faction Groups=
+localize(u(_crumple, 
+@@ .. if nothing passed, return NULL
+	if(not(or(t(%1), t(%2), t(%3))), 
+		NULL, 
+
+@@ >> FACTION
+		[if(t(%1), 
+			cat(
+				setq(f, u(action.factions, %1)), 
+				case(1, 
+					words(%qf), FACTION:%qf, 
+					t(%qf), FACTION:MULTIPLE, 
+					FACTION:!FOUND
+				)
+			)
+		)] 
+
+
+@@ >> MEMBER
+		[if(t(%2), 
+			cat(
+				setq(m, pmatch(%2)), 
+				case(1, 
+					 t(%qm), MEMBER:%qm, 
+					 MEMBER:!FOUND
+				), 
+				if(and(t(%qm), u(_isapproved, %qm)), 
+					MEMBER:APPROVED, 
+					MEMBER:!APPROVED
+				), 
+				if(and(eq(words(%qf), 1), t(u(action.ismember, %qf, %qm))), 
+					MEMBER:IN_FACTION, 
+					MEMBER:!IN_FACTION
+				)
+			)
+		)] 
+
+@@ >> POWER
+		[if(t(%3), 
+			case(1, 
+				xxx, 
+				POWER:<name>, 
+			)
+		)] 
+
+	)
+))
 
 
 ================================================================================
@@ -268,6 +370,8 @@ Show information about a particular faction
 ================================================================================
 == ACTIONS =====================================================================
 
+<see planning, above, for the actions/queries list>
+
 --------------------------------------------------------------------------------
 -- ACTION: Factions List (system) ----------------------------------------------
 
@@ -398,86 +502,6 @@ localize(
 --
 
 &action.details Faction Groups=localize(case(0, t(setr(f, u(action.factions, %0))), #-1 Faction '%0' not found, eq(words(%qf), 1), #-1 Too many matching factions found, strlen(%1), %qf|[iter()]|[get(%qf/permissions.view)]|[get(%qf/desc)]|, t(setr(p, pmatch(%qp))), #-1 Player '%1' has too many matches or not found, t(get(%qf/member.power.%qd)), #-1 Player '[name(%qd)]' not a member of faction '[name(%qf)]', %qa|[get(%qf/member.power.%qa)]|[udefault(%qf/member.rank.%qa, u(%qf/default.rank, %qa))]|[udefault(%qf/member.title.%qa, u(%qf/default.title, %qa))]))
-
-
---------------------------------------------------------------------------------
--- FUNCTION: Check & lookup faction/player/power level -------------------------
-
-	u(f.check.lookup, <checker dbref>, [<faction>], [<member>], [<power lvl>])
-
-0: dbref of who's asking
-1: faction name/dbref, if passed
-2: member name/dbref, if passed
-3: power level, if passed
-
-
-Returns one or more of: 
-	OK: Everything passed checks out (no other msgs)
-	NULL: Nothing was passed, you dork (no other msgs)
-	DENIED: Doesn't have the proper power level to check (???)
-
-	FACTION:<dbref>/!FOUND/MULTIPLE
-	
-	MEMBER:<dbref>/!FOUND
-	MEMBER:APPROVED/!APPROVED (only check if found)
-	MEMBER:IN_FACTION/!IN_FACTION
-
-	POWER:<code/number/whatever>/!FOUND/MULTIPLE
-	MEMBER:HAS_POWER/!HAS_POWER
-
---
-
-f: faction messages
-m: member messages
-p: power messages
-
---
-
-&f.check.lookup Faction Groups=
-localize(u(_crumple, 
-@@ .. if nothing passed, return NULL
-	if(not(or(t(%1), t(%2), t(%3))), 
-		NULL, 
-
-@@ >> FACTION
-		[if(t(%1), 
-			cat(
-				setq(f, u(action.factions, %1)), 
-				case(1, 
-					words(%qf), FACTION:%qf, 
-					t(%qf), FACTION:MULTIPLE, 
-					FACTION:!FOUND
-				)
-			)
-		)] 
-
-
-@@ >> MEMBER
-		[if(t(%2), 
-			cat(
-				setq(m, pmatch(%2)), 
-				case(1, 
-					 t(%qm), MEMBER:%qm, 
-					 MEMBER:!FOUND
-				), 
-				if(and(t(%qm), u(_isapproved, %qm)), 
-					MEMBER:APPROVED, 
-					MEMBER:!APPROVED
-				), 
-				if(and(eq(words(%qf), 1), t(u(action.ismember, %qf, %qm))), 
-					MEMBER:IN_FACTION, 
-					MEMBER:!IN_FACTION
-				)
-			)
-		)] 
-
-@@ >> POWER
-		[if(t(%3), 
-			...
-		)] 
-
-	)
-))
 
 
 --------------------------------------------------------------------------------
