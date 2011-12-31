@@ -38,50 +38,65 @@ All user-defined or cross-platform function issues should (should, mind you) go 
 --------------------------------------------------------------------------------
 -- PLANNING: Actions & Queries -------------------------------------------------
 
-System actions:
-	create: Create a faction
-	destroy: Destroy a faction
-	undestroy: Save a faction from being destroyed
+NOTE TO SELF: Can add factions to another faction
+	- Loop-check
+	- Permissions inherit?  Override?
 
-System queries:
-	factions: List all active factions
-		- faction(factions, <faction>[*])
+Lists return dbrefs unless mentioned otherwise.
+Items in (parenthesis) are the defaults for that command.
 
-Faction actions: 
-	information: Change the faction description
-	permissions: Change the permissions
-		- faction(permissions, <faction>, <permission>, <set to>)
-		- This replaces [!]dark
-	mail: Starts a @mail to everyone in that faction
-	clean: Run the faction's clean-up script
+System Actions/Queries - 
+	default: <item>
+		Return the value of a default setting.
+	default: <item>, [<value>]
+		Set a default setting.  If null, erase.
+		- active: Days until a player is considered inactive
+		- power: The default power level (should be minimum)
+		- rank: The default numeric rank
+		- title: The default title 
+	powers: [<name filter>]
+		List (all) possible access level powers
 
-Faction queries:
-	roster: List all (active) members in faction
-		- faction(roster, <faction>[, active|all|inactive])
-	who: List all (active) connected members in a faction
-		- faction(who, <faction>[, active|all|inactive])
-	details: Give all details (as appropriate) for a faction
-		- faction(details, <faction>)
-	permissions: View the permission(s)
-		- faction(permissions, <faction>, [<permission(s)>])
+Faction Actions/Queries - 
+	activate: <faction>
+		Create/re-activate a faction.
+	deactivate: <faction>
+		Make a faction inactive.
+	factions: [active|inactive|all[, <name filter>]]
+		List of (all active) factions.
+	roster: <faction>[, active|inactive|all]
+		List all (active) faction members.
+	(???): <faction>[, active|inactive|all[, <name filter>]]
+		Lists (all active) faction members
+	who: <faction>[, active|inactive|all]
+		List connected (active) faction members.
+		(add 'isfaction()' for backwards compatability)
+	mail: <faction>, <title>[, active|inactive|all]
+		Starts a @mail to all (active) faction members.
+	clean: <faction>
+		Force an activity check for members of, and the faction itself.
+	fget: <faction>, <item(s)>
+		Return the value(s) of a faction's setting.
+	fset: <faction>, <item>[, <value>]
+		Set a faction's setting.  If null, erase.
+		- description: A decription of the faction
+		- type: The type of faction
+		- viewperms (???): A permission on who's allowed to see the faction.
 
-Member actions:
-	add: Add a member to faction
-	remove: Remove a member from a faction
-	power: Change the power level of a member ([!]admin)
-	title: Change the member's title (can be formula)
-	rank: Change the member's numeric rank (can be formula)
-
-Member queries:
-	details: Give all details of matching member(s) in a faction
-		- faction(details, <faction>, <member>[*])
-		- aka "isfaction()"
-	memberof(????): List every faction and their power level of a member
-		-faction(memberof, <member>)
-
-API/Function add-ons:
-	isfaction: Is a member in the faction?
-		- isfaction(<member>, <faction>) maintained for backwards compatability
+Member Actions/Queries - 
+	add: <member>, <faction>
+		Add member to a faction (may be inactive)
+	inactive: <member>, <faction>
+		Make a member inactive in a faction
+	mget: <member>, <faction>, <item(s)>
+		Return the value(s) of a faction member's setting
+	mset: <member>, <faction>, <item>[, <value>]
+		Set a faction member's setting.  If null, set to null/default
+		- power: Numeric power level of a member: Null -> default
+		- rank: The numeric rank
+		- title: The title
+	mlist: <member>[, active|inactive|all]
+		List all (active) factions <member> is a part of.
 
 
 --------------------------------------------------------------------------------
