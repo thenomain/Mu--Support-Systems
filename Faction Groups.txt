@@ -35,6 +35,17 @@ All user-defined or cross-platform function issues should (should, mind you) go 
 	&_<function name>
 
 
+-- TEMPORARY NOTES -------------------------------------------------------------
+
+Coventry says:
+	trim( squish( iter( %0, if( strmatch( %i0, %1 ), %i0 ), %2, %2 ), %2 ), %2 )
+
+... as a filter for matching dbref to name.  
+(will need: strmatch( name( %i0 ), %1)
+
+Use with list/who
+
+
 --------------------------------------------------------------------------------
 -- PLANNING: Actions & Queries -------------------------------------------------
 
@@ -46,8 +57,10 @@ Lists return dbrefs unless mentioned otherwise.
 Items in (parenthesis) are the defaults for that command.
 
 System Actions/Queries - 
-	default: <item>
-		Return the value of a default setting.
+	default: <item(s)>
+		Return the value of a default setting(s).
+		- in these 'get' cases, return |-delim list of values. e.g.:
+		- faction(default, active title) -> 64|<null>
 	default: <item>, [<value>]
 		Set a default setting.  If null, erase.
 		- active: Days until a player is considered inactive
@@ -62,12 +75,8 @@ Faction Actions/Queries -
 		Create/re-activate a faction.
 	deactivate: <faction>
 		Make a faction inactive.
-	factions: [active|inactive|all[, <name filter>]]
-		List of (all active) factions.
 	roster: <faction>[, active|inactive|all]
 		List all (active) faction members.
-	(???): <faction>[, active|inactive|all[, <name filter>]]
-		Lists (all active) faction members
 	who: <faction>[, active|inactive|all]
 		List connected (active) faction members.
 		(add 'isfaction()' for backwards compatability)
@@ -85,9 +94,10 @@ Faction Actions/Queries -
 
 Member Actions/Queries - 
 	add: <member>, <faction>
-		Add member to a faction (may be inactive)
-	inactive: <member>, <faction>
-		Make a member inactive in a faction
+		Add member to a faction (may be inactive).
+	delete: <member>, <faction>
+		Completely remove a member from a faction (may be inactive.
+		- "Inactive" players are determined entirely by internal code
 	mget: <member>, <faction>, <item(s)>
 		Return the value(s) of a faction member's setting
 	mset: <member>, <faction>, <item>[, <value>]
