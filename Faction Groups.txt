@@ -105,8 +105,8 @@ Member Actions/Queries -
 		- power: Numeric power level of a member: Null -> default
 		- rank: The numeric rank
 		- title: The title
-	mlist: <member>[, active|inactive|all]
-		List all (active) factions <member> is a part of.
+	memberof: <member>[, active|inactive|all]
+		List all (active) factions a member is a part of.
 
 
 --------------------------------------------------------------------------------
