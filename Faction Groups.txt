@@ -110,35 +110,86 @@ Member Actions/Queries -
 
 
 --------------------------------------------------------------------------------
--- PLANNING: Data Object Format ------------------------------------------------
+-- PLANNING: Data Dictionary ---------------------------------------------------
 
-* Faction Object Parent
+* Faction Parent
+(global defaults)
 
-NOTE: May use the aJobs approach of calling functions through the end faction.  I'm not keen on how this makes the code harder to read, but it assures faction validation has taken place.
+&member.active
+	Days until a player is considered 'inactive'.  This is different than a 
+	frozen player, who is always inactive.  A frozen player is determined by the 
+	game.  The default default is '30'.
+
+&member.power
+	The default power level for new members.  The default is 'member'.
+
+&member.rank
+	The default numeric rank for new members.  The default is <null>.
+
+&member.title
+	The default title for new members.  The default is <null>.
+
+&faction.active
+	Is faction active?  Default '1'.  If other, note on the Faction Object
+
+&faction.permission.<type>
+	Permission of type <type>
+	- view: Who can see this faction. If 'faction:!<faction name>', nobody can
+
+&d.powers
+	A list of valid member power levels
+	- member: Nothing special, normal member
+	- view: Member who can view faction even with double-blind
+	- admin: View rights plus can edit, add & remove members, staff are admin
+
+--
 
 * Faction Object
 
-Faction objects must be inside the Faction Groups object and must be parented to the Factions Parent.  If not, do not process them.
+All the defaults (&faction./&member.) can be altered for a faction.
 
-	@name: Name of the faction
-	@description: Base information about the faction
-	&faction.permission.<type>: Permission of type <type>
-		view: Permission formula for can see this faction
-	&member.power.<dbref>: Power/responsibility level (admin/member)
-		not-null, its existence says <dbref> is faction member
+@name
+	Name of the faction
 
-	&member.title.<dbref>: Faction title for <dbref>
-	&member.rank.<dbref>: Faction rank of <dbref>
+@description
+	Base information about the faction
 
-	&member.title.default: Allows a default (formula) for title
-	&member.rank.default: Allows a default (formula) for rank
+--
 
+* Member Info (on Faction Object)
 
-The system will determine if to use title./rank.default thus:
+&member.power.<dbref>
+	Power/responsibility level (admin/member)
+	Must not be null; its existence says <dbref> is faction member
 
-	udefault(<faction>/<element>.<dbref>, 
-		u(<faction>/<element>.default, <dbref>)
+&member.title.<dbref>
+	Faction title for <dbref>
+
+&member.rank.<dbref>
+	Faction rank of <dbref>
+
+&member.title.default
+	Allows a default (formula) for title
+
+&member.rank.default
+	Allows a default (formula) for rank
+
+--
+
+The system will determine if to use title/rank defaults thus:
+
+	udefault(<faction>/member.<element>.<dbref>, 
+		u(<faction>/member.<element>, <dbref>)
 	)
+
+e.g.
+	udefault(#xxx/member.title.#yyy, u(#xxx/member.title, #yyy))
+
+This will allow formulae in the title and rank to grab player information, if necessary.
+
+--
+
+Faction defaults will happen naturally, as the @parenting will read higher up.
 
 
 ================================================================================
@@ -161,6 +212,17 @@ The system will determine if to use title./rank.default thus:
 @fo me=&d.faction_parent Faction Groups=[num(Faction Parent)]
 
 @parent Faction Parent=codp
+
+@@ null defaults are reminders that they exist
+
+&member.active Faction Parent=30
+&member.power Faction Parent=member
+&member.rank Faction Parent=
+&member.title Faction Parent=
+&faction.permission.view Faction Parent=
+&faction.active Faction Parent=1
+
+&d.powers Faction Parent=member|view|admin
 
 @tel Faction Parent=Faction Groups
 
