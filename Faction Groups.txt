@@ -154,6 +154,10 @@ All the defaults (&faction./&member.) can be altered for a faction.
 @description
 	Base information about the faction
 
+Parented items (may be changed per-faction):
+	member.active, member.power, member.rank, member.title, faction.active, 
+	faction.permission.<type>
+
 --
 
 * Member Info (on Faction Object)
