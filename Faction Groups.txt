@@ -64,9 +64,10 @@ System Actions/Queries -
 	default: <item>, [<value>]
 		Set a default setting.  If null, erase.
 		- active: Days until a player is considered inactive
-		- power: The default power level (should be minimum)
-		- rank: The default numeric rank
-		- title: The default title 
+		- power: The default member power level (default: member)
+		- rank: The default member numeric rank
+		- title: The default member title
+		- category: The default faction category
 	powers: [<name filter>]
 		List (all) possible access level powers
 
@@ -89,12 +90,13 @@ Faction Actions/Queries -
 	fset: <faction>, <item>[, <value>]
 		Set a faction's setting.  If null, erase.
 		- description: A decription of the faction
-		- type: The type of faction
-		- viewperms (???): A permission on who's allowed to see the faction.
+		- category: The primary category for faction
+		- permission.view (???): A permission on who's allowed to see the faction.
 
 Member Actions/Queries - 
 	add: <member>, <faction>
 		Add member to a faction (may be inactive).
+		@mail player if they can see the faction (e.g., not double-blind).
 	delete: <member>, <faction>
 		Completely remove a member from a faction (may be inactive.
 		- "Inactive" players are determined entirely by internal code
@@ -109,6 +111,30 @@ Member Actions/Queries -
 		List all (active) factions a member is a part of.
 
 
+--------------------------------------------------------------------------------
+-- PLANNING: Access Privs ------------------------------------------------------
+
+Options:
+	faction:<faction> - is in
+	attribute:<attr> - has
+	attribute:<attr>:<value> - has at value
+	stat:<stat> - has
+	stat:<stat>:<value> - stat is >= <value>
+	stat:<stat>::<string> - has stat (substat)
+	flag:<flag> - has
+	template:<template> - is
+	sphere:<sphere> - is in
+	location:<location> - is in
+
+Usage:
+	<access>|<access>|<access>
+
+e.g.:
+	attribute:sees_spirits|faction:spirit
+
+Uses the Access System Fob (#3233 on The Reach).  General usage is applying the player to the access rules.  Multiple rules are 'or', returns true if any are true.
+
+	
 --------------------------------------------------------------------------------
 -- PLANNING: Data Dictionary ---------------------------------------------------
 
@@ -131,6 +157,9 @@ Member Actions/Queries -
 
 &faction.active
 	Is faction active?  Default '1'.  If other, note on the Faction Object
+
+&faction.category
+	The faction's main category (for listing)
 
 &faction.permission.<type>
 	Permission of type <type>
@@ -156,7 +185,7 @@ All the defaults (&faction./&member.) can be altered for a faction.
 
 Parented items (may be changed per-faction):
 	member.active, member.power, member.rank, member.title, faction.active, 
-	faction.permission.<type>
+	faction.category, faction.permission.<type>
 
 --
 
@@ -245,92 +274,6 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 &_isapproved Faction Groups=isapproved(%0)
 
 &_crumple Faction Groups=trim(squish(%0))
-
-
---------------------------------------------------------------------------------
--- FUNCTION: Check & lookup faction/player/power level -------------------------
-
-*** IT WAS SUGGESTED that instead of doing this, have a more robust API.  
-*** Will pause on this concept to try it out.
-
-	u(f.check.lookup, <checker dbref>, [<faction>], [<member>], [<power lvl>])
-
-0: dbref of who's asking
-1: faction name/dbref, if passed
-2: member name/dbref, if passed
-3: power level, if passed
-
-
-Returns one or more of: 
-	OK: Everything passed checks out (no other msgs)
-	NULL: Nothing was passed, you dork (no other msgs)
-	DENIED: Doesn't have the proper power level to check (???)
-
-	FACTION:<dbref>/!FOUND/MULTIPLE
-	
-	MEMBER:<dbref>/!FOUND
-	MEMBER:APPROVED/!APPROVED (only check if found)
-	MEMBER:IN_FACTION/!IN_FACTION
-
-	POWER:<code/number/whatever>/!FOUND/MULTIPLE
-	MEMBER:HAS_POWER/!HAS_POWER
-
---
-
-f: faction messages
-m: member messages
-p: power messages
-
---
-
-&f.check.lookup Faction Groups=
-localize(u(_crumple, 
-@@ .. if nothing passed, return NULL
-	if(not(or(t(%1), t(%2), t(%3))), 
-		NULL, 
-
-@@ >> FACTION
-		[if(t(%1), 
-			cat(
-				setq(f, u(action.factions, %1)), 
-				case(1, 
-					words(%qf), FACTION:%qf, 
-					t(%qf), FACTION:MULTIPLE, 
-					FACTION:!FOUND
-				)
-			)
-		)] 
-
-
-@@ >> MEMBER
-		[if(t(%2), 
-			cat(
-				setq(m, pmatch(%2)), 
-				case(1, 
-					 t(%qm), MEMBER:%qm, 
-					 MEMBER:!FOUND
-				), 
-				if(and(t(%qm), u(_isapproved, %qm)), 
-					MEMBER:APPROVED, 
-					MEMBER:!APPROVED
-				), 
-				if(and(eq(words(%qf), 1), t(u(action.ismember, %qf, %qm))), 
-					MEMBER:IN_FACTION, 
-					MEMBER:!IN_FACTION
-				)
-			)
-		)] 
-
-@@ >> POWER
-		[if(t(%3), 
-			case(1, 
-				xxx, 
-				POWER:<name>, 
-			)
-		)] 
-
-	)
-))
 
 
 ================================================================================
@@ -457,8 +400,6 @@ Show information about a particular faction
 -- factions/faction ------------------------------------------------------------
 
 &c.factions/faction Faction Groups=Factions/Group
-
-
 
 
 ================================================================================
@@ -656,7 +597,7 @@ localize(
 
 
 ================================================================================
-== COMMAND SUPPORT =============================================================
+== FILTERS =====================================================================
 
 --------------------------------------------------------------------------------
 -- FILTER: Valid Factions ------------------------------------------------------
@@ -696,3 +637,36 @@ Sample Usage:
 &fil.factions_byname Faction Groups=strmatch(name(%0), %1*)
 
 
+================================================================================
+== INTERNAL FUNCTIONS ==========================================================
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: List Categories ---------------------------------------------------
+
+List the categories from all (passed) faction dbrefs - not validated
+
+0: Faction dbref list (optional)
+
+--
+
+&f.categories.list Faction Groups=
+	setunion(
+		iter(
+			if(strlen(%0), %0, filter(fil.valid_factions, lcon(%!))), get(%i0/faction.category), 
+			@@(null), 
+			|
+		), 
+		@@(null), 
+		|
+	)
+
+--
+
+&f.categories.list Faction Groups=setunion(iter(if(strlen(%0), %0, filter(fil.valid_factions, lcon(%!))), get(%i0/faction.category), @@(null), |), @@(null), |)
+
+
+================================================================================
+== DISPLAYS ====================================================================
+
+&display.
