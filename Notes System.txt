@@ -86,7 +86,7 @@ CREATE TABLE [edit(mudname(), %b, )]_notes
     approver         INT, 
 
     PRIMARY KEY (target, editor, time), 
-    INDEX target_idx (target, target_created)
+    INDEX target_UUID (target, target_created)
 );
 
 --
