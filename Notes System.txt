@@ -61,8 +61,6 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 
 Create a full history system, a la Wikipedia.
 
-(using 'thereach' as base-line game name)
-
 SQL DD:
 	Notes_ID (primary key)
 	editor's dbref (primary key)
@@ -75,7 +73,7 @@ SQL DD:
 
 --
 
-CREATE TABLE thereach_notes
+CREATE TABLE [edit(mudname(), %b, )]_notes
 (
     notes_id    INT             NOT NULL, 
     editor      INT             NOT NULL, 
@@ -92,11 +90,11 @@ CREATE TABLE thereach_notes
 --
 
 // SQL record of a target's notes_id
-SELECT DISTINCT (notes_id) FROM thereach_notes WHERE target = '[rest(<dbref>, #)]';
+SELECT DISTINCT (notes_id) FROM [edit(mudname(), %b, )]_notes WHERE target = '[rest(<dbref>, #)]';
 
 --
 
 // Highest notes_id
-SELECT DISTINCT (notes_id) FROM thereach_notes ORDER BY notes_id DESC LIMIT 1;
+SELECT DISTINCT (notes_id) FROM [edit(mudname(), %b, )]_notes ORDER BY notes_id DESC LIMIT 1;
 
 
