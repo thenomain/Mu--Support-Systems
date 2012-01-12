@@ -17,9 +17,10 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 
 @@ basics (approval falls off using any of these): 
 	/new
-	/append
+	/add - adds to a note (appends)
 	/edit <note>=<old>/<new>
 	/replace
+		Uses /add, except note must exist
 	/delete
 
 @@ moving (approval falls off using any of these): 
@@ -29,6 +30,7 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 @@ locks (stacks with basics and moving, except /delete):
 	/apporove
 	/lock
+		Also /approves
 
 @@ viewing:
 	/view <item>|<note>|<item/note>
@@ -45,9 +47,9 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 		(other use Access System Fob)
 
 		Aliases chould assume permissions level.  e.g.:
-			+view/add - public
-			+note/add - private
-			+judgenote/add - staff
+			+view/new - public
+			+note/new - private
+			+judgenote/new - staff
 
 
 -- SQL Notes -------------------------------------------------------------------
