@@ -17,7 +17,10 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 
 @@ basics (approval falls off using any of these): 
 	/new
-	/add - adds to a note (appends)
+		Special rules using the +bg alias
+			+bg/new [<player>=]<text> - Auto-increment, prepend: BG #
+	/add
+		appends to a note
 	/edit <note>=<old>/<new>
 	/replace
 		Uses /add, except note must exist
@@ -28,18 +31,19 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 	/clone <note>=<target>|<new name>|<target>/<new name>
 
 @@ locks (stacks with basics and moving, except /delete):
-	/apporove
-	/lock
-		Also /approves
+	/[un]apporove
+	/[un]lock
+		Also /[un]approves.
 
 @@ viewing:
 	/view <item>|<note>|<item/note>
-		+view: view here
-		+view <item>: view item (processed first)
-		+view <note>: view here/note
+		Special rules using the +view alias:
+			+view: view here
+			+view <item>: view item (processed first)
+			+view <note>: view here/note
 	/show <note>=<targets>
 
-@@ permissions:
+@@ permissions (approval falls off using any of these unless staff):
 	/permissions <note>[=<permission level>]
 		view, public
 		note, private
@@ -48,6 +52,7 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 
 		Aliases chould assume permissions level.  e.g.:
 			+view/new - public
+			+bg/new - private
 			+note/new - private
 			+judgenote/new - staff
 
