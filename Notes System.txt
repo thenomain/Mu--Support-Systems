@@ -62,63 +62,69 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 Create a full history system, a la Wikipedia.
 
 SQL DD:
-	Notes_ID (primary key)
+	Location_ID (primary key) - a key to add to the Mu* dbref to identify them
 	editor's dbref (primary key)
 	timestamp (primary key)
-	target'd debref (not null, to validate vs game dbref + _notes_ID)
+	target's creation date (not null)
+		- convtime(get(me/created), , 6)
+		- target dbref + creation date = UUID
+	target'd debref (not null, to validate vs game dbref + _location_ID)
 	the complete new note, even if only edited (not null)
 	permissions (default: private)
 	approval dbref
-	approval notes
 
 --
 
 CREATE TABLE [edit(mudname(), %b, )]_notes
 (
-    notes_id    INT             NOT NULL, 
-    editor      INT             NOT NULL, 
-    time        TIMESTAMP       NOT NULL, 
-    target      INT             NOT NULL, 
-    note        TEXT            NOT NULL, 
-    permission  VARCHAR(255)    DEFAULT 'private', 
-    approver    INT, 
-    appr_note   TEXT, 
+    target           INT             NOT NULL, 
+    editor           INT             NOT NULL, 
+    time             TIMESTAMP       NOT NULL, 
+    target_created   INT             NOT NULL, 
+    title            VARCHAR(255),   NOT NULL, 
+    note             TEXT            NOT NULL, 
+    permission       VARCHAR(255)    DEFAULT 'private', 
+    approver         INT, 
 
-    PRIMARY KEY (notes_id, editor, time)
+    PRIMARY KEY (target, editor, time), 
+    INDEX target_idx (target, target_created)
 );
 
 --
 
-// target's notes_id
+\\ Basic insert
 
-SELECT DISTINCT (notes_id) FROM [edit(mudname(), %b, )]_notes WHERE target = '[rest(<dbref>, #)]';
+INSERT INTO [edit(mudname(), %b, )]_notes
+VALUES (
+	[rest(<target dbref>, #)], 
+	[rest(<editor dbref>, #)], 
+	NOW(), 
+	[convtime(get(<target dbref>/created), , 6)], 
+	<note>
+)
 
 --
 
-// highest notes_id
+\\ Insert + Approve
 
-SELECT DISTINCT (notes_id) FROM [edit(mudname(), %b, )]_notes ORDER BY notes_id DESC LIMIT 1;
+INSERT INTO [edit(mudname(), %b, )]_notes
+VALUES (
+	[rest(<target dbref>, #)], 
+	[rest(<editor dbref>, #)], 
+	NOW(), 
+	[convtime(get(<target dbref>/created))], 
+	<title>, 
+	<note>, 
+	, 
+	[rest(<editor dbref>, #)]
+)
 
 --
 
-@@ game code to check notes_id, set if not 
+\\ List of note titles
 
-@switch/first 0=
-
-	strlen(setr(g, get(<dbref>, _notes_id))), 
-	{
-		&_notes_id  <dbref>=inc(sql( <highest notes_id> ))
-	}, 
-
-	strmatch(
-		%qg, 
-		setr(s, sql( <target's notes_id> ))
-	), 
-	{
-		<<< Error >>>
-	}, 
-
-	{
-		<<< OK! >>>
-	}
-
+SELECT title 
+FROM [edit(mudname(), %b, )]_notes 
+WHERE 
+	target = [rest(<target dbref>, #)], 
+	target_created = [convtime(get(<target dbref>/created))]
