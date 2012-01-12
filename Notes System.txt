@@ -1,0 +1,95 @@
++ NOTES: An Awesome System
+
+PEOPLE LOVE:
+	Different view levels
+	Let people edit notes, but the validation falls off - using CHOWN attribute
+	Timestamp: creation, edit, lock
+
+FORMAT:
+	+note[/list/of/switches] <note>[=<other>]
+
+KEY: 
+	<note> - <object>/<note>
+
+COMMANDS:
+
+All switches are mutually exclusive unless noted otherwise.  Ignore all mutually exclusive switches except the first, in those cases.
+
+@@ basics (approval falls off using any of these): 
+	/new
+	/append
+	/edit <note>=<old>/<new>
+	/replace
+	/delete
+
+@@ moving (approval falls off using any of these): 
+	/move <note>=<target>|<new name>|<target>/<new name>
+	/clone <note>=<target>|<new name>|<target>/<new name>
+
+@@ locks (stacks with basics and moving, except /delete):
+	/apporove
+	/lock
+
+@@ viewing:
+	/view <item>|<note>|<item/note>
+		+view: view here
+		+view <item>: view item (processed first)
+		+view <note>: view here/note
+	/show <note>=<targets>
+
+@@ permissions:
+	/permissions <note>[=<permission level>]
+		view, public
+		note, private
+		judgenote, staff
+		(other use Access System Fob)
+
+		Aliases chould assume permissions level.  e.g.:
+			+view/add - public
+			+note/add - private
+			+judgenote/add - staff
+
+
+-- SQL Notes -------------------------------------------------------------------
+
+Create a full history system, a la Wikipedia.
+
+(using 'thereach' as base-line game name)
+
+SQL DD:
+	Notes_ID (primary key)
+	editor's dbref (primary key)
+	timestamp (primary key)
+	target'd debref (not null, to validate vs game dbref + _notes_ID)
+	the complete new note, even if only edited (not null)
+	permissions (default: private)
+	approval dbref
+	approval notes
+
+--
+
+CREATE TABLE thereach_notes
+(
+	notes_id	INT				NOT NULL, 
+	editor		INT				NOT NULL, 
+	time		TIMESTAMP		NOT NULL, 
+	target		INT				NOT NULL, 
+	note		TEXT			NOT NULL, 
+	permission	VARCHAR(255)	DEFAULT 'private', 
+	approver	INT, 
+	appr_note	TEXT, 
+
+	PRIMARY KEY (notes_id, editor, time)
+);
+
+--
+
+// SQL record of a target's notes_id
+SELECT DISTINCT (notes_id) FROM thereach_notes WHERE target = '[rest(<dbref>, #)]';
+
+--
+
+// Highest notes_id
+SELECT DISTINCT (notes_id) FROM thereach_notes ORDER BY notes_id DESC LIMIT 1;
+
+
