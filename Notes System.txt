@@ -89,12 +89,36 @@ CREATE TABLE [edit(mudname(), %b, )]_notes
 
 --
 
-// SQL record of a target's notes_id
+// target's notes_id
+
 SELECT DISTINCT (notes_id) FROM [edit(mudname(), %b, )]_notes WHERE target = '[rest(<dbref>, #)]';
 
 --
 
-// Highest notes_id
+// highest notes_id
+
 SELECT DISTINCT (notes_id) FROM [edit(mudname(), %b, )]_notes ORDER BY notes_id DESC LIMIT 1;
 
+--
+
+@@ game code to check notes_id, set if not 
+
+@switch/first 0=
+
+	strlen(setr(g, get(<dbref>, _notes_id))), 
+	{
+		&_notes_id  <dbref>=inc(sql( <highest notes_id> ))
+	}, 
+
+	strmatch(
+		%qg, 
+		setr(s, sql( <target's notes_id> ))
+	), 
+	{
+		<<< Error >>>
+	}, 
+
+	{
+		<<< OK! >>>
+	}
 
