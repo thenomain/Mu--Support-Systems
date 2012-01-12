@@ -62,13 +62,12 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 Create a full history system, a la Wikipedia.
 
 SQL DD:
-	Location_ID (primary key) - a key to add to the Mu* dbref to identify them
+	target'd debref (not null, to validate vs game dbref + _location_ID)
 	editor's dbref (primary key)
 	timestamp (primary key)
-	target's creation date (not null)
+	target's creation timestamp (not null)
 		- convtime(get(me/created), , 6)
 		- target dbref + creation date = UUID
-	target'd debref (not null, to validate vs game dbref + _location_ID)
 	the complete new note, even if only edited (not null)
 	permissions (default: private)
 	approval dbref
@@ -80,7 +79,7 @@ CREATE TABLE [edit(mudname(), %b, )]_notes
     target           INT             NOT NULL, 
     editor           INT             NOT NULL, 
     time             TIMESTAMP       NOT NULL, 
-    target_created   INT             NOT NULL, 
+    target_created   TIMESTAMP       NOT NULL, 
     title            VARCHAR(255),   NOT NULL, 
     note             TEXT            NOT NULL, 
     permission       VARCHAR(255)    DEFAULT 'private', 
@@ -99,9 +98,9 @@ VALUES (
 	[rest(<target dbref>, #)], 
 	[rest(<editor dbref>, #)], 
 	NOW(), 
-	[convtime(get(<target dbref>/created), , 6)], 
+	FROM_UNIXTIME([convtime(get(<target dbref>/created), , 6)]), 
 	<note>
-)
+);
 
 --
 
@@ -112,12 +111,12 @@ VALUES (
 	[rest(<target dbref>, #)], 
 	[rest(<editor dbref>, #)], 
 	NOW(), 
-	[convtime(get(<target dbref>/created))], 
+	FROM_UNIXTIME([convtime(get(<target dbref>/created), , 6)]), 
 	<title>, 
 	<note>, 
 	, 
 	[rest(<editor dbref>, #)]
-)
+);
 
 --
 
@@ -127,4 +126,5 @@ SELECT title
 FROM [edit(mudname(), %b, )]_notes 
 WHERE 
 	target = [rest(<target dbref>, #)], 
-	target_created = [convtime(get(<target dbref>/created))]
+	target_created = 
+		FROM_UNIXTIME([convtime(get(<target dbref>/created), , 6)]);
