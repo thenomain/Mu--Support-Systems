@@ -74,57 +74,122 @@ SQL DD:
 
 --
 
-CREATE TABLE [edit(mudname(), %b, )]_notes
+DROP TABLE IF EXISTS mush_notes; 
+CREATE TABLE IF NOT EXISTS mush_notes
 (
     target           INT             NOT NULL, 
     editor           INT             NOT NULL, 
     time             TIMESTAMP       NOT NULL, 
     target_created   TIMESTAMP       NOT NULL, 
-    title            VARCHAR(255),   NOT NULL, 
+    title            VARCHAR(255)    NOT NULL, 
     note             TEXT            NOT NULL, 
-    permission       VARCHAR(255)    DEFAULT 'private', 
-    approver         INT, 
+    permission       VARCHAR(255)    NOT NULL DEFAULT 'private', 
+    approved_by      INT, 
+    locked_by        INT, 
 
     PRIMARY KEY (target, editor, time), 
     INDEX target_UUID (target, target_created)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
 
-\\ Basic insert
+@@ Basic insert + optional approve + optional loc
+@@ 0: editor dbref, 1: target dbref, 2: title, 3: note, 4: permission, 
+@@ 5: approve?, 6: lock?
 
-INSERT INTO [edit(mudname(), %b, )]_notes
-VALUES (
-	[rest(<target dbref>, #)], 
-	[rest(<editor dbref>, #)], 
-	NOW(), 
-	FROM_UNIXTIME([convtime(get(<target dbref>/created), , 6)]), 
-	<note>
-);
-
---
-
-\\ Insert + Approve
-
-INSERT INTO [edit(mudname(), %b, )]_notes
-VALUES (
-	[rest(<target dbref>, #)], 
-	[rest(<editor dbref>, #)], 
-	NOW(), 
-	FROM_UNIXTIME([convtime(get(<target dbref>/created), , 6)]), 
-	<title>, 
-	<note>, 
-	, 
-	[rest(<editor dbref>, #)]
-);
+&sql.insert Notes System=
+	INSERT INTO mush_notes 
+	VALUES (
+		[rest(%1, #)], 
+		[rest(%0, #)], 
+		NOW(), 
+		FROM_UNIXTIME('[convtime(get(%1/created), , 6)]'), 
+		'%2', 
+		'%3', 
+		'[if(t(%4), %4, private)]', 
+		[if(t(%5), rest(%0, #), NULL)], 
+		[if(t(%6), rest(%0, #), NULL)]
+	);
 
 --
 
-\\ List of note titles
+@@ List of note titles from a specific person
+@@ 0: target dbref
+@@ output: target (dbref), editor (dbref), time (secs), 
+@@         target_created (secs), title (text), 
+@@         permission (text), approved_by (dbref), locked_by (dbref)
+@@ (not the note text itself)
 
-SELECT title 
-FROM [edit(mudname(), %b, )]_notes 
-WHERE 
-	target = [rest(<target dbref>, #)], 
-	target_created = 
-		FROM_UNIXTIME([convtime(get(<target dbref>/created), , 6)]);
+&sql.one-dbref Notes System=
+	SELECT 
+		concat('#', target) AS target, 
+		concat('#', editor) AS editor, 
+		UNIX_TIMESTAMP(time) AS time, 
+		title, 
+		permission, 
+		IF(IFNULL(approved_by, NULL), concat('#', approved_by), '') AS approved_by, 
+		IF(IFNULL(locked_by, NULL), concat('#', locked_by), '') AS locked_by 
+	FROM mush_notes 
+	WHERE 
+		target = [rest(%0, #)] AND 
+		target_created = 
+			FROM_UNIXTIME('[convtime(get(%0/created), , 6)]');
+--
+
+@@ List of a specific person's notes, found by title match
+@@ 0: target dbref
+@@ output: target (dbref), editor (dbref), time (secs), 
+@@         target_created (secs), title (text), 
+@@         permission (text), approved_by (dbref), locked_by (dbref)
+@@ (not the note text itself)
+
+&sql.one-dbref.title-lookup Notes System=
+	SELECT 
+		concat('#', target) AS target, 
+		concat('#', editor) AS editor, 
+		UNIX_TIMESTAMP(time) AS time, 
+		title, 
+		permission, 
+		IF(IFNULL(approved_by, NULL), concat('#', approved_by), '') AS approved_by, 
+		IF(IFNULL(locked_by, NULL), concat('#', locked_by), '') AS locked_by 
+	FROM mush_notes 
+	WHERE 
+		target = [rest(%0, #)] AND 
+		target_created = 
+			FROM_UNIXTIME('[convtime(get(%0/created), , 6)]') AND 
+		title LIKE '%1\\\%'
+	ORDER BY title ASC;
+
+--
+
+@@ Get the text of a specific note
+@@ 0: target dbref, 1: editor dbref, 2: timestamp
+@@ (primary key)
+@@ output: note text
+
+&sql.primary_key.note_text Notes System=
+	SELECT note 
+	FROM mush_notes 
+	WHERE 
+		target = [rest(%0, #)] AND 
+		editor = [rest(%1, #)] AND 
+		time = FROM_UNIXTIME('%2'); 
+
+--
+
+@@ Find abandoned 'dbref + creation date' UUIDs.
+
+<< REMINDER TO DO >>
+
+--
+
+A DECENT TEST: 
+
+think 
+	[setr(r, sql(u(note/sql.one-dbref.title-lookup, %#, tes), ~, |))] ==> 
+	t:[setr(t, first(%qr, |))] -- 
+	e:[setr(e, elements(%qr, 2, |))] -- 
+	s:[setr(s, elements(%qr, 3, |))] ==> 
+	[sql(u(notes/sql.primary_key.note_text, %qt, %qe, %qs))]
+
+
