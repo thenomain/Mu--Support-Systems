@@ -57,9 +57,33 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 			+judgenote/new - staff
 
 
--- SQL Notes -------------------------------------------------------------------
+
+--
+
+A DECENT TEST: 
+
+think 
+	[setr(r, sql(u(note/sql.one-dbref.title-lookup, %#, tes), ~, |))] ==> 
+	t:[setr(t, first(%qr, |))] -- 
+	e:[setr(e, elements(%qr, 2, |))] -- 
+	s:[setr(s, elements(%qr, 3, |))] ==> 
+	[sql(u(notes/sql.primary_key.note_text, %qt, %qe, %qs))]
+
+
+================================================================================
+== SQL =========================================================================
 
 Create a full history system, a la Wikipedia.
+
+Format:
+	sql.<filter style>
+	sql.<filter style>.<search for>
+
+e.g.:
+	sql.one-dbref : Pull all information from that dbref
+	sql.one-dbref.title-lookup : Search title for a particilar dbref (player)
+
+--
 
 SQL DD:
 	target'd debref (not null, to validate vs game dbref + _location_ID)
@@ -73,6 +97,8 @@ SQL DD:
 	approval dbref
 
 --
+
+Table SQL:
 
 DROP TABLE IF EXISTS mush_notes; 
 CREATE TABLE IF NOT EXISTS mush_notes
@@ -91,11 +117,16 @@ CREATE TABLE IF NOT EXISTS mush_notes
     INDEX target_UUID (target, target_created)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
---
 
-@@ Basic insert + optional approve + optional loc
-@@ 0: editor dbref, 1: target dbref, 2: title, 3: note, 4: permission, 
-@@ 5: approve?, 6: lock?
+--------------------------------------------------------------------------------
+-- SQL: Insert Note ------------------------------------------------------------
+
+Basic insert + optional approve + optional loc
+
+0: editor dbref, 1: target dbref, 2: title, 3: note, 4: permission, 
+5: approve?, 6: lock?
+
+--
 
 &sql.insert Notes System=
 	INSERT INTO mush_notes 
@@ -111,14 +142,20 @@ CREATE TABLE IF NOT EXISTS mush_notes
 		[if(t(%6), rest(%0, #), NULL)]
 	);
 
---
 
-@@ List of note titles from a specific person
-@@ 0: target dbref
-@@ output: target (dbref), editor (dbref), time (secs), 
-@@         target_created (secs), title (text), 
-@@         permission (text), approved_by (dbref), locked_by (dbref)
-@@ (not the note text itself)
+--------------------------------------------------------------------------------
+-- SQL: List Notes for One Dbref -----------------------------------------------
+
+List of note titles from a specific person
+
+0: target dbref
+output: target (dbref), editor (dbref), time (secs), 
+        target_created (secs), title (text), 
+        permission (text), approved_by (dbref), locked_by (dbref)
+
+(not the note text itself)
+
+--
 
 &sql.one-dbref Notes System=
 	SELECT 
@@ -134,14 +171,21 @@ CREATE TABLE IF NOT EXISTS mush_notes
 		target = [rest(%0, #)] AND 
 		target_created = 
 			FROM_UNIXTIME('[convtime(get(%0/created), , 6)]');
---
 
-@@ List of a specific person's notes, found by title match
-@@ 0: target dbref
-@@ output: target (dbref), editor (dbref), time (secs), 
-@@         target_created (secs), title (text), 
-@@         permission (text), approved_by (dbref), locked_by (dbref)
-@@ (not the note text itself)
+
+--------------------------------------------------------------------------------
+-- SQL: List Notes for One Dbref (Filter Title) --------------------------------
+
+List of a specific person's notes, found by title match
+
+0: target dbref
+output: target (dbref), editor (dbref), time (secs), 
+        target_created (secs), title (text), 
+        permission (text), approved_by (dbref), locked_by (dbref)
+
+(not the note text itself)
+
+--
 
 &sql.one-dbref.title-lookup Notes System=
 	SELECT 
@@ -160,12 +204,16 @@ CREATE TABLE IF NOT EXISTS mush_notes
 		title LIKE '%1\\\%'
 	ORDER BY title ASC;
 
---
 
-@@ Get the text of a specific note
-@@ 0: target dbref, 1: editor dbref, 2: timestamp
-@@ (primary key)
-@@ output: note text
+--------------------------------------------------------------------------------
+-- SQL: Get Notes Text using Primary Key ---------------------------------------
+
+Get the text of a specific note
+
+0: target dbref, 1: editor dbref, 2: timestamp (aka primary key)
+output: note text
+
+--
 
 &sql.primary_key.note_text Notes System=
 	SELECT note 
@@ -175,21 +223,39 @@ CREATE TABLE IF NOT EXISTS mush_notes
 		editor = [rest(%1, #)] AND 
 		time = FROM_UNIXTIME('%2'); 
 
---
 
-@@ Find abandoned 'dbref + creation date' UUIDs.
+--------------------------------------------------------------------------------
+-- SQL: Unused UUIDs -----------------------------------------------------------
+
+List abandoned 'dbref + creation date' UUIDs.
 
 << REMINDER TO DO >>
 
+&sql.one_dbref.unused_uuid Notes System=@@(filler)
+
+
+================================================================================
+== DISPLAYS ====================================================================
+
+Various outputs.
+
+-- 
+
+One note:
+
+	think u(notes/display.one-note, #1003|#1003|1326417155)
+
+0: primary key (#target|#editor|time-in-secs)
+
 --
 
-A DECENT TEST: 
+&display.one-note Notes System=
+	[setq(q, sql(SELECT * FROM mush_notes WHERE target = [rest(elements(%0, 1, |), #)] AND editor = [rest(elements(%0, 2, |), #)] AND time = FROM_UNIXTIME('[elements(%0, 3, |)]'), ~, |))]
+	
+	[case(0, 
+		eq(words(%qq, ~), 1), 
+		<error: non-unique key passed>, 
 
-think 
-	[setr(r, sql(u(note/sql.one-dbref.title-lookup, %#, tes), ~, |))] ==> 
-	t:[setr(t, first(%qr, |))] -- 
-	e:[setr(e, elements(%qr, 2, |))] -- 
-	s:[setr(s, elements(%qr, 3, |))] ==> 
-	[sql(u(notes/sql.primary_key.note_text, %qt, %qe, %qs))]
-
-
+@@ Display!
+		...
+	)]
