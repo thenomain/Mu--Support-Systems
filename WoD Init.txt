@@ -1,0 +1,950 @@
++init:
+
+================================================================================
+== NOTES =======================================================================
+
+"Initiative roster"
+
+Dexterity + Composure + Fast Reflexes + 1d10
+
+No Willpower can be spent in Init or Surprise.
+
+Health penalties apply to Init.
+
+In the event of a tie between two characters, she with the highest Initiative trait goes first. If both Initiative traits are the same, roll a die for each with the highest roll going first.
+
+Surprise: Wits + Composure (reflexive), fail means surprised, exceptional means nobody is surprised
+
+"Delaying action changes the number to when the action is taken. If two or more characters delay their actions till the same moment in a turn, resolve their order as if their Initiative totals are tied.
+
+"A delayed action can be held over into the next turn for a temporary benefit. The delaying character sacrifices his action in the first turn (he can do nothing except move up to his Speed) in order to act any time he chooses in the next turn. Afterward, the character’s Initiative ranking returns to normal."
+
+--
+
+Fresh Start: Take an action to set your init value to whatever.
+
+--
+
+Entitlement: Tolltaker: When someone is marked and 1wp spent, -1 init to someone (???)
+
+Contracts of Stone, 5: Number of successes rolled adds to the Init value.
+
+Kith, Elemental/Airtouched: +Wyrd to Speed or Init for a scene.
+Kith, Elemental/Levenquick: +2 to Speed and Init for Wyrd turns.
+
+Cryokinesis: -1 to Dex (therefore -1 to init)
+Thermokinesis: -1 to Dex (therefore -1 to init)
+Aura Reading: +successes
+
+Alchemy (Internal): +successes to existing trait, max 5 (so alters derived)
+Second Sight: -2 to init in use
+
+
+================================================================================
+== DATA FORMAT AND CONSIDERATIONS ==============================================
+
+&_init.<dbref>: <full init>|<character details>|<init flags>
+&_init.<npc name>: <full init>|<character details>|<init flags>
+
+
+-- General Layout --
+	- full init: <init total><placement>.<tiebreaker>
+	- character details: <init trait>.<mods>[.<real.init>]
+	- flags: <flag 1> <flag 2> <flag n>
+
+
+-- Attribute Name --
+
+<dbref>/<npc name>:
+	- if matches #xxx, fail
+	- if matches [pmatch(<name>)], self or fail (even if staffer)
+	- if else, it's an NPC name
+
+
+-- Full Init --
+
+<init total>: 
+	- die roll + init trait
+	- 0-padded left to 2 digits
+	- grabbed with: strtrunc(<full init>, 2)
+
+<placement>:
+	- placement within the init value
+	- starts as init trait
+	- 0-padded left to 2 digits
+	- grabbed with: mid(<full init>, 2, 2)
+
+<tiebreaker>:
+	- always rolled during roll, else is the position marker for new people
+	- initial value is 10 - 1d10, so higher = earlier
+	- 0-padded left to 2 digits
+	- grabbed with: rest(<full init>, .)
+
+These three things make it a sortable (hash) value, e.g. 905.03.
+
+If someone wants to go right after 905.03 (init 9, trait 5), logically they should go at 906.00, but if someone is already at 906.00, the whole list has to be shifted back by .01.
+
+
+-- Character Details --
+
+<init trait>
+	- used to calculate some stuff for the initial init position
+	- stored for ease and NPCs
+	- must always be there, must always be a non-zero init value
+
+<mods>
+	- dice mods for the player
+	- sum of x + y - z (not stored this way)
+	- stored as null if not entered or 0
+
+<real.init>
+	- optional
+	- the original value of <full init>
+	- set when init is delayed
+	- erased when action is taken
+	- original <full init> is set to new turn order if during this turn
+	- original <full init> is set to <real.init> if during next turn
+	- there will be much crying over this.
+
+
+-- Flags --
+
+	- set all flags that match
+	- space-delimited
+	- null if no flags
+	- n: new init this turn (used to determine if tiebreaker needs re-rolled)
+	- s: surprised
+	- d: delaying action this turn
+	- D: delaying action from last turn
+
+
+================================================================================
+== LOGIC FOR INIT (may not all be coded) =======================================
+
+-- Starting Init --
+	needs validated for security (+init/start YES)
+	notify "alert" staff channel or other logging
+	clear all inits from the room
+
+
+-- Adding Init by Any Means --
+	search for all instances of &_init.<dbref>
+	clear instances in all locations but existing room
+
+
+-- Adding by Roll --
+	<init>: Init Trait + Modifiers + Roll
+	<position>: Init Trait
+	<tiebreaker>: 1d10
+	<flags>: adds n (for new)
+
+	if <init><position> matches another, compare <tiebreaker>
+		if <tiebreaker> matches others, re-roll <tiebreaker>
+		if other person flagged "new", re-roll their <tiebreaker>
+		repeat until no matches
+	
+
+-- Adding by Surprise Roll --
+	rolls for surprise, wits + composure +/- modifiers
+	if failed, <flags> adds s
+	otherwise identical to adding by roll
+
+
+-- Adding by Exact Value --
+	<init>: value entered
+	<position>: init trait or value entered
+	<tiebreaker>: 1d10 (with logic) or value entered
+	<flags>: adds n
+
+
+-- Adding "Before" or "After" <Name> --
+	<init>: <name>'s value
+	<position>: <name>'s value +/-1
+	<tiebreaker>: 01
+
+	if new <init><position>.<tiebreaker> matches another
+		add 01 to <tiebreaker> to all other matching new <init><position>
+
+
+-- Turn End --
+	<flags>:
+		- clear all 'n'
+		- if 'd', make 'D'
+	notify everyone
+	start over
+
+
+
+================================================================================
+== CREATE ======================================================================
+
+@create Initiative Tracker=10
+@set Initiative Tracker=inherit
+@set Initiative Tracker=safe
+
+
+================================================================================
+== DATA ========================================================================
+
+@@ 'd' is 'delayed this turn, 'D' is 'delayed from last turn', may be redundant
+
+&d.flags init=new:n|surprised:s|delayed:d|turn delayed:D
+
+
+================================================================================
+== PSUDEO-MISTRESS =============================================================
+
+&c.init init=$+init*:@pemit %#=
+	[setq(0, secure(%0))]
+	[switch(%q0, 
+		, u(c.init-default), 
+		/*, u(c.init-switch, after(first(%q0), /), rest(%q0)), 
+		%b*, u(c.init-specific, trim(%q0)), 
+		Error: +init's format is +init%[/<switch>%]%[ <input>%]
+	)]
+
+--
+
+&c.init init=$+init*:@pemit %#=[setq(0, secure(%0))][switch(%q0, , u(c.init-default), /*, u(c.init-switch, after(first(%q0), /), rest(%q0)), %b*, u(c.init-specific, trim(%q0)), Error: +init's format is +init%[/<switch>%]%[ <input>%])]
+
+
+================================================================================
+== INIT SWITCHES ===============================================================
+
+&c.init-switch init=ifelse(setr(0, grab(lattr(me/c.init/*), c.init/%0*)), u(%q0, %1), No such switch for +init. Valid switches are: [itemize(lcstr(iter(lattr(me/c.init/*), after(##, /))))])
+
+
+================================================================================
+== INIT DEFAULT ================================================================
+
+10) 1. Evil Joe (npc)                                                         
+ 4) 1. Thenomain (surprised)             2. Bob (npc, surprised)              
+    3. Also (npc, delayed)               4. Also Also (npc, surprised)        
+
+For the future, to indicate who's up, probably:
+
+10) 1. Evil Joe (npc)                                                         
+ 4) 1. Thenomain (surprised)             => Bob (npc, surprised)              
+    3. Also (npc, delayed)               4. Also Also (npc, surprised)        
+
+
+l: location
+i: list of init attributes
+f: list of <full init>|<attribute>, sorted
+c: list of <init totals> being used, sorted
+
+z: a temp holder
+
+
+&c.init-default init=
+	[setq(l, loc(%#))]
+	[setq(i, lattr(%ql/_init.*))]
+	[setq(f, revwords(sort(iter(%qi, [first(get(%ql/%i0), |)]|%i0))))]
+	[setq(c, revwords(sort(setunion(iter(%qf, strtrunc(%i0, 2)), ))))]
+
+@@ Display
+	[header(Initiative Roster)]%r
+
+	[if(t(%qi), 
+@@ .. for each initiative rating
+		[iter(%qc, 
+			[wrap(
+@@ .. .. init:
+				[ansi(hg, [rjust(trim(%i0, l, 0), 2)]%))] 
+@@ .. .. padded list of people on that init
+				[iter(
+					setr(z, filter(fil.display.init-total, %qf, , , %i0)), 
+					ljust(ulocal(
+						f.display.one-init-entry, 
+						rest(%i0, |), 
+						%ql, 
+						if(gt(words(%qz), 1), [inum()].%b,)
+					), 36)
+				)], 
+				74, left, @@(lefttxt), @@(righttxt), 4, @@(osep), 78
+			)], , %r
+		)], 
+		%b No initiatives at this location.
+	)]%r
+
+	[footer(if(t(%qi), [words(%qi)] initiatives))]
+
+--
+
+&c.init-default init=[setq(l, loc(%#))][setq(i, lattr(%ql/_init.*))][setq(f, revwords(sort(iter(%qi, [first(get(%ql/%i0), |)]|%i0))))][setq(c, revwords(sort(setunion(iter(%qf, strtrunc(%i0, 2)), ))))][header(Initiative Roster)]%r[if(t(%qi), [iter(%qc, [wrap([ansi(hg, [rjust(trim(%i0, l, 0), 2)]%))] [iter(setr(z, filter(fil.display.init-total, %qf, , , %i0)), ljust(ulocal(f.display.one-init-entry, rest(%i0, |), %ql, if(gt(words(%qz), 1), [inum()].%b)), 36))], 74, left, @@(lefttxt), @@(righttxt), 4, @@(osep), 78)], , %r)], %b No initiatives at this location.)]%r[footer(if(t(%qi), [words(%qi)] initiatives))]
+
+--
+
++init
+
+
+--------------------------------------------------------------------------------
+-- Filter: Display, Init Total -------------------------------------------------
+
+Takes the <full init>|<attribute> format and returns those matching <total init>
+(notice this does pretty much no checking)
+
+&fil.display.init-total init=strmatch(%0, %1*)
+
+
+--------------------------------------------------------------------------------
+-- Display: One Init entry -----------------------------------------------------
+
+<num>. <name> (npc, surprised)
+
+(for the future, <num>. might be replaced by ** or other "this person's turn" trickery.)
+
+0: <attr>
+1: location dbref
+2: [inum()].<spc> from the iter (which position in the init)
+a: attribute name
+d: character details: <init trait>.<mods>
+f: <flags>, ignoring "n"
+s: subject
+e: list|of|extra|notes
+
+&f.display.one-init-entry init=
+localize(
+
+@@ get details & attribute name
+	[setq(d, extract(get(%1/%0), 2, 1, |))]
+@@ get flags, ignore <n>ew.
+	[setq(f, setdiff(extract(get(%1/%0), 3, 1, |), n))]
+
+@@ process all remaining flags into the extra notes
+	[setq(e, 
+		iter(%qf, 
+			first(grab(u(d.flags), *:%i0, |), :), 
+			, |
+		)
+	)]
+
+@@ .. num
+	%2
+@@ .. name
+	[if(
+		isdbref(setr(s, rest(%0, .))), 
+		[name(%qs)], 
+		[titlestr(edit(%qs, _, %b))]
+		[setq(e, npc|%qe)]
+	)]
+@@ .. extras
+	[if(t(%qe), 
+		ansi(xh, %b%([iter(trim(%qe, b, |), %i0, |, %,%b)]%))
+	)]
+)
+
+--
+
+&f.display.one-init-entry init=localize([setq(d, extract(get(%1/%0), 2, 1, |))][setq(f, setdiff(extract(get(%1/%0), 3, 1, |), n))][setq(e, iter(%qf, first(grab(u(d.flags), *:%i0, |), :), , |))]%2[if(isdbref(setr(s, rest(%0, .))), [name(%qs)], [titlestr(edit(%qs, _, %b))][setq(e, npc|%qe)])][if(t(%qe), ansi(xh, %b%([iter(trim(%qe, b, |), %i0, |, %,%b)]%)))])
+
+--
+
+think u(init/f.display.one-init-entry, _init.#33, loc(me), 1.)
+think u(init/f.display.one-init-entry, _init.evil_joe, loc(me), 2.)
+think u(init/f.display.one-init-entry, _init.also_also, loc(me), 3.)
+
+
+================================================================================
+== INIT SPECIFIC ===============================================================
+
+Init-specific is init-default
+
+&c.init-specific init=u(c.init-default)
+
+
+================================================================================
+== +INIT/CLEAR =================================================================
+
+Clear the init roster in preparation to start combat.  If staff, do it, else ask for +init/clear YES.
+
+1) clear all _init for current location
+2) Notice to Monitor
+
+&c.init/clear init=
+
+switch(1, 
+	not(or(isapproved(%#), isstaff(%#))), 
+	[alert(Error, alert)] Must be approved to clear an initiative roster., 
+
+	not(or(isstaff(%#), not(comp(%0, YES)))), 
+	If you're sure you want to clear the roster%, type +init/clear YES
+	[oemit(%#, [alert(+init, alert)] %N may be clearing initiatives at this location.)], 
+
+@@ .. grab info
+	[setq(l, loc(%#))]
+
+@@ .. notify staff
+	[monitor(+init/clear: %N at [name(loc(%#))] %([loc(%#)]%))]
+
+@@ .. clear inits
+	[iter(
+		lattr(%ql/_init.*), set(%ql, %i0:), , @@
+	)]
+
+@@ .. notify everyone
+	[remit(%ql, [alert(+init)] %N clears the initiative roster in this location.)]
+)
+
+-- 
+
+&c.init/clear init=switch(1, not(or(isapproved(%#), isstaff(%#))), [alert(Error, alert)] Must be approved to clear an initiative roster., not(or(isstaff(%#), not(comp(%0, YES)))), If you're sure you want to clear the roster%, type +init/clear YES[oemit(%#, [alert(+init, alert)] %N may be clearing initiatives at this location.)], [setq(l, loc(%#))][monitor(+init/clear: %N at [name(loc(%#))] %([loc(%#)]%))][iter(lattr(%ql/_init.*), set(%ql, %i0:), , @@)][remit(%ql, [alert(+init)] %N clears the initiative roster in this location.)])
+
+
+================================================================================
+== +INIT/SET ===================================================================
+
++init/set <subject>[/<init trait>]=<init total>[ <flags, space-delim>]
+
+0: <subject>=<value>
+s: subject
+t: init total
+i: init trait, if any (0 if npc and unset, ignored if PC)
+n: new init flags
+f: final init flags
+
+&c.init/set init=
+
+@@ set things
+	[setq(s, trim(before(%0, =)))]
+	[setq(i, rpad(trim(rest(%qs, /)), 2, 0))]
+	[setq(s, ulocal(f.validate.init-subject, before(%qs, /), %#))]
+
+	[setq(t, rest(%0, =))]
+	[setq(n, iter(rest(%qt), rest(grab(u(d.flags), %i0*:*, |), :)))]
+	[setq(t, rpad(trim(first(%qt)), 2, 0))]
+
+	[setq(f, setunion(%qn [extract(rest(get(loc(%#)/_init.%qs), |), 3, 1, .)], ))]
+
+	[case(1, 
+@@ >> name validation returned error
+		not(%qs), 
+		[alert(Error, alert)] [rest(%qs)]., 
+
+@@ >> validate <init total>
+		or(gt(%qt, 99), lt(%qt, 1)), 
+		[alert(Error, alert)] New initiative must be between 1 and 99., 
+
+@@ >> dbref & approved: Player/Self
+		and(isdbref(%qs), isapproved(%qs)), 
+		[setq(i, rpad(getstat(%qs/initiative), 2, 0))]
+		[ulocal(f.init.add.new, %qs, loc(%#), %qt%qi, %qi.0, %qf)]
+@@ .. (remove this person's init from any other location)
+		[u(f.clean-dbref, %#)]
+
+		[remit(loc(%#), [alert(+init)] %N directly set %oself on the initiative roster at [mul(1, %qt)].)], 
+
+@@ >> not-dbref = not pc: NPC
+		not(isdbref(%qs)), 
+		[ulocal(f.init.add.new, %qs, loc(%#), %qt%qi, %qi.0, %qf)]
+
+		[remit(loc(%#), [alert(+init)] %N directly set "[titlestr(%qs)]" on the initiative roster at [mul(1, %qt)].)], 
+
+@@ >> else: dbref & not approved
+		[alert(Error, alert)] Must be approved to set your own +init.
+	)]
+
+--
+
+&c.init/set init=[setq(s, trim(before(%0, =)))][setq(i, rpad(trim(rest(%qs, /)), 2, 0))][setq(s, ulocal(f.validate.init-subject, before(%qs, /), %#))][setq(t, rest(%0, =))][setq(n, iter(rest(%qt), rest(grab(u(d.flags), %i0*:*, |), :)))][setq(t, rpad(trim(first(%qt)), 2, 0))][setq(f, setunion(%qn [extract(rest(get(loc(%#)/_init.%qs), |), 3, 1, .)], ))][case(1, not(%qs), [alert(Error, alert)] [rest(%qs)]., or(gt(%qt, 99), lt(%qt, 1)), [alert(Error, alert)] New initiative must be between 1 and 99, and(isdbref(%qs), isapproved(%qs)), [setq(i, rpad(getstat(%qs/initiative), 2, 0))][ulocal(f.init.add.new, %qs, loc(%#), %qt%qi, %qi.0, %qf)][u(f.clean-dbref, %#)][remit(loc(%#), [alert(+init)] %N directly set %oself on the initiative roster at [mul(1, %qt)].)], not(isint(%qt)), [alert(Error, alert)] Initiative trait if entered must be numeric, not(isdbref(%qs)), [ulocal(f.init.add.new, %qs, loc(%#), %qt%qi, %qi.0, %qf)][remit(loc(%#), [alert(+init)] %N directly set "[titlestr(%qs)]" on the initiative roster at [mul(1, %qt)].)], [alert(Error, alert)] Must be approved to set your own +init.)]
+
+--
+
++init/set bob/7=4
+
+
+--------------------------------------------------------------------------------
+-- Validate: Init Subject ------------------------------------------------------
+
+If setting dbref, only if matches %#.
+If setting name, cannot pmatch() any existing name
+
+0: input
+1: %#
+t: target
+returns: dbref if pc, name if npc, #-1 if not allowed
+
+&f.validate.init-subject init=
+localize(
+	[setq(t, pmatch+(if(%0, %0, %1)))]
+	[case(1, 
+		strmatch(%qt, %1), %qt, 
+		not(valid(attrname, edit(%0, %b, _))), #-1 That's Not a Good Name, 
+		not(%qt), %0, 
+		#-1 Subject Must Be Self or Not a Player
+	)]
+)
+
+--
+
+&f.validate.init-subject init=localize([setq(t, pmatch+(if(%0, %0, %1)))][case(1, strmatch(%qt, %1), %qt, not(valid(attrname, edit(%0, %b, _))), #-1 That's Not a Good Name, not(%qt), %0, #-1 Subject Must Be Self or Not a Player)])
+
+--
+
+think u(init/f.validate.init-subject, gwen, %#)
+think u(init/f.validate.init-subject, thenomain, %#)
+think u(init/f.validate.init-subject, flabbert, %#)
+think u(init/f.validate.init-subject, mr. briggs, %#)
+think u(init/f.validate.init-subject, eat:moar:chicken, %#)
+
+
+--------------------------------------------------------------------------------
+-- Clean Dbref -----------------------------------------------------------------
+
+If someone sets their init in a new location, their inits from older locations should be removed as a precaution.
+
+0: dbref of player setting init
+
+&f.clean-dbref init=
+iter(
+	setdiff(
+		search(eroom=hasattr(##, _init.%0)), 
+		loc(%0)
+	), 
+	set(%i0, _init.%0:)
+)
+
+--
+
+&f.clean-dbref init=iter(setdiff(search(eroom=hasattr(##, _init.%0)), loc(%0)), set(%i0, _init.%0:))
+
+--
+
+think u(init/f.clean-dbref, %#)
+
+
+--------------------------------------------------------------------------------
+-- Init: Add New ---------------------------------------------------------------
+
+This is going to be a pain.  Sets a passed init for X as if new.
+
+0: <name> or <dbref>, already validated
+1: location dbref
+2: Most of position: <init total><init stat>
+3: Most of character info: <init stat>.<modifier total>
+4: extra flags to set with 'n'
+
+Needs to be recursive, so we prime the resolver
+
+&f.init.add.new init=
+@@ >> set
+	[set(%1, 
+@@ .. attr name
+		_init.
+		[edit(%0, %b, _)]:
+@@ .. full init
+		%2.
+		[u(f.init.tiebreaker-roll)]|
+@@ .. character info
+		%3|
+@@ .. flags
+		[setunion(n %4, )]
+	)]
+
+@@ >> check conflicts on the new value
+	[null(ulocal(f.init.resolve-init-conflicts, %2, %1, 
+		u(f.init.conflict-list, %2, %1)
+	))]
+
+--
+
+&f.init.add.new init=[set(%1, _init.[edit(%0, %b, _)]:%2.[u(f.init.tiebreaker-roll)]|%3|[setunion(n %4, )])][null(ulocal(f.init.resolve-init-conflicts, %2, %1, u(f.init.conflict-list, %2, %1)))]
+
+--
+
+think u(init/f.init.add.new, #33, num(here), 0407, 07.0)
+
+
+--------------------------------------------------------------------------------
+-- Init: Tiebreaker Roll -------------------------------------------------------
+
+For determining the tiebreaker.  We use this enough to pull it out, here.
+
+&f.init.tiebreaker-roll init=rjust(rand(1, 10), 2, 0)
+
+
+================================================================================
+== INIT: RESOLVE INIT CONFLICTS ================================================
+
+The purpose of this important function is to be passed a general init/place combination and resolve all the "die roll" tie-breakers on ONLY NEW INITS for that match, but for all matches for that combination.
+
+This should come up very rarely, but it's how combat is to work, so this is the way we're coding it.
+
+This works recursively.
+
+
+0: <init total><init stat>
+1: location dbref
+2: conflicting dbrefs
+
+&f.init.resolve-init-conflicts init=
+localize(
+	if(
+		t(%2), 
+@@ .. change the tiebreakers on each item
+		[iter(
+			%2, 
+			set(%1, 
+				%i0:
+				%0.[u(f.init.tiebreaker-roll)]|[rest(get(%1/%i0), |)]
+			)
+		)]
+@@ .. then check the list again
+		[ulocal(f.init.resolve-init-conflicts, %0, %1, 
+			u(f.init.conflict-list, %0, %1)
+		)]
+	)
+)
+
+--
+
+&f.init.resolve-init-conflicts init=localize(if(t(%2), [iter(%2, set(%1, %i0:%0.[u(f.init.tiebreaker-roll)]|[rest(get(%1/%i0), |)]))][ulocal(f.init.resolve-init-conflicts, %0, %1, u(f.init.conflict-list, %0, %1))]))
+
+--
+
+think [u(init/f.init.conflict-list, 0407, loc(me))] - [u(init/f.init.resolve-init-conflicts, 0407, loc(me), u(init/f.init.conflict-list, 0407, loc(me)))] - [u(init/f.init.conflict-list, 0407, loc(me))]
+
+
+--------------------------------------------------------------------------------
+-- Init: Conflict List ---------------------------------------------------------
+
+0: <init total><init stat>
+1: location dbref
+returns: attributes that conflict ("new" flagged only?)
+
+l: raw list of <attribute> matching %0
+f: list of <full inits> that match %0
+e: exact inits based on %qf
+c: conflicting inits
+
+(After determining this conflict list, filter down to the new items and re-roll them and run the conflict list again, else stop.)
+
+
+&f.init.conflict-list init=
+localize(
+	[setq(l, filter(fil.matching-inits, lattr(%1/_init.*), , , %0, %1))]
+	[setq(f, setunion(iter(%ql, first(get(%1/%i0), |)), ))]
+@@ .. for each full init, grab the match of exact inits and, 
+@@ .. if there are more than one, add it to the conflict list
+	[setq(c, 
+		iter(
+			%qf, 
+			[setq(e, filter(fil.exact-inits, lattr(%1/_init.*), , , %i0, %1))]
+			[if(
+				gt(words(%qe), 1), 
+				%qe
+			)]
+		)
+	)]
+
+@@ .. return just those inits that are "new" as those that are truly conflicted
+	[squish(filter(fil.init-flag, %qc, , , %1, n))]
+
+)
+
+--
+
+&f.init.conflict-list init=localize([setq(l, filter(fil.matching-inits, lattr(%1/_init.*), , , %0, %1))][setq(f, setunion(iter(%ql, first(get(%1/%i0), |)), ))][setq(c, iter(%qf, [setq(e, filter(fil.exact-inits, lattr(%1/_init.*), , , %i0, %1))][if(gt(words(%qe), 1), %qe)]))][squish(filter(fil.init-flag, %qc, , , %1, n))])
+
+--
+
+think u(init/f.init.conflict-list, 0407, loc(me))
+
+
+--------------------------------------------------------------------------------
+-- Filter: Matching Inits ------------------------------------------------------
+
+Returns list of dbrefs whose <total><stat> inits match that passed
+
+0: list of dbrefs
+1: <total><stat> init to test against
+2: dbref location
+
+&fil.matching-inits init=
+	strmatch(
+		%1, 
+		first(get(%2/%0), .)
+	)
+
+--
+
+&fil.matching-inits init=strmatch(%1, first(get(%2/%0), .))
+
+
+--------------------------------------------------------------------------------
+-- Filter: Exact Inits ---------------------------------------------------------
+
+Returns list of dbrefs whose <total><stat>.<tiebreaker> inits match that passed
+(almost exactly the same code as Matching Inits, above)
+
+0: list of dbrefs
+1: <total><stat>.<tiebreaker> init to test against
+2: dbref location
+
+&fil.exact-inits init=
+	strmatch(
+		%1, 
+		first(get(%2/%0), |)
+	)
+
+--
+
+&fil.exact-inits init=strmatch(%1, first(get(%2/%0), |))
+
+
+--------------------------------------------------------------------------------
+-- Filter: Init Flag -----------------------------------------------------------
+
+Returns list of dbrefs whose inits match the flag(s) passed.
+
+0: list of dbrefs
+1: dbref location
+2: flag(s) to match
+
+&fil.init-flag init=
+	t(setinter(
+		extract(get(%1/%0), 3, 1, |), 
+		%2
+	))
+
+
+--
+
+@@ &fil.init-flag init=strmatch(extract(rest(get(%1/%0), |), 3, 1, .), *%2*)
+
+&fil.init-flag init=t(setinter(extract(get(%1/%0), 3, 1, |), %2))
+
+--
+
+&_INIT.#33 here=0407.09|x.x|n s
+&_INIT.BOB here=0407.09|x.x|
+&_INIT.EVIL_JOE here=1003.06|03.0|n
+&_INIT.ALSO here=0407.03|x.x|d
+&_INIT.ALSO_ALSO here=0407.02|x.x|n s
+
+
+WHAT WOULD BE BETTER:
+	&_init.<subject>: <full init>|<character info>|<flags>
+
+SO:
+	&_init.#33: 0403.08|03.0|n s
+	
+
+
+think New: [filter(init/fil.init-flag, lattr(here/_init*), , , num(here), n)]
+
+think Surprised: [filter(init/fil.init-flag, lattr(here/_init*), , , num(here), s)]
+
+think Matching: [filter(init/fil.matching-inits, lattr(here/_init*), , , 0407, num(here))]
+
+think Matching New: [filter(init/fil.init-flag, filter(init/fil.matching-inits, lattr(here/_init*), , , 0407, num(here)), , , num(here), n)]
+
+
+================================================================================
+== INIT/ROLL ===================================================================
+
++init/roll <subject>[/<init stat>] [<modifiers>]
+
+<subject>: Just like +init/set, NPC or player
+<init stat>: For NPCs only, 0 if not set, ignored if player
+<modifiers>: The +/- list, but numbers only.
+
+Rolling implies adding new, so we go through the add-new rigamarole.
+
+Because of the modifiers, a - anywhere but the modifiers will be taken as a modifier.  This could be logic'd futher to protect things, but won't be.
+
+0: All of that
+
+q0: processed 0 to tweak the <modifiers>
+s: subject
+i: init trait
+h: health penalty
+m: modifiers total
+n: modifiers notes, if any (mostly to note wound penalty applied)
+f: init flags, if they presently exist
+r: roll of the dice (for display)
+t: init total
+
+
+&c.init/roll init=
+	[setq(0, edit(%0, -, +-))]
+
+	[setq(s, before(%q0, +))]
+	[setq(i, rpad(trim(rest(%qs, /)), 2, 0))]
+	[setq(s, ulocal(f.validate.init-subject, before(%qs, /), %#))]
+
+@@ +a + b -> a  b, a+- b -> a -b.  Then ladd()
+	[setq(m, ladd(edit(edit(rest(%q0, +), +, %b), -%b, %b-)))]
+	[setq(r, rand(1, 10))]
+
+	[setq(f, extract(rest(get(loc(%#)/_init.%qs), |), 3, 1, .))]
+
+[case(
+	1, 
+@@ >> name validation returned error
+		not(%qs), 
+		[alert(Error, alert)] [rest(%qs)], 
+
+@@ >> validate modifier total
+		or(gt(%qm, 90), lt(%qm, -90)), 
+		[alert(Error, alert)] Modifier total must be between -90 and 90, 
+
+@@ >> dbref & approved: Player/Self
+		and(isdbref(%qs), isapproved(%qs)), 
+@@ .. init stat
+		[setq(i, rpad(getstat(%qs/initiative), 2, 0))]
+@@ .. health penalties
+		[if(
+			lt(setr(h, u(%qs/_health.penalty)), 0), 
+			[setq(m, add(%qm, %qh))]
+			[setq(n, health penalty applied)]
+		)]
+@@ .. total init and set
+		[setq(t, rjust(add(%qi, %qr, %qm), 2, 0))]
+		[ulocal(f.init.add.new, %qs, loc(%#), %qt%qi, %qi.%qm, %qf)]
+@@ .. (remove this person's init from any other location)
+		[u(f.clean-dbref, %#)]
+
+@@ .. display!
+		[remit(loc(%#), [alert(+init)] %N rolled %qr[if(t(%qm), %b[operand(%qm)] [abs(%qm)])]%, putting %oself on the initiative roster at [mul(1, %qt)].[if(t(%qn), %b%(%qn%))])], 
+
+@@ >> not-dbref = not pc: NPC
+		not(isdbref(%qs)), 
+		[setq(t, rjust(add(%qi, %qr, %qm), 2, 0))]
+		[ulocal(f.init.add.new, %qs, loc(%#), %qt%qi, %qi.%qm, %qf)]
+
+@@ .. display!
+		[remit(loc(%#), [alert(+init)] %N rolled %qr[if(t(%qm), %b[operand(%qm)] [abs(%qm)])]%, putting "[titlestr(%qs)]" on the initiative roster at [mul(1, %qt)].)], 
+
+@@ >> else: dbref & not approved
+		[alert(Error, alert)] Must be approved to roll your own +init.
+)]
+
+--
+
+&c.init/roll init=[setq(0, edit(%0, -, +-))][setq(s, before(%q0, +))][setq(i, rpad(trim(rest(%qs, /)), 2, 0))][setq(s, ulocal(f.validate.init-subject, before(%qs, /), %#))][setq(m, ladd(edit(edit(rest(%q0, +), +, %b), -%b, %b-)))][setq(r, rand(1, 10))][setq(f, extract(rest(get(loc(%#)/_init.%qs), |), 3, 1, .))][case(1, not(%qs), [alert(Error, alert)] [rest(%qs)], or(gt(%qm, 90), lt(%qm, -90)), [alert(Error, alert)] Modifier total must be between -90 and 90, and(isdbref(%qs), isapproved(%qs)), [setq(i, rpad(getstat(%qs/initiative), 2, 0))][if(lt(setr(h, u(%qs/_health.penalty)), 0), [setq(m, add(%qm, %qh))][setq(n, health penalty applied)])][setq(t, rjust(add(%qi, %qr, %qm), 2, 0))][ulocal(f.init.add.new, %qs, loc(%#), %qt%qi, %qi.%qm, %qf)][u(f.clean-dbref, %#)][remit(loc(%#), [alert(+init)] %N rolled %qr[if(t(%qm), %b[operand(%qm)] [abs(%qm)])]%, putting %oself on the initiative roster at [mul(1, %qt)].[if(t(%qn), %b%(%qn%))])], not(isdbref(%qs)), [setq(t, rjust(add(%qi, %qr, %qm), 2, 0))][ulocal(f.init.add.new, %qs, loc(%#), %qt%qi, %qi.%qm, %qf)][remit(loc(%#), [alert(+init)] %N rolled %qr[if(t(%qm), %b[operand(%qm)] [abs(%qm)])]%, putting "[titlestr(%qs)]" on the initiative roster at [mul(1, %qt)].)], [alert(Error, alert)] Must be approved to roll your own +init.)]
+
+
+================================================================================
+== +INIT/REMOVE ================================================================
+
++init/remove <subject>
+
+Removes someone from the roster.  Validates as usual, "null" will not remove self, must be explicit.
+
+0: <subject>
+s: subject, validated
+l: location dbref
+a: attribute for subject, if any
+
+&c.init/remove init=
+	[setq(s, ulocal(f.validate.init-subject, %0, %#))]
+	[setq(l, loc(%#))]
+
+	[case(0, 
+@@ >> null %0 prevents accidental self-wiping
+		comp(%0, ), 
+		[alert(Error, alert)] Must enter name to remove., 
+
+@@ >> name validation returned error
+		t(%qs), 
+		[alert(Error, alert)] [rest(%qs)]., 
+
+@@ >> subject has no init attribute
+		hasattr(%ql, setr(a, _init.[edit(%qs, %b, _)])), 
+		[alert(Error, alert)] Subject has has no initiative to remove., 
+
+@@ >> dbref & approved, or npc: remove
+		not(and(isdbref(%qs), isapproved(%qs))), 
+		[set(%ql, %qa:)]
+		[remit(%ql, [alert(+init)] %N removes %oself from the initiative roster.)], 
+
+@@ >> not-dbref = not pc: NPC
+		isdbref(%qs), 
+		[set(%ql, %qa:)]
+		[remit(%ql, [alert(+init)] %N removes "%qs" from the initiative roster.)], 
+
+@@ >> else: dbref & not approved
+		[alert(Error, alert)] Must be approved to clear your own +init.
+	)]
+
+--
+
+&c.init/remove init=[setq(s, ulocal(f.validate.init-subject, %0, %#))][setq(l, loc(%#))][case(0, comp(%0, ), [alert(Error, alert)] Must enter name to remove, t(%qs), [alert(Error, alert)] [rest(%qs)]., hasattr(%ql, setr(a, _init.[edit(%qs, %b, _)])), [alert(Error, alert)] Subject has has no initiative to remove., not(and(isdbref(%qs), isapproved(%qs))), [set(%ql, %qa:)][remit(%ql, [alert(+init)] %N removes %oself from the initiative roster.)], isdbref(%qs), [set(%ql, %qa:)][remit(%ql, [alert(+init)] %N removes "%qs" from the initiative roster.)], [alert(Error, alert)] Must be approved to clear your own +init.)]
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=--==-=-=--==--==-=-=-=-=-=-=--==--=
+
+&help~ic_commands~+init #96=Initiative Rosters~<< this is a work in progress >>%r%r[ansi(h, +init)]: Check the room's initiative roster.%r%r[ansi(h, +init/roll %[<modifiers>%])]: Roll your initiative, + or - modifiers.  Health penalties at the time of the roll apply.%r%r[ansi(h, +init/roll <name>%[/<initiative stat>%] %[<modifiers>%])]: Roll for an NPC with an initiative stat as entered, 0 otherwise.%r%r[ansi(h, +init/remove me)]: Remove yourself from the roster.%r%r[ansi(h, +init/remove <name>)]: Remove an NPC from the roster.%r%r[ansi(h, +init/set me=<value>)]: Add yourself onto the roster with a total initiative of <value>.%r%r[ansi(h, +init/set <name>%[/<initiative stat>%]=<value>)]: Add an NPC to the roster with a total iniative of <value>.%r%r[ansi(h, +init/clear)]: Clear the entire initiative roster. Use at the start of combat.%r%rNOTES:%r- Staff is notified when +init/clear is used.%r- When you set an init in one room, it clears it from all others.
+
+
+
+
+
+
+
+
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=--==-=-=--==--==-=-=-=-=-=-=--==--=
+
+
+
+monitor(message)
+
+
+
+
+
+
+
+
+
+Adding by Roll:
+	Init
+	If inits match, compare traits
+	If traits match, roll the tiebreaker
+
+Adding without Roll:
+	Set init.
+	If inits match, add before or after the person indicated
+
+
+
+
+
+
++init/start
+	Start combat.  Clears all inits.  Clears the room's init counter.
++init/start YES
+	For safety
+
++init/clear
+	Clear your init
++init/clear [<player>|here]
+	Staff-only, clears everyone's inits
+
+(hm, a mix of the above?)
+
++init
+	Display the Initiative Roster
+
++init/assign <value>: Assigns it by hand.
+
++init/set [<init modifiers>]
+	Create init for someone - needs different rules for staff/those without a sheet.
+	If someone rolls init in a location, the system can clear them out from every other location.
++init/surprise [<surprise modifiers>/][<init modifiers>]
+	Create init for someone, as above, but rolls for surprise first.
+
+
++init/next
+	Current person is done with their action.  When the last person's action is done, the turn is declared over and restarted.
++init/end
+	End the current turn.  Mark everyone's action as done.  (This is as an alternative to the above, so people can do one or the other, or a mix of both.)
+
+
++init/delay [<value>]
+	Set current person on delay, or set new init to <value>
++init/undelay <value>
+	Go on <value>. If it's been a turn, after this turn return to old value, else set to new value.  If this turn, <value> must be lower than original value.
