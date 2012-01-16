@@ -117,6 +117,10 @@ CREATE TABLE IF NOT EXISTS mush_notes
     INDEX target_UUID (target, target_created)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+
+(for CODP)
+&prefix.sql Notes System=sql.
 
 --------------------------------------------------------------------------------
 -- SQL: Insert Note ------------------------------------------------------------
@@ -225,6 +229,39 @@ output: note text
 
 
 --------------------------------------------------------------------------------
+-- SQL: Get Everything using Primary Key ---------------------------------------
+
+Get the text of a specific note
+
+0: target dbref, 1: editor dbref, 2: timestamp (aka primary key)
+output: target (dbref), editor (dbref), time (secs), 
+        target_created (secs), title (text), note (text), 
+        permission (text), approved_by (dbref), locked_by (dbref)
+
+--
+
+&sql.primary_key.everything Notes System=
+	SELECT 
+		concat('#', target) AS target, 
+		concat('#', editor) AS editor, 
+		UNIX_TIMESTAMP(time) AS time, 
+		title, 
+		note, 
+		permission, 
+		IF(IFNULL(approved_by, NULL), concat('#', approved_by), '') AS approved_by, 
+		IF(IFNULL(locked_by, NULL), concat('#', locked_by), '') AS locked_by 
+	FROM mush_notes 
+	WHERE 
+		target = [rest(%0, #)] AND 
+		editor = [rest(%1, #)] AND 
+		time = FROM_UNIXTIME('%2'); 
+
+--
+
+think sql(u(notes/sql.primary_key.everything, #1003, #1003, 1326420169), ~, |)
+
+
+--------------------------------------------------------------------------------
 -- SQL: Unused UUIDs -----------------------------------------------------------
 
 List abandoned 'dbref + creation date' UUIDs.
@@ -239,23 +276,65 @@ List abandoned 'dbref + creation date' UUIDs.
 
 Various outputs.
 
--- 
+(for CODP)
+&prefix.displays Notes System=display.
 
-One note:
+--------------------------------------------------------------------------------
+-- DISPLAY: One Note -----------------------------------------------------------
 
 	think u(notes/display.one-note, #1003|#1003|1326417155)
 
 0: primary key (#target|#editor|time-in-secs)
+   (we do it like this so we can extract primary key from, say, keyword search)
+   (a cheap 'join')
 
 --
 
 &display.one-note Notes System=
-	[setq(q, sql(SELECT * FROM mush_notes WHERE target = [rest(elements(%0, 1, |), #)] AND editor = [rest(elements(%0, 2, |), #)] AND time = FROM_UNIXTIME('[elements(%0, 3, |)]'), ~, |))]
-	
+	[setq(q, 
+		sql(
+			u(sql.primary_key.everything, 
+				elements(%0, 1, |), 
+				elements(%0, 2, |), 
+				elements(%0, 3, |)
+			), 
+			~, 
+			|
+		)
+	)]
+
 	[case(0, 
 		eq(words(%qq, ~), 1), 
-		<error: non-unique key passed>, 
+		u(_notice, Primary key passed to 'display one note' was not unique.), 
 
 @@ Display!
-		...
+		[u(_header, [elements(%qq, 4, |)] (on [name(elements(%qq, 1, |))]))]%r
+		
+		NAME: [elements(%qq, 4, |)]%r
+		EDITED BY: [name(elements(%qq, 2, |))]%r
+		LAST EDIT: [convsecs(elements(%qq, 3, |))]%r
+		NOTE PERMISSIONS: [elements(%qq, 6, |)]%r
+		APPROVED BY: [elements(%qq, 7, |)]%r
+		LOCKED BY: [elements(%qq, 8, |)]%r
+		TEXT: [elements(%qq, 5, |)]%r
+		
+		[u(_footer, elements(%qq, 6, |))]
+		
 	)]
+
+
+================================================================================
+== CROSS-PLATFORM CODE =========================================================
+
+Code which will probably be different from game to game.
+
+(for CODP)
+&prefix.cross_platform Notes System=_
+
+--
+
+&_header Notes System=wheader(%0)
+&_footer Notes System=wfooter(%0)
+&_divider Notes System=wdivider(%0)
+
+&_notice Notes System=[ansi(xh, GAME:)] %0
