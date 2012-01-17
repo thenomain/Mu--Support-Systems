@@ -1,0 +1,215 @@
+POSE LOGGER
+
+--
+
+First, the DDL -->
+
+DROP TABLE IF EXISTS mush_poselogger; 
+CREATE TABLE IF NOT EXISTS mush_poselogger
+(
+    time             NUMERIC(18,6)   NOT NULL, 
+    location         INT             NOT NULL, 
+    triggered_by     INT             NOT NULL, 
+    quote            TEXT, 
+
+    PRIMARY KEY (time, location)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+================================================================================
+== CREATE & LINK ===============================================================
+
+@create SQL Pose Logger <spl>=10
+@set SQL Pose Logger=INHERIT SAFE
+
+
+--------------------------------------------------------------------------------
+-- Additional Usage of the CODP formatter --------------------------------------
+
+@parent SQL Pose Logger=CODP
+&prefix.sql SQL Pose Logger=sql.
+
+
+================================================================================
+== SQL Statements ==============================================================
+
+SAMPLE CASE: sql( escape( ulocal( %va/sql_forum_by_name, %qa, %1 )))))
+
+
+--------------------------------------------------------------------------------
+-- SQL: Transaction Start/Commit -----------------------------------------------
+
+&f.transaction.start SQL Pose Logger=
+	strcat(
+		sql( START TRANSACTION ), 
+		sql( SET autocommit = 0 )
+	)
+
+--
+
+&f.tranaction.commit SQL Pose Logger=
+	strcat(
+		sql( COMMIT ), 
+		sql( SET autocommit = 1 )
+	)
+
+
+--------------------------------------------------------------------------------
+-- SQL: Insert -----------------------------------------------------------------
+
+0: dbref of poser
+1: text
+
+0: dbref of text generator
+1: text to log
+
+&sql.insert SQL Pose Logger=
+	strcat(
+		INSERT INTO mush_poselogger VALUES%(, 
+			rpad(round(secs(local, 6), 6), 19, 0), %, , 
+			ulocal(f.sqlescape, rest(loc(%0), #)), %, , 
+			ulocal(f.sqlescape, rest(%0, #)), %, 
+			', ulocal( f.sqlescape, %1 ), '
+		%)
+	)
+
+
+--------------------------------------------------------------------------------
+-- SQL: List Last 'x' Lines from 'here' ----------------------------------------
+
+0: dbref of player
+1: 'last' value
+
+&sql.last-by-location.here SQL Pose Logger=
+	strcat(
+		SELECT 
+			time%,  
+			concat%('#'%, location%)%,  
+			concat%('#'%, triggered_by%)%, 
+			quote 
+		FROM mush_poselogger 
+		SORT BY times DESC 
+		WHERE location=, 
+			rest(loc(if(isdbref(%0), %0)), #), %b
+		LIMIT%b, 
+			if(isint(%1), %1, 0)
+	)
+
+
+--------------------------------------------------------------------------------
+-- SQL: List Last 'x' Lines from a specific location ---------------------------
+
+0: dbref of location
+1: 'last' value
+
+&sql.last-by-location.elsewhere SQL Pose Logger=
+	strcat(
+		SELECT 
+			time%,  
+			concat%('#'%, location%)%,  
+			concat%('#'%, triggered_by%)%, 
+			quote 
+		FROM mush_poselogger 
+		SORT BY times DESC 
+		WHERE location=, 
+			rest(if(isdbref(%0), %0), #), %b
+		LIMIT%b, 
+			if(isint(%1), %1, 0), 
+		;	
+	)
+
+
+================================================================================
+== Cross-Platform Functions ====================================================
+
+&_HEADER SQL Pose Logger=wheader(%0)
+&_FOOTER SQL Pose Logger=wfooter(%0)
+&_DIVIDER SQL Pose Logger=wdivider(%0)
+
+&_NOTICE SQL Pose Logger=[ansi(xh, GAME:)] %0
+
+
+================================================================================
+== Functions ===================================================================
+
+
+--------------------------------------------------------------------------------
+-- Func: Escape SQL ------------------------------------------------------------
+
+&f.sqlescape SQL Pose Logger=edit( edit( edit( edit( %0, \\, \\\\ ), ', \\' ), ", \\" ), \%, \\\\\% )
+
+
+--------------------------------------------------------------------------------
+-- Func: Log Passed Text -------------------------------------------------------
+
+0: room
+1: triggered by
+2: text
+
+--
+
+&f.log-what-I-hear SQL Pose Logger=
+	case(0, 
+		isdbref(%0), #-1 LOCATION INVALID, 
+		isdbref(%1), #-1 TRIGGERER INVALID, 
+		strmatch(loc(%1), %0), #-1 LOCATION MISMATCH, 
+
+		sql(escape(ulocal(sql.insert, %1, %2)))
+	)
+
+
+================================================================================
+== Triggers ====================================================================
+
+
+--------------------------------------------------------------------------------
+-- Trigger: New Pose-Logger at Target Location ---------------------------------
+
+0: target location
+
+&tr.spawn-listener SQL Pose Logger=
+	@if t(iter(lcon(%0), if(strmatch(parent(%i0), %!), %i0)))=
+	{
+		@pemit %#=[u(_notice, There is already a listener at that location.)]
+	}, 
+	{
+		@eval setq(d, create(Elder God, 100)); 
+		@set %qd=DARK INHERIT; 
+		@lock %qd=#1; 
+		@desc %qd=This location's pose-listener.; 
+		@parent %qd=%!; 
+		@link %qd=%0; 
+		@listen %qd=*; 
+		@amove %qd=@eval 
+			ulocal(f.log-what-I-hear, 
+				loc(%%!), 
+				%%!, 
+				*** NOW LISTENING AT: %[name(%%L)%] %(%%L%)
+			); 
+		@ahear %qd=@eval ulocal(f.log-what-I-hear, loc(%%!), %%#, %%0); 
+		@tel/quiet %qd=HOME
+	}
+
+
+--------------------------------------------------------------------------------
+-- Trigger: End Pose-Logger at Target Location ---------------------------------
+
+0: target location
+
+&tr.destroy-listener SQL Pose Logger=
+	@eval setq(d, iter(lcon(%0), if(strmatch(parent(%i0), %!), %i0))); 
+
+	@dolist %qd={
+		@set ##=HALT; 
+
+		@eval 
+			ulocal(f.log-what-I-hear, 
+				loc(##), 
+				##, 
+				*** NO LONGER LISTENING AT: [name(%0)] %(%0%)
+			); 
+
+		@tel/quiet ##=%!; 
+
+		@destroy/override/instant ##
+	}
