@@ -117,10 +117,24 @@ CREATE TABLE IF NOT EXISTS mush_notes
     INDEX target_UUID (target, target_created)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+
+--------------------------------------------------------------------------------
+-- SQL: Transaction Start/Commit -----------------------------------------------
+
+&f.transaction.start Notes System=
+	strcat(
+		sql( START TRANSACTION ), 
+		sql( SET autocommit = 0 )
+	)
+
 --
 
-(for CODP)
-&prefix.sql Notes System=sql.
+&f.tranaction.commit Notes System=
+	strcat(
+		sql( COMMIT ), 
+		sql( SET autocommit = 1 )
+	)
+
 
 --------------------------------------------------------------------------------
 -- SQL: Insert Note ------------------------------------------------------------
