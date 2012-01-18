@@ -351,6 +351,17 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 
 
 ================================================================================
+== Functions ===================================================================
+
+
+--------------------------------------------------------------------------------
+-- Function: Listening at Location? --------------------------------------------
+
+&f.listening.at-loc Poselog Front-End=
+	lor(iter(lcon(%0), strmatch(parent(%i0), v(d.sql))))
+
+
+================================================================================
 == Commands ====================================================================
 
 
@@ -378,7 +389,11 @@ $+poselast:
 			strcat(
 				list(1, u(_header, Last 10 for [name(%ql)] (%ql))), 
 				u([v(d.sql)]/display.last-poses, revwords(%qq)), 
-				list(1, u(_footer, words(%qq)))
+				list(1, 
+					u(_footer, 
+						if(u(f.listening.at-loc, %ql), Active at This Location)
+					)
+				)
 			)
 	}, 
 	{
@@ -421,6 +436,10 @@ $+poselast *:
 
 				list(1, u(_header, Last %qn for [name(%ql)] (%ql))), 
 				u([v(d.sql)]/display.last-poses, revwords(%qq)), 
-				list(1, u(_footer, words(%qq)))
+				list(1, 
+					u(_footer, 
+						if(u(f.listening.at-loc, %ql), Active at This Location)
+					)
+				)
 			)
 		)
