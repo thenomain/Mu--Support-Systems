@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS mush_poselogger
     time             NUMERIC(18,6)   NOT NULL, 
     location         INT             NOT NULL, 
     triggered_by     INT             NOT NULL, 
+    triggered_name   VARCHAR(255)    NOT NULL, 
     quote            TEXT, 
 
     PRIMARY KEY (time, location)
@@ -71,6 +72,7 @@ CREATE TABLE IF NOT EXISTS mush_poselogger
 			rpad(round(secs(local, 6), 6), 19, 0), %, , 
 			ulocal(f.sqlescape, rest(%1, #)), %, , 
 			ulocal(f.sqlescape, rest(%0, #)), %, 
+			', ulocal( f.sqlescape, name(%0) ). '%, 
 			', ulocal( f.sqlescape, %2 ), '
 		%)
 	)
@@ -222,9 +224,7 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 q0: dbref of target location
 
 &tr.spawn-listener Pose Logger=
-	@if not(strlen(%0))=@eval setq(0, loc(%#)), setq(0, %0); 
-
-	@if t(iter(lcon(%q0), if(strmatch(parent(%i0), %!), %i0)))=
+	@if t(iter(lcon(setr(0, if(not(strlen(%0)), loc(%#), %0))), if(strmatch(parent(%i0), %!), %i0)))=
 	{
 		@pemit %#=[u(_notice, There is already a listener at that location.)]
 	}, 
@@ -242,7 +242,6 @@ q0: dbref of target location
 				ulocal(f.log-what-I-hear, 
 					loc(%%!), 
 					%%#, 
-@@					strtrunc(translate(%%0, p), mul(u(_lbuf), .95))
 					strtrunc(%%0, mul(u(_lbuf), .95))
 				); 
 
