@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS mush_poselogger
 			rpad(round(secs(local, 6), 6), 19, 0), %, , 
 			ulocal(f.sqlescape, rest(%1, #)), %, , 
 			ulocal(f.sqlescape, rest(%0, #)), %, 
-			', ulocal( f.sqlescape, name(%0) ). '%, 
+			', ulocal( f.sqlescape, name(%0) ), '%, 
 			', ulocal( f.sqlescape, %2 ), '
 		%)
 	)
@@ -447,3 +447,11 @@ $+poselast *:
 				)
 			)
 		)
+
+
+--------------------------------------------------------------------------------
+-- Command: Poselast Where -----------------------------------------------------
+
+Report all the places I know there were poses from.
+
+
