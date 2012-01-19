@@ -179,8 +179,6 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 
 &f.sqlescape Pose Logger=edit( edit( edit( edit( %0, \\, \\\\ ), ', \\' ), ", \\" ), \%, \\\\\% )
 
-&f.sqlescape Pose Logger=edit( %0, ', \\', ", \\" )
-
 
 --------------------------------------------------------------------------------
 -- Func: Log Passed Text -------------------------------------------------------
@@ -221,9 +219,12 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 -- Trigger: New Pose-Logger at Target Location ---------------------------------
 
 0: target location
+q0: dbref of target location
 
 &tr.spawn-listener Pose Logger=
-	@if t(iter(lcon(%0), if(strmatch(parent(%i0), %!), %i0)))=
+	@if not(strlen(%0))=@eval setq(0, loc(%#)), setq(0, %0); 
+
+	@if t(iter(lcon(%q0), if(strmatch(parent(%i0), %!), %i0)))=
 	{
 		@pemit %#=[u(_notice, There is already a listener at that location.)]
 	}, 
@@ -233,21 +234,25 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 		@lock %qd=#1; 
 		@desc %qd=This location's pose-listener.; 
 		@parent %qd=%!; 
-		@link %qd=%0; 
+		@link %qd=%q0; 
 		@listen %qd=*; 
-		@amove %qd=@eval 
-			ulocal(f.log-what-I-hear, 
-				%%L, 
-				v(d.me), 
-				*** NOW LISTENING AT: %[name(%%L)%] (%%L)
-			); 
+		@amove %qd=@@(Something does need to go here);
 		@ahear %qd=
 			@eval 
 				ulocal(f.log-what-I-hear, 
 					loc(%%!), 
 					%%#, 
-					strtrunc(translate(%%0, p), mul(u(_lbuf), .95))
+@@					strtrunc(translate(%%0, p), mul(u(_lbuf), .95))
+					strtrunc(%%0, mul(u(_lbuf), .95))
 				); 
+
+		@eval 
+			ulocal(f.log-what-I-hear, 
+				%q0, 
+				v(d.me), 
+				*** NOW LISTENING AT: [name(%q0)] (%q0)
+			); 
+
 		@tel/quiet %qd=HOME
 	}
 
