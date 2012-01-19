@@ -452,6 +452,47 @@ $+poselast *:
 --------------------------------------------------------------------------------
 -- Command: Poselast Where -----------------------------------------------------
 
-Report all the places I know there were poses from.
+Report all the places I have records from, whether it's active, and the time since the last recorded pose.
 
+This command is designed for transparency.  This should be usable by everyone, with the possible exception of guests/bots as reasonable limitations.
 
+--
+
+&c.poselast/where Poselog Front-End=
+$+poselast/where:@pemit %#=
+	strcat(
+		setq(l, 
+			sql( 
+				SELECT DISTINCT location 
+				FROM mush_poselogger 
+				ORDER BY location ASC 
+			)
+		), 
+
+		list(1, u(_header, Logged Locations)), 
+
+		list(%ql, 
+			cat(
+				%b [name(#%i0)] (#%i0)%,, 
+				last activity:, 
+
+				exptime(
+					sub(
+						secs(local, 6), 
+						sql( 
+							SELECT time 
+							FROM mush_poselogger 
+							WHERE location = %i0 
+							ORDER BY time DESC 
+							LIMIT 1 
+						)
+					)
+				), 
+				ago, 
+
+				if(u(f.listening.at-loc, #%i0), ansi(xh, %[active%]))
+			)
+		), 
+
+		list(1, u(_footer, words(%ql)))
+	)
