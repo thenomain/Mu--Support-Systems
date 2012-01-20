@@ -6,12 +6,35 @@ CREATE TABLE IF NOT EXISTS mush_poselogger
 (
     time             NUMERIC(18,6)   NOT NULL, 
     location         INT             NOT NULL, 
+    location_name    VARCHAR(255)    NOT NULL, 
     triggered_by     INT             NOT NULL, 
     triggered_name   VARCHAR(255)    NOT NULL, 
     quote            TEXT, 
+    status           INT             NOT NULL DEFAULT 0, 
 
-    PRIMARY KEY (time, location)
+    PRIMARY KEY (time, location), 
+    INDEX (status), 
+    FOREIGN KEY (status)
+        REFERENCES mush_poselogger_status (status)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+DROP TABLE IF EXISTS mush_poselogger_status; 
+CREATE TABLE IF NOT EXISTS mush_poselogger_status
+(
+    status           INT            NOT NULL, 
+    description      TEXT, 
+
+    PRIMARY KEY (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO mush_poselogger_status VALUES (0, ''); 
+INSERT INTO mush_poselogger_status VALUES (1, 'NOW LISTENING'); 
+INSERT INTO mush_poselogger_status VALUES (2, 'NO LONGER LISTENING'); 
+INSERT INTO mush_poselogger_status VALUES (3, 'START OF SCENE'); 
+INSERT INTO mush_poselogger_status VALUES (4, 'END OF SCENE'); 
 
 
 ################################################################################
@@ -63,6 +86,7 @@ CREATE TABLE IF NOT EXISTS mush_poselogger
 0: dbref of poser
 1: location logged from
 2: text
+3: status (optional)
 
 --
 
@@ -70,10 +94,12 @@ CREATE TABLE IF NOT EXISTS mush_poselogger
 	strcat(
 		INSERT INTO mush_poselogger VALUES%(, 
 			rpad(round(secs(local, 6), 6), 19, 0), %, , 
-			ulocal(f.sqlescape, rest(%1, #)), %, , 
+			ulocal(f.sqlescape, rest(%1, #)), %, 
+			', ulocal( f.sqlescape, name(%1) ), '%, , 
 			ulocal(f.sqlescape, rest(%0, #)), %, 
 			', ulocal( f.sqlescape, name(%0) ), '%, 
-			', ulocal( f.sqlescape, %2 ), '
+			', ulocal( f.sqlescape, %2 ), ' %,, 
+			if(and(strlen(%3), isint(%3)), %3, 0)
 		%)
 	)
 
@@ -116,6 +142,27 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 				if(isdbref(#%1), %1), 
 			%b
 			LIMIT 1
+	)
+
+
+--------------------------------------------------------------------------------
+-- SQL: Status Description by Primary Key --------------------------------------
+
+We're looking up by primary key, but just in case something goes pear-shaped, limit to 1 record.
+
+&sql.status.primary-key Pose Logger=
+	strcat(
+		SELECT description 
+		FROM mush_poselogger_status 
+		INNER JOIN mush_poselogger AS log USING (status) 
+		WHERE 
+			log.time =%b, 
+				if(strmatch(%0, *.??????), %0),
+			AND 
+				log.location =%b, 
+				if(isdbref(#%1), %1),  
+		%b
+		LIMIT 1
 	)
 
 
@@ -168,6 +215,7 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 &_divider Pose Logger=wdivider(%0)
 
 &_notice Pose Logger=[ansi(xh, GAME:)] %0
+&_titlestr Pose Logger=titlestr(%0)
 
 &_lbuf Pose Logger=config(lbuf_size)
 
@@ -188,6 +236,7 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 0: room
 1: triggered by
 2: text
+3: status
 
 --
 
@@ -197,7 +246,7 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 		isdbref(%1), #-1 TRIGGERER INVALID, 
 @@		strmatch(loc(%1), %0), #-1 LOCATION MISMATCH, 
 
-		sql(escape(ulocal(sql.insert, %1, %0, %2)))
+		sql(escape(ulocal(sql.insert, %1, %0, %2, %3)))
 	)
 
 --------------------------------------------------------------------------------
@@ -236,7 +285,18 @@ q0: dbref of target location
 		@parent %qd=%!; 
 		@link %qd=%q0; 
 		@listen %qd=*; 
-		@amove %qd=@@(Something does need to go here);
+		@wait 3=@amove %qd={
+			@eval 
+				ulocal(f.log-what-I-hear, 
+					%q0, 
+					v(d.me), 
+					[name(%q0)] (%q0), 
+					2
+				); 
+			@pemit %%#=%[u(_notify, This listener was slaved to its location. Deactivating.)%]; 
+			@destroy/instant %%!;
+		}; 
+
 		@ahear %qd=
 			@eval 
 				ulocal(f.log-what-I-hear, 
@@ -249,7 +309,8 @@ q0: dbref of target location
 			ulocal(f.log-what-I-hear, 
 				%q0, 
 				v(d.me), 
-				*** NOW LISTENING AT: [name(%q0)] (%q0)
+				[name(%q0)] (%q0), 
+				1
 			); 
 
 		@tel/quiet %qd=HOME
@@ -273,7 +334,8 @@ q0: dbref of target location
 				ulocal(f.log-what-I-hear, 
 					loc(##), 
 					v(d.me), 
-					*** NO LONGER LISTENING AT: [name(%0)] (%0)
+					[name(%0)] (%0), 
+					2
 				); 
 
 			@tel/quiet ##=%!; 
@@ -297,11 +359,15 @@ q0: dbref of target location
 --
 
 &display.last-poses Pose Logger=
+localize(
 	list(
 		%0, 
 		strcat(
 			setq(e, 
 				sql(u(sql.quote.primary-key, first(%i0, |), rest(%i0, |)), , |)
+			), 
+			setq(s, 
+				sql(u(sql.status.primary-key, first(%i0, |), rest(%i0, |)), , |)
 			), 
 			
 			ansi(xh, %[), 
@@ -313,11 +379,13 @@ q0: dbref of target location
 			ansi(xh, name(first(#%qe, |))), 
 
 			ansi(xh, %]:%b), 
+
+			if(strlen(%qs), *** %qs:%b), 
 			
 			rest(%qe, |)
 		)
 	)
-
+)
 
 
 ################################################################################
@@ -363,6 +431,9 @@ q0: dbref of target location
 
 &f.listening.at-loc Poselog Front-End=
 	lor(iter(lcon(%0), strmatch(parent(%i0), v(d.sql))))
+
+@@ REACH SPECIFIC: Global Function
+	&fp_islogged #978=ulocal(#8201/f.listening.at-loc, %0)
 
 
 ================================================================================
