@@ -279,7 +279,7 @@ q0: dbref of target location
 		@pemit %#=[u(_notice, There is already a listener at that location.)]
 	}, 
 	{
-		@pemit %q0=u(_ooc, *** Pose Logging Active (see: +poses)); 
+		@pemit/contents %q0=u(_ooc, *** Pose Logging Active (see: +poses)); 
 		@eval setq(d, create(Elder God, 100)); 
 		@set %qd=DARK INHERIT MONITOR; 
 		@lock %qd=#1; 
@@ -345,7 +345,7 @@ q0: dbref of target location
 			@destroy/override/instant ##
 		}; 
 		
-		@pemit/contents ##=u(_ooc, *** Pose Logging Deactivated (see: +poses)); 
+		@pemit/contents %0=u(_ooc, *** Pose Logging Deactivated (see: +poses)); 
 	}, 
 	{
 		@pemit %#=[u(_notice, There are no listeners at that location.)]
