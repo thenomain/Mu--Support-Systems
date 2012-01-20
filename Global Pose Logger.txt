@@ -215,6 +215,7 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 &_divider Pose Logger=wdivider(%0)
 
 &_notice Pose Logger=[ansi(xh, GAME:)] %0
+&_ooc Pose Logger=[ansi(b, <OOC>)] %0
 &_titlestr Pose Logger=titlestr(%0)
 
 &_lbuf Pose Logger=config(lbuf_size)
@@ -278,6 +279,7 @@ q0: dbref of target location
 		@pemit %#=[u(_notice, There is already a listener at that location.)]
 	}, 
 	{
+		@pemit %q0=u(_ooc, *** Pose Logging Active (see: +poses)); 
 		@eval setq(d, create(Elder God, 100)); 
 		@set %qd=DARK INHERIT MONITOR; 
 		@lock %qd=#1; 
@@ -293,7 +295,8 @@ q0: dbref of target location
 					[name(%q0)] (%q0), 
 					2
 				); 
-			@pemit %%#=%[u(_notify, This listener was slaved to its location. Deactivating.)%]; 
+			@pemit %%#=%[u(_notice, This listener was slaved to its location. Deactivating.)%]; 
+			@pemit %q0=u(_ooc, *** Pose Logging Deactivated (see: +poses)); 
 			@destroy/instant %%!;
 		}; 
 
@@ -340,7 +343,9 @@ q0: dbref of target location
 
 			@tel/quiet ##=%!; 
 			@destroy/override/instant ##
-		}
+		}; 
+		
+		@pemit/contents ##=u(_ooc, *** Pose Logging Deactivated (see: +poses)); 
 	}, 
 	{
 		@pemit %#=[u(_notice, There are no listeners at that location.)]
@@ -418,110 +423,180 @@ localize(
 &_divider Poselog Front-End=wdivider(%0)
 
 &_notice Poselog Front-End=[ansi(xh, GAME:)] %0
+&_alert Poselog Front-End=[ansi(r, >%b, nh, %0, nr, %b<)] %1
 
 &_lbuf Poselog Front-End=config(lbuf_size)
+&_isstaff Poselog Front-End=isstaff(%0)
 
 
 ================================================================================
-== Functions ===================================================================
+== Mistress Commands ===========================================================
+
+The "Mistress" Command structure (from Seth, AetherMux) allows a generic sorting system for easy refactoring.
+
+It is entirely function-based.  Use trigger() when necessary.
 
 
 --------------------------------------------------------------------------------
--- Function: Listening at Location? --------------------------------------------
+-- Mistress: Primary Command ---------------------------------------------------
 
-&f.listening.at-loc Poselog Front-End=
-	lor(iter(lcon(%0), strmatch(parent(%i0), v(d.sql))))
-
-@@ REACH SPECIFIC: Global Function
-	&fp_islogged #978=ulocal(#8201/f.listening.at-loc, %0)
+1: /switches
+2: text
 
 
-================================================================================
-== Commands ====================================================================
-
-
---------------------------------------------------------------------------------
--- Command: Poselast, No Args --------------------------------------------------
-
-l: location being requested
-q: query
+&c.poses Poselog Front-End=$^\+pose[s]?(/[^ ]*)?( .*)?$:
+	@pemit %#=
+		switch(1, 
+			t(strlen(%1)), 
+			u(c.poses.switch, %1, trim(%2)), 
+			
+			t(strlen(trim(%2))), 
+			u(c.poses.specific, trim(%2), @@(pseudo-switches)), 
+			
+			u(c.poses.default)
+		)
 
 --
 
-&c.poselast.noargs Poselog Front-End=
-$+poselast:
-	@eval 
-		setq(q, 
-			sql( 
-				u([v(d.sql)]/sql.primary-keys.location, setr(l, loc(%#)), 10), 
-				, |
-			)
-		); 
-	
-	@if strlen(%qq)=
-	{
-		@pemit %#=
-			strcat(
-				list(1, u(_header, Last 10 for [name(%ql)] (%ql))), 
-				u([v(d.sql)]/display.last-poses, revwords(%qq)), 
-				list(1, 
-					u(_footer, 
-						if(u(f.listening.at-loc, %ql), Active at This Location)
-					)
-				)
-			)
-	}, 
-	{
-		@pemit %#=[u(_notice, This location has not been logged.)]
-	}
+@set Poselog Front-End/c.poses=regexp
 
 
 --------------------------------------------------------------------------------
--- Command: Poselast Number/Location -------------------------------------------
+-- Mistress: Switches ----------------------------------------------------------
 
-&c.poselast Poselog Front-End=
-$+poselast *:
-	@eval 
-		[setq(n, first(%0, =))]
-		[setq(l, rest(%0, =))];
+0: /switch/es
+1: text (if passed)
 
-	@pemit %#=
-		case(0, 
-			or(not(%ql), isstaff(%#)), 
-			[u(_notice, Staff only.)], 
+n: command name ('poses')
+s: switches found (c.poses/*)
+p: pseudo-switches (others)
 
-			or(not(%ql), isdbref(%ql)), 
-			[u(_notice, This location has not been logged.)], 
+--
 
-			and(isint(%qn), gt(%qn, 0)), 
-			[u(_notice, Please use a postive number of poses to look at.)], 
+&c.poses.switch Poselog Front-End=
+	[setq(n, poses)]
+	[setq(s, )]
+	[setq(p, )]
+	[setq(a, lattr(%!/c.%qn/*))]
 
-			lt(%qn, 10000), 
-			[u(_notice, Don't be silly.)], 
-			
-			strcat(
-				setq(l, if(strlen(%ql), %ql, loc(%#))), 
+@@ filter real (%qs) and psudo-switches (%qp)
+	[iter(
+		rest(%0, /), 
+		if(
+			t(grab(%qa, c.%qn/%i0*)), 
+			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
+			setq(p, %qp/%i0)
+		), 
+		/, 
+		@@
+	)]
 
-				setq(q, 
-					sql( 
-						u([v(d.sql)]/sql.primary-keys.location, %ql, %qn), 
-						, |
-					)
-				), 
+@@ process: 
+	[if(t(%qs), 
 
-				list(1, u(_header, Last %qn for [name(%ql)] (%ql))), 
-				u([v(d.sql)]/display.last-poses, revwords(%qq)), 
-				list(1, 
-					u(_footer, 
-						if(u(f.listening.at-loc, %ql), Active at This Location)
-					)
+@@ .. pass to first real-switch passed
+		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+
+@@ .. else pass to '.specific' or '.default' with pseudo-switches
+		if(
+			t(%1), 
+				ulocal(c.%qn.specific, %1, %qp), 
+				ulocal(c.%qn.default, %qp)
+		)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- Mistress: Default -----------------------------------------------------------
+
+0: psudo-switches, if passed (error'd, for +poses)
+
+--
+
+&c.poses.default Poselog Front-End=u(c.poses.specific, , %0)
+
+
+--------------------------------------------------------------------------------
+-- Mistress: Specific ----------------------------------------------------------
+
+0: text (<loc>[=<last>]|<last>)
+1: psudo-switches, if passed (error'd, for +poses)
+
+--
+
+&c.poses.specific Poselog Front-End=
+if(strlen(%1), 
+	[u(_alert, poses, Use one of the following switches: [u(f.switchlist)])], 
+
+	u(c.poses/last, %0)
+)
+
+
+================================================================================
+== Switched Commands ===========================================================
+
+Most of the mistress system ability is here.  Alias commands to these.
+
+Format:
+	&c.<command>/<switch>: %0: text, %1: psudo-switches (if any)
+
+
+--------------------------------------------------------------------------------
+-- Switch: /Last ---------------------------------------------------------------
+
+Default for +poses.
+
+0: <loc>[=<last>]|<last>
+1: last 
+
+l: location (default: 'here')
+n: number of "last" entries (default: 10)
+
+--
+
+&c.poses/last Poselog Front-End=
+@@ Make sure 'l' is 'location' and 'n' is 'number of entries'
+	[setq(n, first(%0, =))]
+	[if(isdbref(%qn), 
+		[setq(l, %qn)][setq(n, rest(%0, =))], 
+		setq(l, rest(%0, =))
+	)]
+	[if(not(%ql), setq(l, loc(%#)))]
+	[if(not(%qn), setq(n, 10))]
+
+@@ >> Error-check:
+	[case(0, 
+		or(strmatch(%ql, loc(%#)), u(_isstaff, %#)), 
+		u(_alert, poses/last, Checking poses from afar is staff only.), 
+
+		and(isint(%qn), gte(%qn, 0)), 
+		u(_alert, poses/last, Check a coherent number of entries%, please.), 
+
+		lt(%qn, 10000), 
+		u(_alert, poses/last, Don't be silly.), 
+		
+@@ OK: let's show it!
+		strcat(
+			setq(q, 
+				sql( 
+					u([v(d.sql)]/sql.primary-keys.location, %ql, %qn), 
+					, |
+				)
+			), 
+
+			list(1, u(_header, Last %qn for [name(%ql)] (%ql))), 
+			u([v(d.sql)]/display.last-poses, revwords(%qq)), 
+			list(1, 
+				u(_footer, 
+					if(u(f.listening.at-loc, %ql), Active at This Location)
 				)
 			)
 		)
+	)]
 
 
 --------------------------------------------------------------------------------
--- Command: Poselast Where -----------------------------------------------------
+-- Switch: /Where --------------------------------------------------------------
 
 Report all the places I have records from, whether it's active, and the time since the last recorded pose.
 
@@ -529,8 +604,7 @@ This command is designed for transparency.  This should be usable by everyone, w
 
 --
 
-&c.poselast/where Poselog Front-End=
-$+poselast/where:@pemit %#=
+&c.poses/where Poselog Front-End=
 	strcat(
 		setq(l, 
 			sql( 
@@ -567,3 +641,24 @@ $+poselast/where:@pemit %#=
 
 		list(1, u(_footer, words(%ql)))
 	)
+
+
+================================================================================
+== Functions ===================================================================
+
+
+--------------------------------------------------------------------------------
+-- Function: Listening at Location? --------------------------------------------
+
+&f.listening.at-loc Poselog Front-End=
+	lor(iter(lcon(%0), strmatch(parent(%i0), v(d.sql))))
+
+@@ REACH SPECIFIC: Global Function: islogged(<loc>)
+	&fp_islogged #978=ulocal(#8201/f.listening.at-loc, %0)
+
+
+--------------------------------------------------------------------------------
+-- Switch List -----------------------------------------------------------------
+
+&f.switchlist Poselog Front-End=lcstr(itemize(edit(lattr(%!/c.poses/*), C.POSES/, ), , or))
+
