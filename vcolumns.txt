@@ -1,0 +1,171 @@
+"Vertical columns" takes up to three items and turns them into horizontal columns.
+
+vcolumns(<width>:<text 1>, <width>:<text 2> .. , <width>:<text n>[, <divider>[, <left>[, <right>]]])
+
+
+&f_vcolumns #107=
+@@ 0 - 9: width:text, the last three might be divider, left, right
+@@ q0 - q9: texts, as correspoinding to input register
+@@ c: total number of columns
+@@ h: height of the tallest column
+@@ e: error storage
+@@ z: random temp field
+
+@@ >> Num Columns
+	[iter(
+		lnum(9), 
+		if(
+			and(isint(before(v(%i0), :)), t(rest(v(%i0), :))), 
+			[setq(c, inc(%i0))]
+@@ .. error-check the text while we're here
+			[if(
+				strmatch(v(%i0), *`*), 
+				setq(e, BACKTICK MAY NOT BE IN TEXT)
+			)]
+		), , @@
+	)]
+
+@@ >> Error output
+	[case(1, 
+		t(%qe), #-1 %qe, 
+@@ >> Wrap Columns to <width>:<line>`<line>`<line>, put in registers
+		[iter(
+			lnum(%qc), 
+			setq(
+				%i0, 
+				[setr(z, before(v(%i0), :))]:
+				[wrap(rest(v(%i0), :), %qz, left, , , , `)]
+			), , @@
+		)]
+
+@@ >> Get Height
+		[iter(lnum(%qc), setq(h, max(%qh, words(r(%i0), `))), , @@)]
+
+@@ >> Display Lines
+		[iter(
+			lnum(1, %qh), 
+@@ .. >> Display Columns on that line
+@@ .. .. Left
+			[if(t(v(inc(%qc))), v(inc(%qc)))]
+@@ .. .. Center
+			[iter(
+				lnum(%qc), 
+				if(
+					t(setr(z, extract(rest(r(%i0), :), inum(1), 1, `))), 
+					%qz, 
+					space(first(r(%i0), :))
+				), , v(%qc)
+			)]
+@@ .. .. Right
+			[if(t(v(add(%qc, 2))), v(add(%qc, 2)))], 
+			, %r
+		)]
+	)]
+
+---
+
+&f_vcolumns #107=[iter(lnum(9), if(and(isint(before(v(%i0), :)), t(rest(v(%i0), :))), [setq(c, inc(%i0))][if(strmatch(v(%i0), *`*), setq(e, BACKTICK MAY NOT BE IN TEXT))]), , @@)][case(1, t(%qe), #-1 %qe, [iter(lnum(%qc), setq(%i0, [setr(z, before(v(%i0), :))]:[wrap(rest(v(%i0), :), %qz, left, , , , `)]), , @@)][iter(lnum(%qc), setq(h, max(%qh, words(r(%i0), `))), , @@)][iter(lnum(1, %qh), [if(t(v(inc(%qc))), v(inc(%qc)))][iter(lnum(%qc), if(t(setr(z, extract(rest(r(%i0), :), inum(1), 1, `))), %qz, space(first(r(%i0), :))), , v(%qc))][if(t(v(add(%qc, 2))), v(add(%qc, 2)))], , %r)])]
+
+
+-=-==--==--=-=-=-=-=-=-=
+
+[ansi(h, vcolumns%(%))]: Parses up to nine inputs as vertical columns. Each item passed must be in the format of <width>:<text>.  The next three items that do not are parsed as <divider text>, <left text>, and <right text> with all other inputs ignored. Example: vcolumns(5:line of text, 10:another line of text, %%b|%%b, <%%b, %%b>)
+
+--==--==--=-=-=-==--=-=-=
+
+* This Isn't Columns! *
+
+It's cool, it's fun, but it's a multi-column wrap function.  Let's try this again.
+
+=--=-=-==--=-=-=-=-=-=-=-
+
+vcolumns(<list1> <width1>, ..., <delim>, <divider>, <left>, <right>)
+
+%0-%9: input, hopefully at least one columns
+0-9: columns
+d: delim
+i: divider
+l: left
+r: right
+
+c: number of columns
+h: height
+
+
+---
+
+Due to limitations in Mu* code, the only way to separate <width> from <list> is with a pre-defined delimiter for this only.  I'm sticking with :.
+
+&f_vcolumns #107=
+@@ %0-%9: input, hopefully at least one column
+@@ 0-9: columns
+@@ d: delim
+@@ v: divider
+@@ l: left
+@@ r: right
+@@ 
+@@ c: number of columns
+@@ h: height
+
+@@ Num Columns
+	[iter(
+		lnum(9), 
+		if(
+			and(isint(before(v(%i0), :)), strmatch(v(%i0), *:*)), 
+			setq(c, inc(%i0))
+		), , @@
+	)]
+
+@@ Set Other Registers
+@@ (we set an empty delim to %b because wrap's defaults to %r)
+	[setq(d, if(t(comp(v(%qc), )), v(%qc), %b))]
+	[setq(v, v(inc(%qc)))]
+	[setq(l, v(add(%qc, 2)))]
+	[setq(r, v(add(%qc, 3)))]
+
+@@ Check each column's elements for wrap and enforce it (<width>:<list>)
+	[iter(
+		lnum(%qc), 
+@@ .. set 0-9 with the column, internal elements wrapped
+		setq(%i0, 
+			[setr(w, first(v(%i0), :))]:
+			[iter(
+				rest(v(%i0), :), 
+				wrap(%i0, %qw, left, , , , %qd), 
+				%qd, 
+				%qd
+			)]
+		), , @@
+	)]
+@@ Get Height (<width>:<list>)
+	[iter(lnum(%qc), setq(h, max(%qh, words(rest(r(%i0), :), %qd))), , @@)]
+
+@@ Display Lines
+	[iter(
+		lnum(1, %qh), 
+@@ .. >> Display Columns on that line
+@@ .. .. Left
+		%ql
+@@ .. .. Center
+		[iter(
+			lnum(%qc), 
+			if(
+				t(setr(z, extract(rest(r(%i0), :), inum(1), 1, %qd))), 
+				%qz, 
+				space(first(r(%i0), :))
+			), , %qv
+		)]
+@@ .. .. Right
+		%qr, 
+		, %r
+	)]
+
+---
+
+&f_vcolumns #107=[iter(lnum(9), if(and(isint(before(v(%i0), :)), strmatch(v(%i0), *:*)), setq(c, inc(%i0))), , @@)][setq(d, if(t(comp(v(%qc), )), v(%qc), %b))][setq(v, v(inc(%qc)))][setq(l, v(add(%qc, 2)))][setq(r, v(add(%qc, 3)))][iter(lnum(%qc), setq(%i0, [setr(w, first(v(%i0), :))]:[iter(rest(v(%i0), :), wrap(%i0, %qw, left, , , , %qd), %qd, %qd)]), , @@)][iter(lnum(%qc), setq(h, max(%qh, words(rest(r(%i0), :), %qd))), , @@)][iter(lnum(1, %qh), %ql[iter(lnum(%qc), if(t(setr(z, extract(rest(r(%i0), :), inum(1), 1, %qd))), %qz, space(first(r(%i0), :))), , %qv)]%qr, , %r)]
+
+---
+
+think [header(vcolumns test)]%r[u(#107/f_vcolumns, 14:this is a really kind of annoying test bla bla bla, 10:help I am a small rodent!, `, %b|%b)]%r[footer()]%r>>> columns (qc): %qc%r>>> height (qh): %qh%r>>> col 1 (q0): %q0%r>>> col 2 (q1): %q1%r[footer(vcolumns)]
+
+think [header(vcolumns test)]%r[u(#107/f_vcolumns, 14:this is a really kind of annoying test bla bla bla, 10:, `, %b|%b)]%r[footer()]%r>>> columns (qc): %qc%r>>> height (qh): %qh%r>>> col 1 (q0): %q0%r>>> col 2 (q1): %q1%r[footer(vcolumns)]
