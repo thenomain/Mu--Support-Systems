@@ -1,4 +1,4 @@
-"Vertical columns" takes up to three items and turns them into horizontal columns.
+"Vertical columns" takes up to nine items and turns them into horizontal columns.
 
 vcolumns(<width>:<text 1>, <width>:<text 2> .. , <width>:<text n>[, <divider>[, <left>[, <right>]]])
 
