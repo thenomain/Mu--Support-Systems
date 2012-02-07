@@ -1,0 +1,1637 @@
+================================================================================
+== SUPERNATURAL AGREEMENT SUPPORT SYSTEM =======================================
+
+With careful application, a lot of this code can go on a parent object, with each specific system (pledges, pacts, baths) can be presented on its own.
+
+For now, the Blood-Bather Ritual system (+baths) is the master prototype.
+
+
+================================================================================
+== SETUP =======================================================================
+
+@create Blood Bather Baths <bbb>=10
+@set bbb=inherit safe
+@Desc Blood Bather Baths <bbb>=Num entries: [attrcnt(u(d.database)/entry.*)]
+
+@create Blood Bath Database <bbd>=10
+@set bbd=safe
+
+
+--------------------------------------------------------------------------------
+-- Optional: Code Object Data Parent -------------------------------------------
+
+@parent bbb=codp
+
+&prefix.elements bbb=element.
+&prefix.filters bbb=fil.
+&prefix.displays bbb=display.
+&prefix.cross-platform bbb=_
+
+
+================================================================================
+== DATA ========================================================================
+
+
+--------------------------------------------------------------------------------
+-- Data: Basic -----------------------------------------------------------------
+
+@fo me=&d.database bbb=num(Blood Bath Database <bbd>)
+
+
+================================================================================
+== CROSS-PLATFORM FUNCTIONS ====================================================
+
+&_header bbb=header(%0)
+&_divider bbb=divider(%0)
+&_footer bbb=footer(%0)
+
+&_isapproved bbb=isapproved(%0)
+&_isstaff bbb=isstaff(%0)
+
+&_alert bbb=[ansi(r, >%b, nh, %0, nr, %b<)] %1
+
+&_lmax bbb=lmax(%0, %1)
+&_titlestr bbb=titlestr(%0, %1)
+&_crumple bbb=crumple(%0, %1)
+
+@@ The following are functions known to cause cross-platform issues
+@@ (originally written for TinyMUX 2.10)
+
+&_itemize bbb=if(strlen(%1), itemize(%0, %1), itemize(%0))
+&_wrap bbb=wrap(%0, %1, %2, %3, %4, %5, %6, %7)
+
+
+================================================================================
+== ELEMENTS ====================================================================
+
+Position is: <element name> <attribute prefix> <list position>
+Validation takes: %0 - entire item to validate
+Convert takes: 0: single element to convert, if list (e.g., players)
+			   1: should I also display the error text?
+Display takes: %0 - list of elements to display
+Filter is: How do I filter() for this? - 0: value, 2: comparison type (optional)
+
+
+--------------------------------------------------------------------------------
+-- Element: Name ---------------------------------------------------------------
+
+The name of the storage group.  Must exist, always.
+
+--
+
+&element.name.position bbb=name entry. 1
+
+--
+
+&element.name.validate bbb=
+	case(0, 
+		t(%0), #-1 Name cannot be empty, 
+		lte(strlen(%0), 30), #-1 Name must be 30 characters or less, 
+		1
+	)
+
+--
+
+&element.name.display bbb=
+	localize(
+		[setq(t, name)]
+		[setq(v, titlestr(%0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+--
+
+&element.name.filter bbb=
+	localize(
+		[setq(t, name)]
+		[setq(e, get(%!/element.%qt.position))]
+		[filter(fil.matches, 
+			lattr(v(d.database)/[elements(%qe, 2)]*), 
+			, 
+			, 
+			[elements(%qe, 3)], 
+			%0
+		)]
+	)
+
+
+--------------------------------------------------------------------------------
+-- Element: Expires ------------------------------------------------------------
+
+When does this element expire?
+
+--
+
+&element.expires.position bbb=expires entry. 2
+
+&element.expires.validate bbb=
+	case(0, 
+		comp(%0, ), #-1 Expires cannot be empty, 
+		isint(%0), #-1 Expires not in the expected format, 
+		gt(%0, secs()), #-1 Expires has passed, 
+		1
+	)
+
+--
+
+&element.expires.convert bbb=
+	switch(%0, 
+		@@(null), @@(is null), 
+		now, secs(), 
+		da*, add(secs(), 86400), 
+		wee*, add(secs(), 604800), 
+		mon*, add(secs(), 2419200), 
+		qua*, add(secs(), 7689600), 
+		sem*, add(secs(), 15811200), 
+		yea*, add(secs(), 31622400), 
+		fiv*, add(secs(), 158112000), 
+		convtime([mid(%0, 0, 4)]-[mid(%0, 4, 2)]-[mid(%0, 6, 2)] 	[extract(time(), 4, 1)])
+	)
+
+--
+
+&element.expires.display bbb=
+localize(
+	[setq(t, expires)]
+	[setq(v, if(isint(%0), timefmt($Y-$m-$d, %0), %0))]
+	[setq(e, u(f.element.validate, %qt, %0))]
+	[if(t(%qe), 
+		%qv, 
+		[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+	)]
+)
+
+--
+
+&element.filter.date bbb=
+	localize(
+		[setq(t, date)]
+		[setq(e, get(%!/element.%qt.position))]
+		[setq(k, 
+			case(%2, 
+				>, is_more, 
+				<, is_less, 
+				=, is, 
+				switch(%2, gr*, is_more, mo*, is_more, le*, is_less, is)
+			)
+		)]
+		[filter(fil.%qk, 
+			lattr(v(d.database)/[elements(%qe, 2)]*), 
+			, 
+			, 
+			[elements(%qe, 3)], 
+			%0
+		)]
+	)
+
+
+--------------------------------------------------------------------------------
+-- Element: Players ------------------------------------------------------------
+
+A list of players associated with the element
+
+--
+
+&element.players.position bbb=players entry. 3
+
+--
+
+&element.players.validate bbb=
+localize(
+	case(0, 
+		t(%0), 
+		#-1 Players list cannot be empty, 
+		
+		iter(%0, 
+			case(0, 
+				t(pmatch(%i0)), #-1 Player not found, 
+				comp(u(_isapproved, %i0), 0), #-1 Player not approved, 
+				comp(u(_isapproved, %i0), -1), #-1 Player is frozen, 
+				1
+			)
+			, , |
+		)
+	)
+
+--
+
+&element.players.convert bbb=iter(%0, pmatch(%i0))
+
+--
+
+&element.players.set-check bbb=
+localize(
+	[setq(m, expires bath blood frequency effects preparation)]
+	[if(
+		land(
+			iter(u(bbb/f.get.entry.elements, %0, %qm), 
+				t(%i0), 
+				|
+			)
+		), 
+		1, 
+		#-1 An entry must have [u(_itemize, %qm)] set before you can set players.
+	)]
+)
+
+--
+
+&element.players.display bbb=
+	localize(
+		[setq(t, players)]
+		[iter(%0, 
+			[setq(e, u(f.element.validate, %qt, %i0))]
+			[setq(v, name(%i0))]
+			[if(strmatch(%i0, #-*), 
+				[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))], 
+				%qv
+			)], 
+			|, %,%b
+		)]
+	)
+
+--
+
+&element.players.filter bbb=
+	localize(
+		[setq(t, players)]
+		[setq(e, get(%!/element.%qt.position))]
+		[filter(fil.is, 
+			lattr(v(d.database)/[elements(%qe, 2)]*), 
+			, 
+			, 
+			[elements(%qe, 3)], 
+			%0
+		)]
+	)
+
+
+--------------------------------------------------------------------------------
+-- Element: Text ---------------------------------------------------------------
+
+The filler note-text.
+
+--
+
+&element.text.position bbb=text text. 1
+
+--
+
+&element.text.validate bbb=1[@@(always valid, may be null)]
+
+--
+
+&element.text.filter bbb=
+	localize(
+		[setq(t, text)]
+		[setq(e, get(%!/element.%qt.position))]
+		[filter(fil.matches, 
+			lattr(v(d.database)/[elements(%qe, 2)]*), 
+			, 
+			, 
+			[elements(%qe, 3)], 
+			%0
+		)]
+	)
+
+
+--------------------------------------------------------------------------------
+-- Element: Others -------------------------------------------------------------
+
+More of the same.
+
+--
+
+&element.bath.position bbb=bath entry. 4
+&element.bath.validate bbb=case(0, t(%0), #-1 Bath cannot be empty, 1)
+&element.bath.display bbb=
+	localize(
+		[setq(t, bath)]
+		[setq(v, titlestr(%0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+--
+
+&element.blood.position bbb=blood entry. 5
+&element.blood.validate bbb=case(0, t(%0), #-1 Blood cannot be empty, 1)
+&element.blood.display bbb=
+	localize(
+		[setq(t, blood)]
+		[setq(v, titlestr(%0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+--
+
+&element.frequency.position bbb=frequency entry. 6
+&element.frequency.validate bbb=case(0, t(%0), #-1 Frequency cannot be empty, 1)
+&element.frequency.display bbb=
+	localize(
+		[setq(t, frequency)]
+		[setq(v, titlestr(%0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+--
+
+&element.effects.position bbb=effects entry. 7
+&element.effects.validate bbb=case(0, t(%0), #-1 Effects cannot be empty, 1)
+&element.effects.display bbb=
+	localize(
+		[setq(t, effects)]
+		[setq(v, titlestr(%0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+--
+
+&element.preparation.position bbb=preparation entry. 8
+&element.preparation.validate bbb=case(0, t(%0), #-1 Preparation cannot be empty, 1)
+&element.preparation.display bbb=
+	localize(
+		[setq(t, preparation)]
+		[setq(v, titlestr(%0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+
+================================================================================
+== FUNCTIONS ===================================================================
+
+--------------------------------------------------------------------------------
+-- Function: Elements' Position List -------------------------------------------
+
+0: list|of|elements
+returns: The entire data segments from that list, |-delimited, partial-matches
+
+--
+
+&f.list.elements.position bbb=
+	iter(
+		%0, 
+		iter(
+			lattr(%!/element.[edit(%i0, %b, _)]*.position), 
+			v(%i0), 
+			, |
+		), 
+		, |
+	)
+
+--
+
+think u(bbb/f.list.elements.position, *)
+think u(bbb/f.list.elements.position, b)
+think u(bbb/f.list.elements.position, b t)
+
+think u(bbb/f.list.elements.position, n|b)
+
+
+--------------------------------------------------------------------------------
+-- Function: Validate Element --------------------------------------------------
+
+0: Element to validate (name completed already?)
+1: Item(s) to validate
+m: message returned from validation
+returns: list|of|validations, where appropriate
+
+--
+
+&f.element.validate bbb=
+localize(
+	case(1, 
+		strmatch(%1, *|*), #-1 [capstr(lcstr(%0))] may not contain pipe character, 
+		strmatch(setr(m, udefault(element.%0.validate, 1, %1)), *#-*), 
+		%qm, 1
+	)
+)
+
+--
+
+think u(bbb/f.element.validate, name, this|isatest)
+think u(bbb/f.element.validate, name, )
+
+think u(bbb/f.element.validate, expires, 123)
+think u(bbb/f.element.validate, expires, abc)
+
+think u(bbb/f.element.validate, players, #1 #999)
+
+think u(bbb/f.element.validate, text, )
+
+
+--------------------------------------------------------------------------------
+-- Function: Convert Element ---------------------------------------------------
+
+0: element name (validated)
+1: data to convert
+returns: conversion process, or %1 if not found
+
+Simple.
+
+--
+
+&f.element.convert bbb=udefault(element.%0.convert, %1, %1)
+
+--
+
+think u(bbb/f.element.convert, name, This is a name)
+
+think u(bbb/f.element.convert, expires, quarter)
+
+think u(bbb/f.element.convert, players, thenomain troy)
+
+
+--------------------------------------------------------------------------------
+-- Function: Display Element ---------------------------------------------------
+
+0: element name (validated)
+1: data to display
+2: 'true' if details about the error are desired
+returns: Processed & errored data, else 
+
+--
+
+&f.element.display bbb=udefault(element.%0.display, %1, %1, %2)
+
+--
+
+think u(bbb/f.element.display, name, this|isatest)
+think u(bbb/f.element.display, name, this|isatest, 1)
+think u(bbb/f.element.display, name, , 1)
+
+think u(bbb/f.element.display, expires, 1234567)
+think u(bbb/f.element.display, expires, abc, 1)
+
+think u(bbb/f.element.display, players, #1 #999 #188)
+think u(bbb/f.element.display, players, #1 #999 #188, 1)
+
+think u(bbb/f.element.display, text, @@(it's null), 1)
+
+
+--------------------------------------------------------------------------------
+-- Function: Get Elements ------------------------------------------------------
+
+0: entry #
+1: element(s)
+
+--
+
+&f.get.entry.elements bbb=
+localize(
+	[setq(e, u(f.list.elements.position, %1))]
+	[case(0, 
+		comp(%qe, ), #-1 Element(s) requested unknown, 
+		
+		t(get(u(d.database)/entry.%0)), 
+		#-1 Entry #%0 Not Found, 
+
+		iter(%qe, 
+			extract(u(u(d.database)/[elements(%i0, 2)]%0), last(%i0), 1, |), 
+			|, |
+		)
+	)]
+)
+
+--
+
+think u(bbb/f.get.entry.elements, 1, na)
+think u(bbb/f.get.entry.elements, 1, na b)
+
+
+--------------------------------------------------------------------------------
+-- Function: Set Elements ------------------------------------------------------
+
+0: entry #
+1: element
+2: value
+
+p: element position
+n: new element to set
+a: attribute for element+entry
+w: can't remember
+e: possible error
+
+--
+
+&f.set.entry.element bbb=
+localize(
+	[setq(p, u(f.list.elements.position, %1))]
+	[setq(a, [extract(%qp, 2, 1)]%0)]
+	[setq(w, elements(%qp, 3))]
+
+	[case(0, 
+		comp(%qp, ), #-1 Element requested unknown, 
+
+		eq(words(%qp, |), 1), #-1 Multiple elements found, 
+
+		hasattr(u(d.database), entry.%0), 
+		#-1 Entry #%0 Not Found, 
+
+@@ if there are special conditions on setting the entry's element
+		t(setr(e, udefault(element.[first(%qp)].set-check, 1, %0, %2))), 
+		%qe, 
+
+		[setq(n, ulocal(u(d.database)/%qa))]
+
+@@ if an element hasn't been set on an attribute, assume it's the only one
+@@ (note: this is done during the setup +command, but we're correcting for 
+@@ the behavior of 'replace()' with null lists)
+
+		[setq(n, 
+			if(strlen(%qn), 
+				replace(%qn, %qw, %2, |), 
+				%2
+			)
+		)]
+		[setq(e, set(u(d.database), %qa:%qn))]
+
+		[if(comp(%qe, ), 
+			#-1 Error setting the attribute%; aborted, 
+			Set entry #%0's [first(%qp)] to '%2'
+		)]
+	)]
+)
+
+
+--
+
+think u(bbb/f.set.entry.element, 1, na, Testing)
+think u(bbb/f.set.entry.element, 1, play, Thenomain)
+
+think u(bbb/f.set.entry.element, 1, text, Boggle)
+
+
+
+--------------------------------------------------------------------------------
+-- Function: Counter - Entries -------------------------------------------------
+
+List the numbers for all entries, sorted.
+
+--
+
+&f.counter.entries bbb=sort(edit(lattr(u(d.database)/entry.*), ENTRY., ))
+
+
+--------------------------------------------------------------------------------
+-- Function: Counter - Free ----------------------------------------------------
+
+Return the numerically lowest free entry.
+
+--
+
+&f.counter.free bbb=
+localize(first(
+	setdiff(
+		lnum(1, inc(lmax(setr(n, u(f.counter.entries))))), 
+		%qn, 
+		, , n
+	)
+))
+
+--
+
+think u(bbb/f.counter.free)
+
+
+================================================================================
+== MISTRESS COMMANDS ===========================================================
+
+The "Mistress" Command structure (from Seth, AetherMux) allows a generic sorting system for easy refactoring.
+
+It is entirely function-based.  Use trigger() when necessary.
+
+
+--------------------------------------------------------------------------------
+-- Mistress: Primary Command ---------------------------------------------------
+
+1: /switches
+2: text
+
+
+&c.baths bbb=$^\+bath[s]?(/[^ ]*)?( .*)?$:
+	@pemit %#=
+		switch(1, 
+			t(strlen(%1)), 
+			u(c.baths.switch, %1, trim(%2)), 
+			
+			t(strlen(trim(%2))), 
+			u(c.baths.specific, trim(%2), @@(pseudo-switches)), 
+			
+			u(c.baths.default)
+		)
+
+--
+
+@set bbb/c.baths=regexp
+
+
+--------------------------------------------------------------------------------
+-- Mistress: Switches ----------------------------------------------------------
+
+0: /switch/es
+1: text (if passed)
+
+n: command name ('poses')
+s: switches found (c.baths/*)
+p: pseudo-switches (others)
+
+--
+
+&c.baths.switch bbb=
+	[setq(n, baths)]
+	[setq(s, )]
+	[setq(p, )]
+	[setq(a, lattr(%!/c.%qn/*))]
+
+@@ filter real (%qs) and psudo-switches (%qp)
+	[iter(
+		rest(%0, /), 
+		if(
+			t(grab(%qa, c.%qn/%i0*)), 
+			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
+			setq(p, %qp/%i0)
+		), 
+		/, 
+		@@
+	)]
+
+@@ process: 
+	[if(t(%qs), 
+
+@@ .. pass to first real-switch passed
+		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+
+@@ .. else pass to '.specific' or '.default' with pseudo-switches
+		if(
+			t(%1), 
+				ulocal(c.%qn.specific, %1, %qp), 
+				ulocal(c.%qn.default, %qp)
+		)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- Mistress: Default -----------------------------------------------------------
+
+0: psudo-switches, if passed (error'd, for now)
+
+--
+
+&c.baths.default bbb=
+	if(strlen(%0), 
+@@ error on psudo-switches
+		u(_alert, baths, I don't recognize that switch), 
+
+@@ ok
+		u(c.baths/view)
+	)
+
+
+--------------------------------------------------------------------------------
+-- Mistress: Specific ----------------------------------------------------------
+
+0: item to pass on
+1: psudo-switches, if passed (errored, for now)
+
+--
+
+&c.baths.specific bbb=
+	if(strlen(%1), 
+@@ error on psudo-switches
+		u(_alert, baths, I don't recognize that switch), 
+
+@@ ok
+		u(c.baths/view, %0)
+	)
+
+
+
+================================================================================
+== SWITCHED COMMANDS ===========================================================
+
+For all these commands: 
+
+0: text
+1: psudo-switches, if any
+
+
+--------------------------------------------------------------------------------
+-- /view -----------------------------------------------------------------------
+
+	+<cmd>/view [<entry num>]
+
+Display one or all possible items.
+
+--
+
+0: entry num, if any
+
+n: entry number
+l: list of pledges visible to the player; sorted by num desc
+
+--
+
+&c.baths/view bbb=
+	[if(strlen(%0), 
+@@ >> display one entry
+		[setq(n, %0)]
+	
+		[case(0, 
+			and(isint(%qn), gt(%qn, 0)), 
+			u(_alert, baths, Lookup must be a positive number), 
+
+			or(isstaff(%#), t(match(u(f.get.entry.elements, %qn, players), %#))), 
+			u(_alert, baths, You may not view someone else's entry), 
+
+			t(get(u(d.database)/entry.%qn)), 
+			u(_alert, baths, Entry not found), 
+
+			u(display.entry.full, %qn, +bath/view %0)
+		)], 
+
+@@ >> display all entries
+		[setq(l, 
+			sortby(sort.entries, 
+				filter(fil.entry.can-see, lattr(u(d.database)/entry.*), , , %#)
+			)
+		)]
+
+		[u(_header, Blood Bath Rituals)]%r
+
+		[if(t(words(%ql)), 
+			iter(%ql, u(display.entry.line, rest(%i0, .)), , %r), 
+			%b No baths to list.
+		)]%r
+
+		[u(_footer, if(t(words(%ql)), [words(%ql)] baths))]
+	)]
+
+
+--------------------------------------------------------------------------------
+-- /new ------------------------------------------------------------------------
+
+	+<cmd>/new <name>
+
+Create a new element.
+
+e: Possible error
+
+n: name for entry (%0)
+c: next available counter
+a: the 'name' position list: name <prefix.> <position #>
+p: <prefix.>
+r: item to set on the attribute '<prefix.>%qc'
+
+--
+
+&c.baths/new bbb=
+	[setq(n, u(_titlestr, %0))]
+	[setq(c, u(f.counter.free))]
+	[setq(a, v(element.name.position))]
+	[setq(p, elements(%qa, 2))]
+	[setq(r, 
+		repeat(|, dec(words(grepi(%!, element.*.position, %qp))))
+	)]
+
+	[setq(r, replace(%qr, last(%qa), %qn, |, |))]
+
+@@ .. error-check
+	[case(0, 
+		u(_isstaff, %#), 
+		u(_alert, bath/new, This command is staff-only), 
+
+		t(setr(e, u(f.element.validate, name, %0))), 
+		u(_alert, bath/new, rest(%qe)), 
+
+		not(comp(
+			set(u(d.database), %qp%qc:%qr), 
+			@@(null)
+		)), 
+		u(_alert, bath/new, Could not set initial entry for #%qc%; aborted), 
+
+@@ .. ok -- set up any other entry prefixes that need it
+@@ .. .. for each prefix, scan that prefix and add the |-delims for it
+@@ .. >> we rely upon replace(), which needs the delims there first
+
+		[iter(
+			setdiff(
+				iter(lattr(%!/element.*.position), elements(v(%i0), 2)), 
+				entry.
+			), 
+			set(u(d.database), 
+				%i0%qc:
+				[repeat(|, dec(words(grepi(%!, element.*.position, %i0))))]
+			), 
+			, @@
+		)]
+		u(_alert, bath/new, Set up new bath [ansi(h, #%qc)] with name '%qn')
+	)]
+
+
+--------------------------------------------------------------------------------
+-- /delete ---------------------------------------------------------------------
+
+	+<cmd>/delete <number>[=YES]
+
+--
+
+&c.baths/delete bbb=
+	[setq(n, before(%0, =))]
+	[setq(v, rest(%0, =))]
+	
+	[case(0, 
+		u(_isstaff, %#), u(_alert, bath/delete, Staff only), 
+
+		eq(attrcnt(u(d.database)/entry.%qn), 1), 
+		u(_alert, bath/delete, Entry not found), 
+
+		not(comp(%qv, YES)), 
+		u(_alert, bath/delete, 
+			If you are absolutely sure you want to delete this entry%, type: +baths/delete %qn=YES
+		), 
+
+		[u(_header, Deleting Bath #%qn)]%r
+		[ulocal(display.entry.full, %qn)]%r
+
+@@ find every attribute prefix to clear for this.
+		[setq(a, 
+			setunion(
+				iter(u(f.list.elements.position, *), elements(%i0, 2), |), 
+			)
+		)]
+
+@@ Try to delete them, count the errors
+		[setq(e, 
+			iter(%qa, 
+				set(u(d.database), %i0%qn:), 
+				, |
+			)
+		)]
+
+@@ In footer, report errors found
+		[u(_footer, 
+			if(strlen(edit(%qe, |, )), 
+				iter(%qe, 
+					if(t(%i0), 
+						error clearing 
+						&[capstr(first(elements(%qa, inum()), .))]%b
+					), 
+					|, 
+					@@
+				), 
+				Deleted
+			)
+		)]
+	)]
+
+
+--------------------------------------------------------------------------------
+-- /prove ----------------------------------------------------------------------
+
+	+<cmd>/prove <num>[/<element/list>]=<player list>
+
+Prove an entry's element(s) to another player.
+
+--
+
+n: entry number
+e: elements to check, else '#-2 full' for all of it
+l: list|of|element|positions
+p: player targets
+d: dbrefs of player targets
+
+--
+
+&c.baths/prove bbb=
+	[setq(n, first(before(%0, =), /))]
+	[setq(e, 
+		if(setr(e, before(rest(%0, /), =)), 
+			%qe, 
+			#-2 Display Entire Entry
+		)
+	)]
+	[setq(l, 
+		u(_crumple, 
+			iter(
+				ulocal(f.list.elements.position, 
+					u(_crumple, edit(edit(%qe, |, ), /, |), |)
+				), 
+				first(%i0), 
+				|, |
+			), 
+			|
+		)
+	)]
+
+	[setq(p, rest(%0, =))]
+	[setq(d, iter(%qp, if(t(setr(d, pmatch(%i0))), %qd)))]
+
+	[case(0, 
+		and(isint(%qn), gt(%qn, 0)), 
+		u(_alert, bath/prove, Lookup must be a positive integer), 
+
+		t(get(u(d.database)/entry.%qn)), 
+		u(_alert, bath/prove, Entry not found), 
+
+		u(fil.entry.can-see, entry.%qn, %#), 
+		u(_alert, bath/prove, You have no access to that entry), 
+
+		or(not(%qp), t(%qd)), 
+		u(_alert, bath/prove, No target players matched), 
+
+		or(words(%ql), strmatch(%qe, #-2*)), 
+		u(_alert, bath/prove, Element(s) not found.), 
+
+		pemit(
+			if(t(%qd), setunion(%# %qd, ), lcon(loc(%#))), 
+			u(display.entry.prove, %qn, %ql, %qp)
+		)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- /set ------------------------------------------------------------------------
+
+	+<cmd>/set <number>/<element>=<value>
+
+Set <value> to <element>.
+
+n: entry number
+e: element
+v: new value
+
+--
+
+&c.baths/set bbb=
+	[setq(n, first(%0, /))]
+	[setq(e, rest(first(%0, =), /))]
+	[setq(e, u(f.list.elements.position, %qe))]
+	[setq(v, last(%0, =))]
+	[case(0, 
+		u(_isstaff, %#), u(_alert, bath/set, Staff only), 
+
+		t(%qn), u(_alert, bath/set, Number not entered), 
+
+		t(%qe), u(_alert, bath/set, Element not found), 
+
+		attrcnt(u(d.database)/entry.%qn), u(_alert, bath/set, Entry not found), 
+
+		eq(words(%qe, |), 1), 
+		u(_alert, 
+			baths/set, 
+			Multiple elements match: [iter(%qe, first(%i0), |, %,%b)]
+		), 
+
+		comp(%qe, ), u(_alert, bath/set, Element not found), 
+
+		u(f.baths/set.workhorse, %qn, first(%qe), %qv)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- /set.workhorse ------------------------------------------------------------
+
+Does most of the checking and heavy lifting of editing an element.
+
+0: entry number (validated)
+1: element name (validated, only one)
+2: new value (not validated)
+
+p: existing element's pledge data
+c: converted value
+v: validation result
+e: element's set-check
+
+--
+
+&f.baths/set.workhorse bbb=
+	[setq(p, ulocal(f.get.entry.elements, %0, %1))]
+	[setq(c, ulocal(f.element.convert, %1, %2))]
+	[setq(v, ulocal(f.element.validate, %1, %qc))]
+
+@@ extra element-based checks, "1" if valid or not checked
+	[setq(e, 
+		udefault(element.%1.set-check, 1, %0)
+	)]
+
+@@ process
+	[case(0, 
+		t(%qv), u(_alert, bath/set, rest(%qv)), 
+		not(strmatch(%qe, #-1*)), u(_alert, bath/set, rest(%qe)), 
+@@ .. ok
+		u(f.baths/set.process, %0, %1, %qp, %qc)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- /set.process ----------------------------------------------------------------
+
+After the workhorse, do the editing.  This is separated out because there are times where we want to edit a bad stat, specifically when removing a player from a list where there may still be invalid players in it.
+
+This should probably be in a different attribute structure than /edit, but it's going here for now.
+
+	u(f.pledge/edit.process, <num>, <element>, <from>, <to>)
+
+0: pledge number
+1: pledge element
+2: 'from' value
+3: 'to' value
+
+e: potential error message
+
+--
+
+&f.baths/set.process bbb=
+	[u(_alert, bath/set)] Changing [ucstr(%1)] 
+	from '[u(f.element.display, %1, %2)]' 
+	to '[u(f.element.display, %1, %3)]' ... 
+
+	[setq(e, ulocal(f.set.entry.element, %0, %1, %3))]
+	[if(t(%qe), set!, error: [rest(%qe)])]
+
+
+================================================================================
+== DISPLAY =====================================================================
+
+
+--------------------------------------------------------------------------------
+-- Display: Full ---------------------------------------------------------------
+
+0: entry number
+1: footer add-on (optional)
+
+--
+
+&display.entry.full bbb=
+	[u(_header, Bath #%0)]%r
+
+@@ >> section: core elements
+	[setq(e, Name Players Expires)]
+	[setq(p, ulocal(f.get.entry.elements, %0, %qe))]
+
+	[iter(%qe, 
+		[setq(d, extract(%qp, inum(), 1, |))]
+		[setq(v, ulocal(f.element.validate, %i0, %qd))]
+		[setq(d, ulocal(f.element.display, %i0, %qd, true))]
+		[if(strlen(%qd), setq(d, [ansi(h, %i0:)] %qd))]
+		[if(t(strlen(%qd)), 
+			[ulocal(_wrap, 
+				%qd, 
+				sub(74, add(2, strlen(%i0))), 
+				left, %b%b, , add(2, strlen(%i0)), , 74
+			)]%r
+		)], 
+		, @@
+	)]
+
+@@ >> section: secondary elements (must have at least one for display purposes)
+	[setq(e, Bath Blood Frequency Effects Preparation)]
+	[setq(p, ulocal(f.get.entry.elements, %0, %qe))]
+
+	[u(_divider, 
+		if(strlen(edit(%qp, |, )), 
+			Benefits, 
+			%xr( Err: No Benefits Entered )%xn
+		)
+	)]%r
+
+	[iter(%qe, 
+		[setq(d, elements(%qp, inum(), |))]
+		[setq(d, ulocal(f.element.display, %i0, %qd, true))]
+
+		[if(strlen(%qd), setq(d, [ansi(h, %i0:)] %qd))]
+		[if(
+			t(strlen(%qd)), 
+			[ulocal(_wrap, 
+				%qd, 
+				sub(74, add(2, strlen(%i0))), 
+				left, %b%b, , add(2, strlen(%i0)), , 74
+			)]%r
+		)], 
+		, @@
+	)]
+
+@@ >> section: detailed text
+	[setq(d, ulocal(f.get.entry.elements, %0, text))]
+	[setq(v, ulocal(f.element.validate, text, %qd))]
+	
+	[if(strlen(%qd), 
+		[u(_divider, Text)]%r
+		[ulocal(_wrap, %qd, 74, left, %b%b)]%r
+	)]
+	
+	[u(_footer, %1)]
+
+
+--------------------------------------------------------------------------------
+-- Display: One Line -----------------------------------------------------------
+
+This section needs re-written per system.
+
+0: bath ritual number
+
+--
+
+&display.entry.line bbb=
+
+@@ >> element number
+	[rjust(%0, 4)]) 
+
+@@ >> element name
+	[ljust(
+		ulocal(f.element.display, 
+			name, 
+			ulocal(f.get.entry.elements, %0, name)
+		), 
+		39
+	)] - 
+
+@@ >> player name
+	[ljust(
+		ulocal(f.element.display, 
+			players, 
+			ulocal(f.get.entry.elements, %0, players)
+		), 
+		16
+	)] - 
+
+@@ >> expires
+	[ljust(
+		ulocal(f.element.display, 
+			expires, 
+			ulocal(f.get.entry.elements, %0, expires)
+		), 
+		11
+	)]
+
+
+--------------------------------------------------------------------------------
+-- Display: Prove --------------------------------------------------------------
+
+The "prove to player" display checker.
+
+This section needs minimal re-written per system.
+
+0: entry number
+1: list|of|element|positions -- if none, display entire entry
+2: list of dbrefs to send to (used to determine if private/public)
+
+--
+
+&display.entry.prove bbb=
+	if(not(strlen(%1)), 
+@@ No elements passed -- show entire entry
+		u(display.entry.full, 
+			%0, 
+			if(t(%2), Sent by %N (Private), Sent by %N (Public))
+		), 
+
+@@ Elements passed -- go through them one at a time
+		[u(_header, Bath #%0)]%r
+
+		[iter(%1, 
+			ansi(
+				h, ucstr(%i0), 
+				h, :%b, 
+				n, 
+				ulocal(f.element.display, 
+					%i0, 
+					ulocal(f.get.entry.elements, %0, %i0)
+				)
+			), 
+			|, %r%r
+		)]%r
+
+		[u(_footer, 
+			if(t(%2), 
+				Sent by %N (Private), 
+				Sent by %N (Public)
+			)
+		)]
+	)
+
+
+================================================================================
+== Filters =====================================================================
+
+0: attribute to check
+1: position in the attribute
+2: match element
+
+
+--------------------------------------------------------------------------------
+-- Filter: Contains ------------------------------------------------------------
+
+&FIL.CONTAINS bbb=t(match(elements(get(u(d.database)/%0), %1, |), %2))
+
+
+--------------------------------------------------------------------------------
+-- Filter: Contains ------------------------------------------------------------
+
+&FIL.MATCHES bbb=t(strmatch(elements(get(u(d.database)/%0), %1, |), *%2*))
+
+--------------------------------------------------------------------------------
+-- Filter: Is ------------------------------------------------------------------
+
+&FIL.IS bbb=eq(comp(elements(get(u(d.database)/%0), %1, |), %2), 0)
+
+
+--------------------------------------------------------------------------------
+-- Filter: Is More -------------------------------------------------------------
+
+&FIL.IS_MORE bbb=eq(comp(elements(get(u(d.database)/%0), %1, |), %2), 1)
+
+
+--------------------------------------------------------------------------------
+-- Filter: Is Less -------------------------------------------------------------
+
+&fil.is_less bbb=eq(comp(elements(get(u(d.database)/%0), %1, |), %2), -1)
+
+
+--------------------------------------------------------------------------------
+-- Filter: Can See -------------------------------------------------------------
+
+Can the player see this entry?
+
+This looks complicated because we want it to rely entirely upon the data elements entered for differing systems.
+
+0: entry.<num>
+1: player dbref to check
+
+--
+
+&fil.entry.can-see bbb=
+	or(
+		u(_isstaff, %1), 
+		strmatch(
+			elements(
+				get(u(d.database)/%0), 
+				elements(v(element.players.position), 3), 
+				|
+			), 
+		%1
+		)
+	)
+
+
+================================================================================
+== SORTBYS =====================================================================
+
+
+--------------------------------------------------------------------------------
+-- Sortby: Entries -------------------------------------------------------------
+
+&sort.entries bbb=comp(rpad(last(%0, .), 3, 0), rpad(last(%1, .), 3, 0))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-----------
+
+-----------
+
+
+* Bath
+	None (+3)
+	Any Tub (+3)
+	Specific Material (-1 to -5)
+	Unique Tub (-5)
+	Symbols and Carvings (-1, -2)
+	Attendants (-2, -3, -5)
+	Any Hour (+2)
+	Day or Night (+1)
+	Sunlight/Moonlight (0)
+	Moon Phase (-1)
+	Seasonal (-1)
+	Stars Are Right (-2, -3)
+* Blood
+* Frequency
+	Strict Timeline
+
+* Effects
+* Preparation
+* Text
+
+
+
+
+
+
+-----------
+
+&F.FILTER Blood Bather Baths <bbb>=localize([setq(e, u(f.data-elements.list, %0))][setq(n, first(%qe))][setq(c, u(f.convert-element, %qn, %1))][setq(v, u(f.element.validate, %qn, %qc))][case(0, eq(words(%0), 1), #-1 Filter only one element, eq(words(%qe, |), 1), #-1 Element not found, t(%qe), #-1 Elements: [rest(%qe)], t(%qc), #-1 Convert: [rest(%qc)], or(strmatch(%qe, date*), t(%qv)), %qv, ulocal(f.filter-workhorse, %qn, %qe, %qc, %2))])
+
+-----------
+
+&F.FILTER-WORKHORSE Blood Bather Baths <bbb>=case(0, strlen(setr(f, udefault(f.filter.%0, #-1 No filter for %0, %1, %2, %3))), #-1 No results, %qf)
+
+-----------
+
+-----------
+
+&display.bath.PROVE Blood Bather Baths <bbb>=[setq(p, ulocal(f.get.entry.elements, %0, edit(%1, |, %b)))][u(_header, Bath #%0 (from %N))]%r[iter(%1, [setq(d, extract(%qp, inum(), 1, |))][setq(v, ulocal(f.element.validate, %i0, %qd))][setq(d, [ansi(h, [titlestr(%i0)]:)] [ulocal(display.element, %i0, %qd, true)])][ulocal(_wrap, %qd, sub(74, add(2, strlen(%i0))), left, %b%b, , add(2, strlen(%i0)), , 74)], |, %r)]%r[u(_footer, +bath/prove %0)]
+
+-----------
+
+
+-----------
+
+
+-----------
+
+&C.BATH/EDIT Blood Bather Baths <bbb>=[setq(n, first(%0, /))][setq(e, rest(first(%0, =), /))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, t(%qe), [alert(bath)] Element not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, eq(words(%qe), 1), [alert(bath)] Enter only one element, comp(setr(e, u(f.data-elements.list, %qe)), ), [alert(bath/edit)] Element not found, u(f.bath/edit.workhorse, %qn, first(%qe), %qv))]
+
+-----------
+
+&F.BATH/EDIT.WORKHORSE Blood Bather Baths <bbb>=[setq(p, ulocal(f.get.entry.elements, %0, %1))][setq(c, ulocal(f.convert-element, %1, %2))][setq(v, ulocal(f.element.validate, %1, %qc))][setq(e, case(%1, player, if(land([iter(demon rank, [t(setr(z, ulocal(f.get.entry.elements, %0, %i0)))] [t(ulocal(f.element.validate, %i0, %qz))])]), 1, #-1 Can't edit player until demon and rank are set and valid), 1))][case(0, t(%qv), [alert(bath)] [rest(%qv)], t(%qe), [alert(bath)] [rest(%qe)], u(f.bath/edit.process, %0, %1, %qp, %qc))]
+
+-----------
+
+&F.BATH/EDIT.PROCESS Blood Bather Baths <bbb>=[alert(bath)] Changing [ucstr(%1)] from '[u(display.element, %1, %2)]' to '[u(display.element, %1, %3)]' ... [setq(e, ulocal(f.set.entry.element, %0, %1, %3))][if(t(%qe), set!, error: [rest(%qe)])]
+
+-----------
+
+-----------
+
+&C.BATH/DELETE Blood Bather Baths <bbb>=[setq(n, before(%0, =))][setq(v, rest(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, eq(attrcnt([u(d.database)]/bath.%qn), 1), [alert(bath)] Bath not found, not(comp(%qv, YES)), [alert(bath)] If you are absolutely sure you want to delete this bath%, type: +bath/delete %qn=YES, [u(_header, Deleting Bath #%qn)]%r[ulocal(display.entry.full, %qn)]%r[setq(p, set([u(d.database)], bath.%qn:))][setq(b, set([u(d.database)], benedits.%qn:))][setq(t, set([u(d.database)], text.%qn:))][u(_footer, case(1, comp(%qp, ), Error Clearing &Bath: %qp, comp(%qb, ), Error Clearing &Benefits: %qb, comp(%qt, ), Error Clearing &Text: %qt, Deleted))])]
+
+-----------
+
+&C.BATH/PROVE Blood Bather Baths <bbb>=[setq(n, first(before(%0, =), /))][setq(e, if(setr(e, before(rest(%0, /), =)), %qe, Name Demon Rank Sacrifices Date Player Trait Supernatural Service Artifact Text))][setq(l, crumple(iter(ulocal(f.data-elements.list, %qe), first(%i0), |, |), |))][setq(p, rest(%0, =))][setq(d, iter(%qp, if(t(setr(d, pmatch+(%i0))), %qd)))][case(0, and(isint(%qn), gt(%qn, 0)), [alert(+bath)] Bath lookup must be a positive number., t(get([u(d.database)]/bath.%qn)), [alert(+bath)] Bath not found., or(isstaff(%#), t(match(u(f.get.entry.elements, %qn, players), %#))), [alert(+bath)] You have no access to that bath., or(not(%qp), t(%qd)), [alert(+bath)] No target players matched., words(%ql), [alert(+bath)] Element(s) not found., pemit(if(t(%qd), setunion(%# %qd, ), lcon(loc(%#), connect)), u(display.bath.prove, %qn, %ql)))]
+
+-----------
+
+
+
+
+
+
+&C.BATH/PLAYER Blood Bather Baths <bbb>=[setq(t, player)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+&C.BATH/TEXT Blood Bather Baths <bbb>=[setq(t, text)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+&C.BATH/NAME Blood Bather Baths <bbb>=[setq(t, name)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+&C.BATH/DEMON Blood Bather Baths <bbb>=[setq(t, demon)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+&C.BATH/RANK Blood Bather Baths <bbb>=[setq(t, rank)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+&C.BATH/DATE Blood Bather Baths <bbb>=[setq(t, date)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+&C.BATH/TRAIT Blood Bather Baths <bbb>=[setq(t, trait)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+&C.BATH/SUPERNATURAL Blood Bather Baths <bbb>=[setq(t, supernatural)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+&C.BATH/DURATION Blood Bather Baths <bbb>=[u(c.bath/date, %0)]
+
+-----------
+
+&C.BATH/SERVICE Blood Bather Baths <bbb>=[setq(t, service)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+&C.BATH/ARTIFACT Blood Bather Baths <bbb>=[setq(t, artifact)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+&C.BATH/RAW Blood Bather Baths <bbb>=[setq(n, first(%0, /))][setq(e, rest(%0, /))][setq(p, ulocal(f.get.entry.elements, %qn, %qe))][case(0, isstaff(%#), [alert(bath)] Staff only., t(%qn), [alert(bath)] Number not entered, t(%qe), [alert(bath)] Element not entered, eq(words(%qe)), [alert(bath)] One element only, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, comp(setr(e, first(u(f.data-elements.list, %qe))), ), [alert(bath)] Element not found, [alert(bath #%qn)] [ansi(h, titlestr(%qe))]: %qp)]
+
+-----------
+
+&C.BATH/FILTER Blood Bather Baths <bbb>=[setq(m, regmatch(%0, (.*)(\[<>=\])(.*), m e c v))][setq(e, trim(%qe))][setq(v, trim(%qv))][setq(f, u(f.filter, %qe, %qv, %qc))][case(0, t(%qm), [alert(bath)] Filter format: <element> <comparison> <value>, t(%qf), [alert(bath)] [rest(%qf)], [setq(f, iter(%qf, bath.[last(%i0, .)]))][setq(l, sortby(sort.entries, filter(fil.entry.can-see, %qf, , , %#)))][u(_header, baths: Filtered by '%qv')]%r[if(t(words(%ql)), iter(%ql, u(display.entry.line, rest(%i0, .)), , %r), %b No baths to list.)]%r[u(_footer, if(t(words(%ql)), [words(%ql)] baths))])]
+
+-----------
+
+-----------
+
+-----------
+
+
+-----------
+
+
+-----------
+
+&C.BATH/SACRIFICES Blood Bather Baths <bbb>=[setq(t, sacrifices)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+
+-----------
+
+
+
+
+BLOOD BATHERS
+
++blood_ritual system (+pacts/+pledges)
+
+BODY THIEF
+
+Talent: Mental/Magical
+Society: 
+	The Club (Mental)
+		- Underaged, not allowed
+	The Seekers of Knowledge (Mental)
+		Means of Body Transfer: Mental Possession
+		Defining Merit: Willpower Drain
+	The Avalon House Wardrobe (Magical)
+		- Too far away
+		Method of Transference: Mystic Transference
+		Defining Merit: Amulet Making
+	The Archer Family (Magical)
+		- Too specific
+		Defining Merit: Sleight of Hand
+
+Merits:
+	Cultural Language (•) - All
+	Support Network (•• Social Merit) - Prereq: Status •+ in the group - All
+	Amulet (•• or ••••) - Body Thief
+	Emotional Urging (••••) - Body Thief
+	Luck Drain (••••) - Body Thief
+	Morality Sap (••••) - Body Thief
+	Sleight of Hand (••••) - Body Thief
+	Steal Sense (•••) - Body Thief
+	Theft of the Sublime (•••••) - Body Thief
+	Unobtrusiveness (••) - Body Thief
+	Vitality Drain (•••) - Body Thief
+	Willpower Drain (••••) - Body Thief
+
+
+PURIFIED (major template)
+
+Chi: 1-5 (power stat)
+Spirit Level: derived from Chi, 2/2/3/3/4
+Essence: derived from Chi, 6/9/12/15/20
+
+Siddhi: (powers)
+	Command: 1-3
+	Piercing the Distance: 1-3
+	Projection: 1-3
+	Shifting: 1-3
+	Spiritual Defense: 1-3
+	Summoning: 1-3
+	Warding: 1-3
+
+Numina: (other powers)
+	Blast
+	Camouflage
+	Commune
+	Concealment
+	Ghost Sign
+	Heal
+	Left-Handed Spanner
+	Omen Trance
+	Speed
+	Telekinesis
+	Wilds Sense
+
+Merits:
+	Dream (• to •••••) - Purified
+	Essence Reservoir (• or ••) - Purified
+	Familiar (•••) - Purified
+	Locus (• to •••) - Purified
+	Occultation (• to •••) - Purified
+	Ritual Crypt (•) - Purified
+	Shadow Sanctum (• to ••••) - Purified
+	Alternate Identity (•, •• or ••••) - All (already in)
+
+********************************************************************************
+* TEMPLATE *********************************************************************
+
+## ex #89/DATA.SUPERSTAT.TEMPLATES
+	Changeling:Wyrd/Normal Normal|
+	Mage:Gnosis/Normal Normal|
+	Promethean:Azoth/Normal Normal|
+	Geist:Psyche/Fast Fast|
+	Werewolf:Primal Urge/Normal Slow|
+	Vampire:Blood Potency/Normal Slow
+
+&LIST_TEMPLATE #89=Blood_Bather Body_Thief Changeling Fae-Touched Geist Ghoul Hunter Immortal Mage Mortal Possessed Proximus Psychic Purified Purified Shifter Slasher Thaumaturge Vampire Werewolf Wolfblooded
+
+--
+
+
+--
+
+&F.SWITCH.TEMPLATE #4017=[switch(%0, vampire, Vampire Clan Covenant, mage, Mage Path Order, werewolf, Werewolf Auspice Tribe, geist, Geist Threshold Archetype, changing breeds, Shifter Breed Accord, changeling, Changeling Seeming Kith, hunter, Hunter Conspiracy, body_thief, Body_Thief Talent Society, #-1)]
+
+********************************************************************************
+* SPHERE ***********************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===================================> #978 <====================================
+----> Global Function Object <-------------------------------------------------
+
+&LIST_SPHERES #978=:|Werewolf:Werewolf Wolfblooded|Changeling:Changeling Fae-Touched|Vampire:Vampire Ghoul|Changing Breeds:Shifter|Geist:Geist|Mage:Mage Sleepwalker Proximus|Possessed:Possessed|Hunter:Hunter|Mortal+:Thaumaturge Psychic|Immortal:Body_Thief Blood_Bather Purified|Mortal:Mortal
+
+
+===================================> #130 <====================================
+----> IC Globals <-------------------------------------------------------------
+
+&D.TEMPL-POOL-POW #130=Geist Plasm Psyche:Fast|Vampire Vitae Blood-Potency:Normal|Ghoul Vitae Blood-Potency:Minor|Werewolf Essence Primal-Urge:Normal|Shifter Essence Feral-Heart:Normal|Mage Mana Gnosis:Normal|Proximus Mana Gnosis:Minor|Changeling Glamour Wyrd:Normal|Fae-Touched Glamour Wyrd:Minor|Possessed InfernalWill InfernalWill:Minor|Purified Essence Chi:Minor|Skinthieves Essence xxx:Minor|Promethean Azoth xxx:Normal
+
+ex #130/CMD.SPEND
+ex #130/CMD.REGAIN
+
+
+&F.CALC.MAX-POOL #130=case(lcstr(%2), fast, ulocal(#89/fct.superstat.calc, %0, fast, _%1), normal, ulocal(#89/fct.superstat.calc, %0, normal, _%1), minor, ulocal(#89/fct.superstat.calc, %0, @@(unused), @@(unused)), #-1)
+
+
+&FCT.SUPERSTAT.CALC #89=case(lcstr(u(%0/_TEMPLATE)), ghoul, extract(u(%0/_ATTRIBUTES), 8, 1), proximus, 5, fae-touched, 1, possessed, rest(grab(get(%0/_vice-powers), [get(%0/_vice)]:*), :), purified, extract(u(data.superstat.max.purified), get(%0/_CHI), 1, |), extract(u(data.superstat.max.%1), get(%0/%2), 1, |))
+
+
+Dublin Rd. Auto
+Clark Auto Repair
+Auto Dr - 1133 Goodale - 
+
+ssh -L 2009:thereachmux.org:2009 jenkins@mux.net
