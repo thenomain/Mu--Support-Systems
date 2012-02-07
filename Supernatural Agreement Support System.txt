@@ -128,6 +128,8 @@ When does this element expire?
 
 &element.expires.position bbb=expires entry. 2
 
+--
+
 &element.expires.validate bbb=
 	case(0, 
 		comp(%0, ), #-1 Expires cannot be empty, 
@@ -576,14 +578,12 @@ localize(
 	)]
 )
 
-
 --
 
 think u(bbb/f.set.entry.element, 1, na, Testing)
 think u(bbb/f.set.entry.element, 1, play, Thenomain)
 
 think u(bbb/f.set.entry.element, 1, text, Boggle)
-
 
 
 --------------------------------------------------------------------------------
@@ -594,6 +594,10 @@ List the numbers for all entries, sorted.
 --
 
 &f.counter.entries bbb=sort(edit(lattr(u(d.database)/entry.*), ENTRY., ))
+
+--
+
+think u(bbb/f.counter.entries)
 
 
 --------------------------------------------------------------------------------
@@ -1342,9 +1346,8 @@ This looks complicated because we want it to rely entirely upon the data element
 
 
 
-
-
-
+################################################################################
+## NOTES FROM PREVIOUS SYSTEM ##################################################
 
 
 -----------
