@@ -1,9 +1,7 @@
 ================================================================================
 == SUPERNATURAL AGREEMENT SUPPORT SYSTEM =======================================
 
-For tracking supernatural-style agreements, such as pledges, pacts, and blood-bather rituals.
-
-With careful application, a lot of this code can go on a parent object, with each specific system on its own with appropriate changes.
+With careful application, a lot of this code can go on a parent object, with each specific system (pledges, pacts, baths) can be presented on its own.
 
 For now, the Blood-Bather Ritual system (+baths) is the master prototype.
 
@@ -470,29 +468,6 @@ think u(bbb/f.element.convert, players, thenomain troy)
 
 
 --------------------------------------------------------------------------------
--- Function: Filter Element ---------------------------------------------------
-
-0: element name (validated)
-1: data to convert
-returns: conversion process, or %1 if not found
-
-Simple.
-
---
-
-&f.element.convert bbb=udefault(element.%0.convert, %1, %1)
-
---
-
-think u(bbb/f.element.convert, name, This is a name)
-
-think u(bbb/f.element.convert, expires, quarter)
-
-think u(bbb/f.element.convert, players, thenomain troy)
-
-
-
---------------------------------------------------------------------------------
 -- Function: Display Element ---------------------------------------------------
 
 0: element name (validated)
@@ -726,14 +701,14 @@ p: pseudo-switches (others)
 --------------------------------------------------------------------------------
 -- Mistress: Default -----------------------------------------------------------
 
-0: /psudo/switches, if passed (error'd, for now)
+0: psudo-switches, if passed (error'd, for now)
 
 --
 
 &c.baths.default bbb=
 	if(strlen(%0), 
-@@ psudo-switches are passed on
-		u(c.baths.pseudo-switches, %0, @@(content would go here)), 
+@@ error on psudo-switches
+		u(_alert, baths, I don't recognize that switch), 
 
 @@ ok
 		u(c.baths/view)
@@ -744,45 +719,18 @@ p: pseudo-switches (others)
 -- Mistress: Specific ----------------------------------------------------------
 
 0: item to pass on
-1: /psudo/switches, if passed (errored, for now)
+1: psudo-switches, if passed (errored, for now)
 
 --
 
 &c.baths.specific bbb=
 	if(strlen(%1), 
-@@ psudo-switches are passed on
-		u(c.baths.pseudo-switches, %1, %0), 
+@@ error on psudo-switches
+		u(_alert, baths, I don't recognize that switch), 
 
-@@ else default to 'view'
+@@ ok
 		u(c.baths/view, %0)
 	)
-
-
---------------------------------------------------------------------------------
--- Mistress: Pseudo-Switches ---------------------------------------------------
-
-This part of the system is for switches that are not part of the recognized &c.<cmd>/<switch> setup, and would be called by both &c.<cmd>.default and &c.<cmd>.specific.
-
---
-
-In this system, the pseudo-switches are all shortcuts for entering elements. 
-e.g.:
-
-	+baths/player <num>=[!]<player name>
-	+baths/expires <num>=<keyword or date>
-
-Driven mainly by /set, but in retrospect I need special code to process list-type elements ('player').
-
---
-
-0: /psudo/switches
-1: item passed (from .specific)
-
---
-
-@@ error for now
-
-&c.baths.pseudo-switches bbb=u(_alert, baths, I don't recognize that switch)
 
 
 
@@ -1130,58 +1078,6 @@ e: potential error message
 	[if(t(%qe), set!, error: [rest(%qe)])]
 
 
---------------------------------------------------------------------------------
--- /filter ---------------------------------------------------------------------
-
-	+<cmd>/filter <element> <comparison> <value>
-
---
-
-0: the input
-
-m: match?
-e: element
-c: comparison type (may be ignored)
-v: value
-
-f: filter
-l: list of "displayed pledges" - pledges player is allowed to see
-
---
-
-&c.baths/filter bbb=
-	[setq(m, 
-		regmatch(%0, 
-			(.*)(\[<>=\])(.*), 
-			m e c v
-		)
-	)]
-	[setq(e, trim(%qe))]
-	[setq(v, trim(%qv))]
-	[setq(f, u(f.filter, %qe, %qv, %qc))]
-
-	[case(0, 
-		t(%qm), 
-		u(_alert, baths/filter, Filter format: <element> <comparison> <value>), 
-
-		u(_alert, baths/filter, rest(%qf)), 
-
-		[setq(f, iter(%qf, PLEDGE.[last(%i0, .)]))]
-		[setq(l, sortby(sort.pledge, filter(fil.pledge.can-see, %qf, , , %#)))]
-
-		[header(Pledges: Filtered by '%qv')]%r
-
-		[if(t(words(%ql)), 
-			iter(%ql, u(f.display.pledge.line, rest(%i0, .)), , %r), 
-			%b No pledges to list.
-		)]%r
-
-		[footer(if(t(words(%ql)), [words(%ql)] pledges))]
-	)]
-
-
-
-
 ================================================================================
 == DISPLAY =====================================================================
 
@@ -1398,7 +1294,6 @@ This looks complicated because we want it to rely entirely upon the data element
 		strmatch(
 			elements(
 				get(u(d.database)/%0), 
-@@ the position of the player element's position is the player list.
 				elements(v(element.players.position), 3), 
 				|
 			), 
@@ -1602,6 +1497,81 @@ This looks complicated because we want it to rely entirely upon the data element
 -----------
 
 
+
+
+BLOOD BATHERS
+
++blood_ritual system (+pacts/+pledges)
+
+BODY THIEF
+
+Talent: Mental/Magical
+Society: 
+	The Club (Mental)
+		- Underaged, not allowed
+	The Seekers of Knowledge (Mental)
+		Means of Body Transfer: Mental Possession
+		Defining Merit: Willpower Drain
+	The Avalon House Wardrobe (Magical)
+		- Too far away
+		Method of Transference: Mystic Transference
+		Defining Merit: Amulet Making
+	The Archer Family (Magical)
+		- Too specific
+		Defining Merit: Sleight of Hand
+
+Merits:
+	Cultural Language (•) - All
+	Support Network (•• Social Merit) - Prereq: Status •+ in the group - All
+	Amulet (•• or ••••) - Body Thief
+	Emotional Urging (••••) - Body Thief
+	Luck Drain (••••) - Body Thief
+	Morality Sap (••••) - Body Thief
+	Sleight of Hand (••••) - Body Thief
+	Steal Sense (•••) - Body Thief
+	Theft of the Sublime (•••••) - Body Thief
+	Unobtrusiveness (••) - Body Thief
+	Vitality Drain (•••) - Body Thief
+	Willpower Drain (••••) - Body Thief
+
+
+PURIFIED (major template)
+
+Chi: 1-5 (power stat)
+Spirit Level: derived from Chi, 2/2/3/3/4
+Essence: derived from Chi, 6/9/12/15/20
+
+Siddhi: (powers)
+	Command: 1-3
+	Piercing the Distance: 1-3
+	Projection: 1-3
+	Shifting: 1-3
+	Spiritual Defense: 1-3
+	Summoning: 1-3
+	Warding: 1-3
+
+Numina: (other powers)
+	Blast
+	Camouflage
+	Commune
+	Concealment
+	Ghost Sign
+	Heal
+	Left-Handed Spanner
+	Omen Trance
+	Speed
+	Telekinesis
+	Wilds Sense
+
+Merits:
+	Dream (• to •••••) - Purified
+	Essence Reservoir (• or ••) - Purified
+	Familiar (•••) - Purified
+	Locus (• to •••) - Purified
+	Occultation (• to •••) - Purified
+	Ritual Crypt (•) - Purified
+	Shadow Sanctum (• to ••••) - Purified
+	Alternate Identity (•, •• or ••••) - All (already in)
 
 ********************************************************************************
 * TEMPLATE *********************************************************************
