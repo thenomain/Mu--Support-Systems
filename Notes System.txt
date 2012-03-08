@@ -9,7 +9,7 @@ FORMAT:
 	+note[/list/of/switches] <note>[=<other>]
 
 KEY: 
-	<note> - <object>/<note>
+	<note> - [<object>/]<note>
 
 COMMANDS:
 
