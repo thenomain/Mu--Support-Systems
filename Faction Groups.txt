@@ -1,6 +1,7 @@
 ================================================================================
 == PLANNING ====================================================================
 
+
 --------------------------------------------------------------------------------
 -- PLANNING: Outline -----------------------------------------------------------
 
@@ -196,10 +197,10 @@ Parented items (may be changed per-faction):
 	Must not be null; its existence says <dbref> is faction member
 
 &member.title.<dbref>
-	Faction title for <dbref>
+	Faction title for <dbref>. Max length: 30 characters. If title is null, use faction default in display.
 
 &member.rank.<dbref>
-	Faction rank of <dbref>
+	Faction rank of <dbref>. Numeric, -999 to 999, determines faction's primary sort order. If rank is null, use faction default in display.
 
 &member.title.default
 	Allows a default (formula) for title
@@ -267,7 +268,7 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 &_footer Faction Groups=wfooter(%0)
 &_divider Faction Groups=wdivider(%0)
 
-&_error Faction Groups=[alert(Factions)] %0
+&_msg Faction Groups=msg(h, %0, %1)
 
 &_isstaff Faction Groups=isstaff(%0)
 
@@ -372,8 +373,7 @@ Show default factions setup: List factions
 
 --
 
-&c.factions.default Faction Groups=if(strlen(%1), u(_error, Factions doesn't take that switch. See +help factions), u(c.factions/default))
-
+&c.factions.default Faction Groups=if(strlen(%1), u(_msg, factions, Factions doesn't take that switch. See +help factions), u(c.factions/default))
 
 
 --------------------------------------------------------------------------------
@@ -388,7 +388,7 @@ Show information about a particular faction
 
 --
 
-&c.factions.specific Faction Groups=if(strlen(%1), u(_error, Factions doesn't take that switch. See +help factions), u(c.factions/faction))
+&c.factions.specific Faction Groups=if(strlen(%1), u(_msg, factions, Factions doesn't take that switch. See +help factions), u(c.factions/faction))
 
 
 --------------------------------------------------------------------------------
@@ -396,16 +396,18 @@ Show information about a particular faction
 
 &c.factions/list Faction Groups=Factions/List
 
+
 --------------------------------------------------------------------------------
 -- factions/faction ------------------------------------------------------------
 
-&c.factions/faction Faction Groups=Factions/Group
+&c.factions/faction Faction Groups=Factions/faction
 
 
 ================================================================================
 == ACTIONS =====================================================================
 
 <see planning, above, for the actions/queries list>
+
 
 --------------------------------------------------------------------------------
 -- ACTION: Factions List (system) ----------------------------------------------
@@ -431,6 +433,10 @@ List factions as appropriate for a certain player, which means throwing it throu
 
 &action.factions Faction Groups=filter(fil.factions_byname, filter(fil.cansee_factions, filter(fil.valid_factions, lcon(%!)), @@(empty idelim), @@(empty odelim), %#), @@(empty idelim), @@(empty odelim), %0)
 
+--
+
+think u(fg/action.factions)
+
 
 --------------------------------------------------------------------------------
 -- ACTION: Create Faction (system) ---------------------------------------------
@@ -449,7 +455,7 @@ localize(
 	case(0, 
 
 @@ .. staff only
-		t(u(_isstaff, %#)), 
+		t(u(_isstaff, %@)), 
 		#-1 Staff only, 
 
 @@ .. check for valid faction object name
@@ -482,7 +488,11 @@ localize(
 
 --
 
-&action.create Faction Groups=localize(case(0, t(u(_isstaff, %#)), #-1 Staff only, valid(name, %0), #-1 That's a bad name for a faction, not(setr(m, grab(iter(filter(fil.valid_factions, lcon(%!)), name(%i0), , |), [strtrunc(%0, 5)]*, |))), #-1 A similar faction name already exists as '%qm', t(setr(f, create(%0, ))), #-1 Error when creating faction '%0', strcat(parent(%qf, v(d.faction_parent)), strmatch(parent(%qf), v(d.faction_parent))), #-1 Error when setting faction parent. Please type: @parent %qf=[v(d.faction_parent)], %qf))
+&action.create Faction Groups=localize(case(0, t(u(_isstaff, %@)), #-1 Staff only, valid(name, %0), #-1 That's a bad name for a faction, not(setr(m, grab(iter(filter(fil.valid_factions, lcon(%!)), name(%i0), , |), [strtrunc(%0, 5)]*, |))), #-1 A similar faction name already exists as '%qm', t(setr(f, create(%0, ))), #-1 Error when creating faction '%0', strcat(parent(%qf, v(d.faction_parent)), strmatch(parent(%qf), v(d.faction_parent))), #-1 Error when setting faction parent. Please type: @parent %qf=[v(d.faction_parent)], %qf))
+
+--
+
+think u(fg/action.create, Test Fallacy)
 
 
 --------------------------------------------------------------------------------
@@ -513,7 +523,7 @@ localize(
 @@ .. <dbref>|<member dbrefs>|<permissions>|<desc>
 		strlen(%1), 
 		%qf|
-		[iter()]|
+		[iter(lattr(%qf/member.power.*), last(%i0, .))]|
 		[get(%qf/permissions.view)]|
 		[get(%qf/desc)]|, 
 
@@ -536,7 +546,11 @@ localize(
 
 --
 
-&action.details Faction Groups=localize(case(0, t(setr(f, u(action.factions, %0))), #-1 Faction '%0' not found, eq(words(%qf), 1), #-1 Too many matching factions found, strlen(%1), %qf|[iter()]|[get(%qf/permissions.view)]|[get(%qf/desc)]|, t(setr(p, pmatch(%qp))), #-1 Player '%1' has too many matches or not found, t(get(%qf/member.power.%qd)), #-1 Player '[name(%qd)]' not a member of faction '[name(%qf)]', %qa|[get(%qf/member.power.%qa)]|[udefault(%qf/member.rank.%qa, u(%qf/default.rank, %qa))]|[udefault(%qf/member.title.%qa, u(%qf/default.title, %qa))]))
+&action.details Faction Groups=localize(case(0, t(setr(f, u(action.factions, %0))), #-1 Faction '%0' not found, eq(words(%qf), 1), #-1 Too many matching factions found, strlen(%1), %qf|[iter(lattr(%qf/member.power.*), last(%i0, .))]|[get(%qf/permissions.view)]|[get(%qf/desc)]|, t(setr(p, pmatch(%qp))), #-1 Player '%1' has too many matches or not found, t(get(%qf/member.power.%qd)), #-1 Player '[name(%qd)]' not a member of faction '[name(%qf)]', %qa|[get(%qf/member.power.%qa)]|[udefault(%qf/member.rank.%qa, u(%qf/default.rank, %qa))]|[udefault(%qf/member.title.%qa, u(%qf/default.title, %qa))]))
+
+--
+
+think u(fg/action.details, test fac)
 
 
 --------------------------------------------------------------------------------
@@ -555,7 +569,7 @@ e: possible error from functions: set()
 localize(
 	case(0, 
 @@ .. basic checks
-		u(_isstaff, %#), 
+		u(_isstaff, %@), 
 		#-1 Staff only, 
 
 		t(setr(p, pmatch(%0))), 
@@ -570,7 +584,7 @@ localize(
 		eq(words(%qf), 1), 
 		#-1 Multiple faction matches, 
 
-		hasattr(%qf, member.power.%qp), 
+		not(hasattr(%qf, member.power.%qp)), 
 		#-1 '[name(%qp)]' is already member of faction '[name(%qf)]', 
 
 @@ power check here
@@ -586,11 +600,120 @@ localize(
 
 --
 
-&action.add Faction Groups=localize(case(0, u(_isstaff, %#), #-1 Staff only, t(setr(p, pmatch(%0))), #-1 Player '%0' not found, t(u(_isapproved, %qp)), #-1 Player is not approved for RP, t(setr(f, u(action.factions, %1))), #-1 Faction '%1' not found, eq(words(%qf), 1), #-1 Multiple faction matches, hasattr(%qf, member.power.%qp), #-1 '[name(%qp)]' is already member of faction '[name(%qf)]', eq(strlen(setr(e, set(%qf, member.power.%qp:<<< power lvl >>>))), 0), #-1 %qe, 1))
+&action.add Faction Groups=localize(case(0, u(_isstaff, %@), #-1 Staff only, t(setr(p, pmatch(%0))), #-1 Player '%0' not found, t(u(_isapproved, %qp)), #-1 Player is not approved for RP, t(setr(f, u(action.factions, %1))), #-1 Faction '%1' not found, eq(words(%qf), 1), #-1 Multiple faction matches, not(hasattr(%qf, member.power.%qp)), #-1 '[name(%qp)]' is already member of faction '[name(%qf)]', eq(strlen(setr(e, set(%qf, member.power.%qp:<<< power lvl >>>))), 0), #-1 %qe, 1))
+
+--
+
+think u(fg/action.add, *thenomain, test)
 
 
 --------------------------------------------------------------------------------
 -- ACTION: Change Member's Power Level on Faction (individual) -----------------
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Change Member's Title -----------------------------------------------
+
+	faction(set title, <player>, <faction>[, <title>])
+
+p: dbref of player to add
+f: faction dbref
+
+e: possible error from functions: set()
+
+If title is null, use faction default in display.
+
+--
+
+&action.set_title Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(_isstaff, %@), 
+		#-1 Staff only, 
+
+		t(setr(f, u(action.factions, %1))), 
+		#-1 Faction '%1' not found, 
+
+		eq(words(%qf), 1), 
+		#-1 Multiple faction matches, 
+
+		hasattr(%qf, member.power.[setr(p, pmatch(%0))]), 
+		#-1 '[name(%qp)]' is not a member of faction '[name(%qf)]', 
+
+		lte(strlen(%2), 30), 
+		#-1 Title may be at most 30 characters, 
+
+		eq(strlen(setr(e, set(%qf, member.title.%qp:[escape(%2)]))), 0), 
+		#-1 %qe, 
+
+@@ OK
+		1
+	)
+)
+
+--
+
+think u(fg/action.set_title, *thenomain, test, \[title\])
+think u([first(u(fg/action.details, test), |)]/member.title.[pmatch(thenomain)])
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Change Member's Rank ------------------------------------------------
+
+	faction(set rank, <player>, <faction>[, <rank>])
+
+p: dbref of player to add
+f: faction dbref
+
+e: possible error from functions: set()
+
+Numeric, -999 to 999, determines faction's primary sort order.
+
+If rank is null, use faction default in display.
+
+--
+
+&action.set_rank Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(_isstaff, %@), 
+		#-1 Staff only, 
+
+		t(setr(f, u(action.factions, %1))), 
+		#-1 Faction '%1' not found, 
+
+		eq(words(%qf), 1), 
+		#-1 Multiple faction matches, 
+
+		hasattr(%qf, member.power.[setr(p, pmatch(%0))]), 
+		#-1 '[name(%qp)]' is not a member of faction '[name(%qf)]', 
+
+		or(isint(%2), not(comp(, %2))), 
+		#-1 Rank must be numeric or blank to clear, 
+
+		and(gte(%2, -999), lte(%2, 999)), 
+		#-1 Rank must be between -999 and 999 or blank to clear, 
+
+		lte(strlen(%2), 30), 
+		#-1 Title may be at most 30 characters, 
+
+		eq(strlen(setr(e, set(%qf, member.rank.%qp:[escape(%2)]))), 0), 
+		#-1 %qe, 
+
+@@ OK
+		1
+	)
+)
+
+--
+
+think u(fg/action.set_rank, *thenomain, test, \[title\])
+
+think u(fg/action.set_rank, *thenomain, test, 15)
+think u([first(u(fg/action.details, test), |)]/member.rank.[pmatch(thenomain)])
+
 
 
 
