@@ -1,0 +1,96 @@
+XdY±Z roller
+
+dY = 1dY
+
+edit '- ' to '-', edit '-' to '+-' and iterate on '+'.
+
+
+--
+
+0: roll+code-entered
+returns: Something the rest of the code can process
+
+&f.roll-text.pre-process xxx=
+	edit(edit(%0, -%b, -), -, +-)
+
+--
+
+returns: num, dice, text
+
+&f.roll-text.element-type xxx=
+	case(1, 
+		isnum(%0), num, 
+
+		and(
+			or(
+				isnum(before(%0, d)), 
+				not(comp(first(%0, d), ))
+			), 
+			isnum(rest(%0, d)), 
+		), 
+		dice, 
+		
+		stat
+	)
+
+--
+
+now that we discovered what type the element is, is it valid?
+
+&f.element.valid?.num xxx=if(isint(%0), 1, #-1 modifier must be an integer)
+
+&f.element.vaid?.stat xxx=if(strmatch(%0, #-*), 1, %0)
+
+&f.element.valid?.roll xxx=
+	case(1, 
+		or(
+			isint(before(%0, d)), 
+			not(comp(first(%0, d), ))
+		), 
+		#-1 num dice must be integer or null, 
+
+		isint(rest(%0, d)), 
+		#-1 die type must be an integer, 
+		
+		gt(rest(%0, d))
+		#-1 die type must be positive, 
+		
+		1
+	)
+
+--
+
+0: what to roll
+returns: <what to roll>:<what was rolled>
+
+&f.element-to-value.roll xxx=
+	[setq(e, regmatch(%0, (\[0-9\]+|)d(\[0-9\])+, 0 n d))]
+	[if(t(%qe), 
+		[setq(i, if(t(%qn), %qn, 1))]
+		%qnd%qd:[iter(lnum(1, %qi), rand(1, %qd))], 
+
+		#-1 bad roll format
+	)]
+
+--
+
+0: stat
+1: sheet dbref
+
+&f.element-to-value.stat xxx=%0:[default(%1/%0, 0)]
+
+--
+
+
+
+
+
+
+
+
+
+	iter(
+		edit(edit(%0, -%b, -), -, +-), 
+		xxx, 
+		+
+	)
