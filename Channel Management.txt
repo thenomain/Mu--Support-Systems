@@ -1,0 +1,439 @@
+COMSYS COMMANDS AND FUNCTIONS
+
+  These are the topics for the MUX comsystem:
+
+  User Commands:            @clist, addcom, alias, allcom, comlist, comtitle,
+                            clearcom, delcom
+
+  Administrative Commands:  @cboot, @ccharge, @cchown, @ccreate, @cdestroy,
+                            @cemit, @clist, @coflags, @cpflags, @cset, @cwho
+
+  Functions:                channels(), chanobj(), comalias(), comtitle(),
+                            cwho()
+
+  General Information:      channel object, comsys examples
+
+
+--
+
+@CCREATE
+
+  COMMAND: @ccreate <channel name>
+
+  Only Wizards can create new channels.
+
+  Creates a new channel with default settings. Once the channel is created,
+  it can be associated with a object with the @cset command. That object can
+  be used to set locks and descriptions on the channel.
+
+  Example:
+    > @ccreate Public
+    Channel Public created.
+
+  Related Topics: comsys, @cset, @cdestroy, @clist, @cchown.
+
+--
+
+@CDESTROY
+
+  COMMAND: @cdestroy <channel>
+
+  Deletes <channel> permanently from the comsystem database. It does not
+  destroy all aliases that exist for <channel> -- those are left to the
+  owners of those aliases. Players are notified both at login when they
+  own aliases for which a channel no longer exists and when they try to
+  use them. Even if a Channel is destroyed and then recreated, the alias
+  will still be non functioning. The alias must be removed with the
+  'delcom' command and added with the 'addcom' command.
+
+  Example:
+    > @cdestroy Staff
+    Channel Staff destroyed.
+
+  Related Topics: @clist, @ccreate, @cchown, addcom, delcom.
+
+--
+
+CHANNEL OBJECT
+
+  In the comsystem, you may specify a channel object for each channel.
+  (@cset/object channel=<object>). See 'help @cset' for help.
+
+  Channel objects allow you to specify a description for a channel and
+  place certain restrictions on joining, transmitting, and receiving.  If
+  present on the channel object, the @comjoin, @comleave, @comon, and @comoff
+  messages are evaluated and then sent to members performing the join, leave,
+  on, and off actions, respectively.
+
+  NOTE: If a channel flag is set by @cpflags or @coflags, those will ALWAYS
+  override the equivalent lock. The flags are set by default, so you will
+  have to clear them before your locks work.
+
+  The join lock for a channel is a normal @lock on the channel object.
+  The transmit lock for a channel is a use @lock on the channel object.
+  The receive lock for a channel is an enter @lock on the channel object.
+  The description of a channel is the @desc of the channel object.
+
+  If the channel object has @speechmod or @saystring set, those settings
+  will override the player settings.
+
+  Related Topics: @comjoin, @comleave, @comoff, @comon, @ccreate, @create,
+                  @cset, @speechmod, @saystring.
+
+--
+
+@CSET
+
+  COMMAND: @cset/<option> <channel>[=<value>]
+
+  Changes the way a channel behaves. <option> can be one of the
+  following:
+
+    public  - channel is listed in everyone's @clist.
+    private - channel is hidden from the @clist.
+    loud    - channel announces player connects/disconnects.
+    mute    - shuts connects/disconnects off.
+    quiet   - same as mute.
+    spoof   - allows the comtitle to replace the player's name.
+    anon    - same as spoof.
+    nospoof - channel will append the player's name to the comtitle.
+    header  - Changes the prefix text used to announce a channel emit to
+              <value>. <value> may contain color.
+    object  - Sets the channel object to <value>. You must create an object
+              before associating a channel with it.
+    log     - Sets the maximum number of channel messages to log.
+              The channel must have an object.
+    timestamp_logs - [0/1] Indicates if log messages are prepended with a
+            - timestamp.   Channel must have an object and logging enabled.
+
+  You can set a description for the channel by changing the description
+  of the channel object. Also, the channel object's lock will be used
+  to check to see if people should be able to join the channel or not.
+
+  Examples:
+    > @cset/public Public
+    @cset: Channel Public placed on the public listings.
+    > @cset/object Public=#5
+    Channel Public is now using Garou Channel Object(#5) as channel object.
+
+  Related Topics: CHANNEL OBJECT, @ccreate, @create
+
+--
+
+CHANOBJ()
+
+  FUNCTION: chanobj(<channel name>)
+
+  This function returns the channel object for the given <channel name>.  As
+  with all comsys commands, <channel name> is case sensitive.  If the channel
+  name matches a comsys channel with a channel object set, the dbref of the
+  object is returned.  If the channel has no channel object, #-1 is returned.
+
+  By default, the chanobj() function is restricted to wizards.
+
+  Related Topics: comalias(), comtitle(), cwho(), CHANNEL OBJECT, @cset
+
+--
+
+
+== SETUP =====================
+
+@create Channel Maker <ChMkr>=10
+@set ChMkr=inherit safe
+
+@parent ChMkr=codp
+&prefix.defaults ChMkr=Default.
+
+
+== DEFAULTS ==================
+
+DEFAULTS (for @cset)
+
+&default.header ChMkr=ansi(ch, <, cn, ##NAME, ch >)
+&detault.log ChMkr=200
+&default.timestamp_logs ChMkr=1
+&default.nospoof ChMkr=1
+&default.quiet ChMkr=1
+&default.private ChMkr=1
+
+
+== ADD CHANNEL =================
+
+ADD A CHANNEL
+
+0: Channel name
+
+.. Staff Only
+.. Name Cannot Be Used (match first 5 characters)
+.. Name Already In Use
+
+.. OK!
+.. Store Channel Object Dbref
+
+
+
+VALIDATE CHANNEL EXISTS VIA OBJECT DBREF
+
+0: Channel object dbref
+
+&f.channel_exists? ChMkr=
+	t(chanobj(before(name(%0), Channel Object)))
+
+
+
+
+
+
+
+
+
+@create Channel Maker <ChMkr>=10
+
+&D.GROUP-TYPES Channel Maker <ChMkr>=Motley Pack
+
+&F.SEARCH.MEMBERS Channel Maker <ChMkr>=search(eplayer=and(lor(u(f.play.belongs-to-group?, ##, %0)), gt(isapproved(##), 0)))
+
+&D.CHANNEL-POCKET Channel Maker <ChMkr>=#1853
+
+&F.CHAN.GET-DBREF Channel Maker <ChMkr>=chanobj(%0)
+
+&F.CHAN.EXISTS? Channel Maker <ChMkr>=strmatch(channels(), *%0*)
+
+&F.CHAN.NAME-OK? Channel Maker <ChMkr>=and(valid(attrname, %0), eq(words(%0), 1), lte(strlen(%0), sub(20, strlen(u(d.channel.prefix)))))
+
+&F.PLAY.BELONGS-TO-GROUP? Channel Maker <ChMkr>=lor(iter(v(d.group-types), strmatch(u(%0/_bio.%i0), %1)))
+
+&F.CHAN.GROUP-EXISTS? Channel Maker <ChMkr>=t(u(f.search.members, %0))
+
+&D.CHANNEL.PREFIX Channel Maker <ChMkr>=Group:%b
+
+&D.CHANNEL.HEADER Channel Maker <ChMkr>=[ansi(ch, \[, n, %0, ch, \])]
+
+&D.CHANNEL.LOCK Channel Maker <ChMkr>=[u(#1853/f.chan.lock, %#, v(d.group-name))]
+
+&F.LIST.CHANNELS Channel Maker <ChMkr>=[setq(c, channels())][setq(p, u(d.channel.prefix))][iter(matchall(%qc, first(%qp)), extract(%qc, %i0, inc(words(%qp))), , |)]
+
+&D.OUTPUT.LINE Channel Maker <ChMkr>=[setq(m, u(f.search.members, get([u(f.chan.get-dbref, %0)]/d.group-name)))][if(t(%qm), %b [ansi(g, %0)] - [itemize(iter(%qm, name(%i0), , |), |)], %b [ansi(r, %0)] - (no members))]
+
+&D.OBJECT.NAME Channel Maker <ChMkr>=%1 Channel Object <%0>
+
+&F.OBJ.NAME-OK? Channel Maker <ChMkr>=valid(name, u(d.object.name, %0, %1))
+
+&TR.CHANNEL.NEW Channel Maker <ChMkr>=@eval [setq(e, )][setq(c, [u(d.channel.prefix)]%1)][setq(o, u(d.object.name, %1, %2))]; @ccreate %qc; @pemit %0=%b * Channel '%qc' ... [if(t(f.chan.exists?, %qc), ansi(g, exists), [ansi(r, error)][setq(e, %qe|Channel not created)])]; @pemit %0=%b * Creating '%qo' ... [setq(d, create(%qo, 100))][if(t(%qd), ansi(g, %qd), [ansi(r, error)][setq(e, %qe|Object not created)])].; &d.group-name %qd=%2; @cset/object %qc=%qd; &d.lock %qd=[v(d.channel.lock)]; @lock %qd=d.lock/1; @cpflags %qc=!join; @coflags %qc=!join; @cset/header %qc=[u(d.channel.header, %1)]; @cset/log %qc=200; @desc %qd=A channel for %2; @eval [if(not(t(chanobj(%qc))), setq(e, %qe|Object not properly associated with channel))][if(not(elock(%qd, #1)), setq(e, %qe|Object lock does not appear to be working))]; @pemit %0=[setq(e, trim(%qe, b, |))][if(t(words(%qe, |)), %b [ansi(r, ERRORS)] (no @mail sent): %r[iter(%qe, %b %b >> %i0, |, %r)]%r%b You may want to:%r%b %b @clist/full %qc %r%b %b @cdestroy %qc %r%b %b @destroy <channel object> %r[footer([words(%qe, |)] errors)], %b [ansi(g, Looks Good!)] But you should probably check with:%r%b %b @clist/full %qc%r[footer()])]; @if t(%qd)={@teleport %qd=[u(d.channel-pocket)]}; @if not(t(%qe))={@trigger/quiet %!/tr.mail.confirm=%qc, %2, %0}
+
+&F.CHAN.LOCK Channel Maker <ChMkr>=or(isstaff(%0), u(f.play.belongs-to-group?, %0, %1))
+
+&TR.MAIL.CONFIRM Channel Maker <ChMkr>=@eval [setq(w, u(f.search.members, %1))]; @if t(%qw)={@mail/quick %qw/New Group Channel=Hey there! Your IC group, %1, now has a channel, '%0'. You are not automatically added to the channel, so you may need to type a command like:%r%r%taddcom [lcstr(last(%0))]=%0%r%rNew members will not get this message, so be sure to tell them! Thanks - The Darkwater Staff; @pemit %2=[alert(channels)] @mailed [itemize(iter(%qw, name(%i0), , |), |)]}, {@pemit %2=[alert(channels)] Nobody in the group '%1'. No mail sent.}
+
+&C.CHANNELS Channel Maker <ChMkr>=$+chan*:@pemit %#=[setq(0, if(strmatch(%0, %b*), trim(%0), rest(%0)))][setq(1, rest(first(%0), /))][case(1, t(%q1), u(c.channels.switch, %q0, %q1), t(%q0), u(c.channels.specific, %q0), u(c.channels.default))]
+
+&C.CHANNELS/ADD Channel Maker <ChMkr>=$+channels/a* *=*:@pemit %#=[case(0, isstaff(%#), [alert(channels)] Staff Only., u(f.chan.name-ok?, %1), [alert(channels)] Bad channel name. (Character or length.), not(u(f.chan.exists?, [u(d.channel.prefix)]%1)), [alert(channels)] Channel already exists., u(f.chan.group-exists?, %2), [alert(channels)] Nobody in that group., u(f.obj.name-ok?, %1, %2), [alert(channels)] Something about '[u(d.object.name, %0, %1)]' is a bad object name., [header(Creating Channel)]%r%b Triggering...[trigger(%!/tr.channel.new, %#, %1, %2)])]
+
+&C.CHANNELS.SWITCH Channel Maker <ChMkr>=[setq(0, grab(lattr(%!/c.channels/%1*), /%1*))][if(hasattr(%!, c.channels/%q0), u(c.channels/%q0, %0), [alert(channels)]: No such switch. Valid matches are: [itemize(iter(lattr(%!/c.channels/*), lcstr(last(%i0, /))))])]
+
+&C.CHANNELS.DEFAULT Channel Maker <ChMkr>=[case(0, isstaff(%#), [alert(channels)] Staff Only., [header(Channels List)]%r[iter(setr(c, u(f.list.channels)), u(d.output.line, %i0), |, %r)]%r[footer([words(%qc, |)] channels)])]
+
+&C.CHANNELS.SPECIFIC Channel Maker <ChMkr>=[u(c.channels.default)]
+
+@set Channel Maker <ChMkr>=INHERIT
+
+@set Channel Maker <ChMkr>=SAFE
+
+@parent Channel Maker <ChMkr>=#351
+
+
+
+
+
+*** Channel       Owner           Header
+P-- 911           Channel Builder <911>                                        
+--- AdInfinitum   Dresden         <AdInfinitum>                                
+P-- Adult         Channel Builder (.) (.)                                      
+--- Apostate      Roanoke         <Apostate>                                   
+--- Aputamkon     Rome            <Aputamkon>                                  
+--- Arrow         Roanoke         <Arrow>                                      
+--- Ascending     Roanoke         <AscendingOnes>                              
+--- Atunimaq      Roanoke         <Atunimaq>                                   
+--- Aumakua       Dresden         <Aumakua>                                    
+--- Autumn        Channel Builder <Autumn>                                     
+--- Banner        Rome            <Banner>                                     
+--- Barflies      Troy            [Barflies]                                   
+--- Baswenaazhi   Channel Builder [Baswenaazhi]                                
+--- BodyThieves   Rome            <Body Thieves>                               
+--- Brenner       Rome            <Brenner>                                    
+--- Broadcast     Rome            <Broadcast>                                  
+--- Bryce         Roanoke         <Bryce>                                      
+--- Build         Channel Builder <Build>                                      
+--- Bunyips       Roanoke         <Bunyips>                                    
+--- C42           Roanoke         <C-42>                                       
+--- Cabalistic    Roanoke         <CabalisticCompany>                          
+--- Carthian      Channel Builder <Carthian>                                   
+--- Changeling    Channel Builder <Changeling>                                 
+P-- Chargen       Channel Builder <Chargen>                                    
+--- Cheiron       Roanoke         <Cheiron>                                    
+--- Circus        Dresden         <Circus>                                     
+--- ClavisAurea   Dresden         <ClavisAurea>                                
+--- Code          Channel Builder <Code>                                       
+--- CodeStaff     Channel Builder [CodeStaff]                                  
+--- Coins         Rome            [Coins]                                      
+--- Conscienta    Troy            [Conscienta]                                 
+--- Consilium     Roanoke         <Consilium>                                  
+--- CounterCog    Dresden         <CounterCog>                                 
+--- Courtless     Channel Builder [Courtless]                                  
+--- Crime         Channel Builder <Crime>                                      
+--- Crone         Channel Builder <Crone>                                      
+--- Crossroads    Channel Builder [Crossroads]                                 
+--- CStaff        Channel Builder <Cstaff>                                     
+--- Cultists      Roanoke         <Cultists>                                   
+--- Custodians    Dresden         <Custodians>                                 
+--- Daeva         Channel Builder <<Daeva>>                                    
+--- Dawn          Roanoke         <Dawn>                                       
+--- Debug         Channel Builder [Debug]                                      
+--- Devilsdue     Roanoke         <Devil's Due>                                
+--- Dragon        Roanoke         <Dragon>                                     
+--- DreamGuard    Dresden         <DreamGuard>                                 
+--- DSSFSSSC      Dresden         <DSSFSSSC>                                   
+--- Dunlin        Roanoke         <Dunlin>                                     
+--- Dusk          Roanoke         <Dusk>                                       
+--- Echoes        Roanoke         <Echoes>                                     
+--- Fabre         Rome            <Fabre>                                      
+--- FataMorgana   Rome            <Fata Morgana>                               
+--- Feral         Rome            <Feral>                                      
+--- Fianna        Roanoke         <Fianna>                                     
+--- Fleet         Rome            <Fleet>                                      
+--- Fletcher      Roanoke         <Fletcher>                                   
+--- Forteana      Channel Builder [Forteana]                                   
+--- Fstaff        Roanoke         <FeralStaff>                                 
+--- Gangrel       Channel Builder <<Gangrel>>                                  
+--- Geist         Channel Builder <Geist>                                      
+--- Gods          Roanoke         *Gods*                                       
+--- Government    Roanoke         <Government>                                 
+--- GravesHollow  Dresden         <GravesHollow>                               
+--- Grennich      Channel Builder [Grennich]                                   
+--- Gstaff        Channel Builder <Gstaff>                                     
+--- Guardians     Roanoke         <Guardians>                                  
+--- Guest         Channel Builder [Guest]                                      
+--- Hax           Roanoke         <Hax!>                                       
+--S HedgeRadio    Roanoke         <HedgeRadio>                                 
+P-- History       Channel Builder [History]                                    
+--- HoR           Crystal         [HoR]                                        
+--- Hospital      Roanoke         <Hospital>                                   
+--- Hstaff        Roanoke         <HStaff>                                     
+--- Hunter        Roanoke         <Hunter>                                     
+--- Immortals     Rome            <Immortals>                                  
+--- Invictus      Channel Builder <Invictus>                                   
+--- Invisible     Roanoke         <InvisibleCollege>                           
+--- Irish         Channel Builder <Irish>                                      
+--- Judge         Channel Builder <Judge>                                      
+--- Kross         Roanoke         <<Kross>>                                    
+--- Ladder        Roanoke         <Ladder>                                     
+--- Lancea        Roanoke         <Lancea>                                     
+--- Landace       Channel Builder [Landace]                                    
+--- Law           Channel Builder <Law>                                        
+--- LCH           Roanoke         <LCH>                                        
+P-- LFG           Roanoke         <LookingForGroup>                            
+--- Libertine     Roanoke         <Libertine>                                  
+--- LostandFound  Roanoke         [Lost&Found]                                 
+--- Lucifuge      Roanoke         <Lucifuge>                                   
+--- Madmen        Dresden         <Madmen>                                     
+--- Mage          Rome            <Mage>                                       
+--- Malleus       Roanoke         <Malleus>                                    
+--- Mastaff       Roanoke         <Mage Staff>                                 
+--- Mechanics     Channel Builder [Mechanics]                                  
+--- Mekhet        Channel Builder ||Mekhet||                                   
+--- Metastaff     Roanoke         <MetaplotStaff>                              
+--- Milner        Roanoke         <Milner>                                     
+--- Monitor       Channel Builder [Monitor]                                    
+--- Moon          Channel Builder <Moon>                                       
+--- Mortal        Roanoke         [Mortal]                                     
+--- Mortal+       Channel Builder <Mortal+>                                    
+--- Mstaff        Channel Builder <MStaff>                                     
+--- Mushcron      Channel Builder [Mushcron]                                   
+--- Mysterium     Roanoke         <Mysterium>                                  
+--- Neighborhood  Roanoke         <Neighborhood>                               
+--- Nerd          Roanoke         [Nerd]                                       
+--- Nightclub     Roanoke         <Nightclub>                                  
+--- Nosferatu     Channel Builder ||Nosferatu||                                
+--- Occult        Rome            <Occult>                                     
+--- Ordo          Channel Builder <Ordo>                                       
+--- Orourke       Roanoke         <O'Rourke>                                   
+-LS Pavor         Channel Builder [Pavor]                                      
+P-- Politics      Channel Builder [Politics]                                   
+--- Possessed     Rome            <Possessed>                                  
+--- Postaff       Roanoke         <Postaff>                                    
+--- Powell        Channel Builder [Powell]                                     
+--- Prprunners    Roanoke         [Prprunners]                                 
+--- Pstaff        Roanoke         <Pstaff>                                     
+--- PSYCHICS      Dresden         <Psychics>                                   
+P-- Public        Channel Builder <Public>                                     
+--- Buildstaff    Dresden         <Buildstaff>                                 
+--- Purified      Rome            <Purified>                                   
+P-S Radio         Roanoke         [Radio]                                      
+--S RadioFreeFae  Roanoke         <RadioFreeFae>                               
+--- Rant          Troy            [Rant]                                       
+--- Ravenswing    Dresden         <Ravenswing>                                 
+--- Reach         Roanoke         <The Reach>                                  
+--- Reed          Roanoke         [Reed]                                       
+--- Roomies       Roanoke         <Roomies>                                    
+--- Roth          Channel Builder <<Roth>>                                     
+--- RumRunners    Dresden         <Rum Runners>                                
+--- Saints        Roanoke         <Saints>                                     
+--- Sanctum       Channel Builder <Sanctum>                                    
+--- SardonicStorm Dresden         <SardonicStorm>                              
+--- Scarecrows    Troy            [Scarecrows]                                 
+--- Scions        Rome            <Scions>                                     
+--- Scoobies      Roanoke         <Scoobies>                                   
+--- Sentinels     Roanoke         <Sentinels>                                  
+--- Shadow        Roanoke         <Shadow>                                     
+--- ShadowFlame   Roanoke         <ShadowFlame>                                
+--- Shadowguard   Dresden         <Shadowguard>                                
+--- Skelly        Pompeii         <Skelly>                                     
+--- Society       Channel Builder <Society>                                    
+--- SpiritStaff   Rome            [Spirit Staff]                               
+--- Spring        Channel Builder <Spring>                                     
+-L- Staff         Channel Builder [Staff]                                      
+--- StaffOOC      Channel Builder [StaffOOC]                                   
+--- StormHounds   Dresden         <Storm Hounds>                               
+P-S Streetwise    Channel Builder <Streetwise>                                 
+--- Summer        Channel Builder <Summer>                                     
+--- Teamleads     Roanoke         <Teamleads>                                  
+P-S Television    Roanoke         <Television>                                 
+--- THAUMATURGE   Dresden         <Thaumaturge>                                
+--- TheWardens    Dresden         <The Wardens>                                
+--- Throne        Troy            <THRONE>                                     
+--- TMI           Dresden         <TMI>                                        
+--- Turner        Roanoke         <Turner>                                     
+--- Twilight      Channel Builder <Twilight>                                   
+--- Un-Drowned    Channel Builder [Un-Drowned]                                 
+--S Undernet      Dresden         <Undernet>                                   
+--- University    Rome            <University>                                 
+--- Untouchables  Roanoke         <The Untouchables>                           
+--- Valkyrie      Roanoke         <Valkyrie>                                   
+--- Vampire       Roanoke         <Vampire>                                    
+--- Vanguard      Roanoke         <Vanguard>                                   
+--- Ventrue       Channel Builder ||Ventrue||                                  
+--- Voudon        Roanoke         <Voudon>                                     
+--- Vstaff        Channel Builder <Vstaff>                                     
+--- Waitlie       Roanoke         <Waitlie>                                    
+--- Warriors      Roanoke         <Warriors>                                   
+--- Watchtower    Troy            <Watchtower>                                 
+--- Wawaazisii    Channel Builder <Wawaazisii>                                 
+--- Werewolf      Channel Builder [Werewolf]                                   
+P-- Wiki          Channel Builder [Wiki]                                       
+P-- WikiRecentCha Channel Builder [WikiRecentChanges]                          
+-L- WikiStaff     Coventry        [[WikiStaff]]                                
+--- Winter        Channel Builder <Winter>                                     
+--- Wstaff        Roanoke         <WereStaff>                                  
+--- Zepar         Troy            [Zepar]                                      
+-- End of list of Channels --
+
+
+--- Blood Bathers Rome            <Blood Bathers>                              
+--- Changeling Me Roanoke         <Changeling Metaplot>                        
+--- Harvest Moon  Channel Builder [Harvest Moon]                               
+--- Police Radio  Rome            <Police Radio>                               
+--- Shrouded Sent Rome            <Shrouded Sentinels>                         
+--- The Commonwea Rome            <The Commonwealth Men>                       
+
+
+
