@@ -69,6 +69,13 @@ think
 	s:[setr(s, elements(%qr, 3, |))] ==> 
 	[sql(u(notes/sql.primary_key.note_text, %qt, %qe, %qs))]
 
+--
+
+Get a list of all orphaned UUIDs:
+
+think 
+	[setq(r, sql(SELECT DISTINCT concat('#', target) AS target FROM mush_notes;))][iter(%qr, %i0[setq(s, sql(u(sql.one_dbref.unused_uuid, %i0)))] [if(t(%qs), Orphaned: %qs, : Valid)], , %b==>%b)]
+
 
 ================================================================================
 == SQL =========================================================================
@@ -197,6 +204,7 @@ output: target (dbref), editor (dbref), time (secs),
 List of a specific person's notes, found by title match
 
 0: target dbref
+1: title partial name
 output: target (dbref), editor (dbref), time (secs), 
         target_created (secs), title (text), 
         permission (text), approved_by (dbref), locked_by (dbref)
@@ -276,13 +284,23 @@ think sql(u(notes/sql.primary_key.everything, #1003, #1003, 1326420169), ~, |)
 
 
 --------------------------------------------------------------------------------
--- SQL: Unused UUIDs -----------------------------------------------------------
+-- SQL: Unused UUID ------------------------------------------------------------
 
-List abandoned 'dbref + creation date' UUIDs.
+List abandoned 'dbref + creation date' UUIDs based on a single dbref.
 
-<< REMINDER TO DO >>
+0: player dbref
 
-&sql.one_dbref.unused_uuid Notes System=@@(filler)
+--
+
+&sql.one_dbref.unused_uuid Notes System=
+	SELECT DISTINCT 
+		concat('#', target) AS target, 
+		UNIX_TIMESTAMP(target_created) AS target_created 
+	FROM mush_notes 
+	WHERE 
+		target = [rest(%0, #)] AND 
+		target_created != 
+			FROM_UNIXTIME('[convtime(get(%0/created), , 6)]');
 
 
 ================================================================================
@@ -292,6 +310,7 @@ Various outputs.
 
 (for CODP)
 &prefix.displays Notes System=display.
+
 
 --------------------------------------------------------------------------------
 -- DISPLAY: One Note -----------------------------------------------------------
