@@ -1,0 +1,900 @@
+################################################################################
+## THE DECKS ###################################################################
+
+For each deck...
+
+&<suit>.<number>: 
+	<name>|
+	<description>|
+	<summary upright>|
+	<details upright>
+	[
+		|<summary reversed>
+		|<details reversed>
+	]
+
+(Without 'reversed', do not allow reversed draws.)
+
+
+================================================================================
+== THE DECKS: Shadow Deck ======================================================
+
+A Cthulhu deck.
+
+--------------------------------------------------------------------------------
+-- Shadow Deck: Major Arcana ---------------------------------------------------
+
+&major.11 Shadow Deck=
+	11. Amprodias|
+	A description|
+	Summary|
+	(The Fool) + Details
+
+&major.12 Shadow Deck=
+	12. Baratchial|
+	A description|
+	Summary|
+	(The Magus) + Details
+
+&major.13 Shadow Deck=
+	13. Gargophias|
+	A description|
+	Summary|
+	(The Priestess) + Details
+
+&major.14 Shadow Deck=
+	14. Dagdagiel|
+	A description|
+	Summary|
+	(The Empress) + Details
+
+&major.15 Shadow Deck=
+	15. Hemethterith|
+	A description|
+	Summary|
+	(The Star) + Details
+
+&major.16 Shadow Deck=
+	16. Uriens|
+	A description|
+	Summary|
+	(The Hierophant) + Details
+
+&major.17 Shadow Deck=
+	17. Zamradiel|
+	A description|
+	Summary|
+	(The Lovers) + Details
+
+&major.18 Shadow Deck=
+	18. Characith|
+	A description|
+	Summary|
+	(The Chariot) + Details
+
+&major.19 Shadow Deck=
+	19. Temphioth|
+	A description|
+	Summary|
+	(Lust, Strength) + Details
+
+&major.20 Shadow Deck=
+	20. Yamatu|
+	A description|
+	Summary|
+	(The Hermit) + Details
+
+&major.21 Shadow Deck=
+	21. Kurgasuax|
+	A description|
+	Summary|
+	(Wheel of Fortune) + Details
+
+&major.22 Shadow Deck=
+	22. Lafcursiax|
+	A description|
+	Summary|
+	(Adjustment, Judgement) + Details
+
+&major.23 Shadow Deck=
+	23. Malkunofat|
+	A description|
+	Summary|
+	(The Hanged Man) + Details
+
+&major.24 Shadow Deck=
+	24. Niantiel|
+	A description|
+	Summary|
+	(Death) + Details
+
+&major.25 Shadow Deck=
+	25. Saksaksalim|
+	A description|
+	Summary|
+	(Temperance, Art) + Details
+
+&major.26 Shadow Deck=
+	26. A'ano'nin|
+	A description|
+	Summary|
+	(The Devil) + Details
+
+&major.27 Shadow Deck=
+	27. Parfaxitas|
+	A description|
+	Summary|
+	(The Tower) + Details
+
+&major.28 Shadow Deck=
+	28. Tzuflifu|
+	A description|
+	Summary|
+	(The Emperor) + Details
+
+&major.29 Shadow Deck=
+	29. Qulielfi|
+	A description|
+	Summary|
+	(The Moon) + Details
+
+&major.30 Shadow Deck=
+	30. Raflifu|
+	A description|
+	Summary|
+	(The Sun) + Details
+
+&major.31 Shadow Deck=
+	31. Shalicu|
+	A description|
+	Summary|
+	(The Aeon, The Last Judgement) + Details
+
+&major.32 Shadow Deck=
+	32. Thantifaxath|
+	A description|
+	Summary|
+	(The Universe) + Details
+
+
+--------------------------------------------------------------------------------
+-- Shadow Deck: Suit of Fire ---------------------------------------------------
+
+&fire.xxx Shadow Deck=
+	Card Name|
+	A description|
+	Summary|
+	Details
+
+
+--------------------------------------------------------------------------------
+-- Shadow Deck: Suit of Water --------------------------------------------------
+
+&water.xxx Shadow Deck=
+	Card Name|
+	A description|
+	Summary|
+	Details
+
+
+--------------------------------------------------------------------------------
+-- Shadow Deck: Suit of Air ----------------------------------------------------
+
+&air.xxx Shadow Deck=
+	Card Name|
+	A description|
+	Summary|
+	Details
+
+--------------------------------------------------------------------------------
+-- Shadow Deck: Suit of Earth --------------------------------------------------
+
+&earth.xxx Shadow Deck=
+	Card Name|
+	A description|
+	Summary|
+	Details
+
+
+################################################################################
+## Rider-Waite Deck ############################################################
+
+
+@create Rider-Waite Deck
+@set Rider-Waite Deck=safe
+
+&d.short-name Rider-Waite Deck=rider-waite
+
+--------------------------------------------------------------------------------
+-- Rider-Waite: Major Arcana ---------------------------------------------------
+
+&major.0 Rider-Waite Deck=0. The Fool|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.I Rider-Waite Deck=I. The Magician|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.II Rider-Waite Deck=II. The High Priestess|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.III Rider-Waite Deck=III. The Empress|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.IV Rider-Waite Deck=IV. The Emperor|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.V Rider-Waite Deck=V. The Hierophant|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.VI Rider-Waite Deck=VI. The Lovers|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.VII Rider-Waite Deck=VII. The Chariot|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.VIII Rider-Waite Deck=VIII. Strength|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.IX Rider-Waite Deck=IX. The Hermit|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.X Rider-Waite Deck=X. Wheel Of Fortune|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XI Rider-Waite Deck=XI. Justice|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XII Rider-Waite Deck=XII. The Hanged Man|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XIII Rider-Waite Deck=XIII. Death|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XIV Rider-Waite Deck=XIV. Temperance|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XV Rider-Waite Deck=XV. The Devil|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XVI Rider-Waite Deck=XVI. The Tower|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XVII Rider-Waite Deck=XVII. The Star|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XVIII Rider-Waite Deck=XVIII. The Moon|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XIX Rider-Waite Deck=XIX. The Sun|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XX Rider-Waite Deck=XX. Judgement|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&major.XXI Rider-Waite Deck=XXI. The World|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+
+-- Rider-Waite: Coins ---------------
+
+&wands.I Rider-Waite Deck=Ace of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.II Rider-Waite Deck=2 of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.III Rider-Waite Deck=3 of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.IV Rider-Waite Deck=4 of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.V Rider-Waite Deck=5 of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.VI Rider-Waite Deck=6 of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.VII Rider-Waite Deck=7 of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.VIII Rider-Waite Deck=8 of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.IX Rider-Waite Deck=9 of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.X Rider-Waite Deck=10 of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.Page Rider-Waite Deck=Page of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.Knight Rider-Waite Deck=Knight of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.Queen Rider-Waite Deck=Queen of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&wands.King Rider-Waite Deck=King of Wands|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+
+
+-- Rider-Waite: Coins ---------------
+
+&coins.I Rider-Waite Deck=Ace of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.II Rider-Waite Deck=2 of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.III Rider-Waite Deck=3 of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.IV Rider-Waite Deck=4 of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.V Rider-Waite Deck=5 of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.VI Rider-Waite Deck=6 of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.VII Rider-Waite Deck=7 of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.VIII Rider-Waite Deck=8 of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.IX Rider-Waite Deck=9 of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.X Rider-Waite Deck=10 of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.Page Rider-Waite Deck=Page of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.Knight Rider-Waite Deck=Knight of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.Queen Rider-Waite Deck=Queen of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&coins.King Rider-Waite Deck=King of Coins|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+
+
+-- Rider-Waite: Swords ---------------
+
+&swords.I Rider-Waite Deck=Ace of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.II Rider-Waite Deck=2 of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.III Rider-Waite Deck=3 of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.IV Rider-Waite Deck=4 of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.V Rider-Waite Deck=5 of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.VI Rider-Waite Deck=6 of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.VII Rider-Waite Deck=7 of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.VIII Rider-Waite Deck=8 of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.IX Rider-Waite Deck=9 of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.X Rider-Waite Deck=10 of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.Page Rider-Waite Deck=Page of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.Knight Rider-Waite Deck=Knight of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.Queen Rider-Waite Deck=Queen of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&swords.King Rider-Waite Deck=King of Swords|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+
+
+-- Rider-Waite: Cups ---------------
+
+&cups.I Rider-Waite Deck=Ace of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.II Rider-Waite Deck=2 of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.III Rider-Waite Deck=3 of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.IV Rider-Waite Deck=4 of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.V Rider-Waite Deck=5 of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.VI Rider-Waite Deck=6 of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.VII Rider-Waite Deck=7 of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.VIII Rider-Waite Deck=8 of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.IX Rider-Waite Deck=9 of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.X Rider-Waite Deck=10 of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.Page Rider-Waite Deck=Page of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.Knight Rider-Waite Deck=Knight of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.Queen Rider-Waite Deck=Queen of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+&cups.King Rider-Waite Deck=King of Cups|A description|Summary Upright|Details Upright|Summary Reversed|Details Reversed
+
+
+
+################################################################################
+## TAROT READINGS ##############################################################
+
+@create Tarot Readings
+@set Tarot Readings=safe
+
+@parent Tarot Readings=codp
+
+
+
+================================================================================
+== Multi-Platform Functions ====================================================
+
+&.msg Tarot Readings=msg(h, Tarot, %0)
+
+
+================================================================================
+== Data ========================================================================
+
+&d.deck Tarot Readings=rider-waite
+&d.shuffle Tarot Readings=
+&d.table Tarot Readings=
+
+&d.ignored-attributes Tarot Readings=D.SHORT-NAME
+
+
+================================================================================
+== Filters =====================================================================
+
+&filter.deck.matches.short-name Tarot Readings=
+	strmatch(get(%0/d.short-name), v(d.deck))
+
+--
+
+&filter.deck.matches.input Tarot Readings=
+	strmatch(get(%0/d.short-name), %1)
+
+--
+
+&filter.has.short-name Tarot Readings=hasattr(%0, d.short-name)
+
+
+================================================================================
+== Functions ===================================================================
+
+
+--------------------------------------------------------------------------------
+-- Reversable? -----------------------------------------------------------------
+
+Can this card be reversed?
+
+0: card attribute
+1: deck dbref
+
+--
+
+&f.reversable? Tarot Readings=dec(div(words(get(%1/%0), |), 3))
+
+
+--------------------------------------------------------------------------------
+-- Deck's Dbref ----------------------------------------------------------------
+
+Dbref of tarot deck with a short-name that matches &d.deck.
+
+No input.
+
+--
+
+&f.deck Tarot Readings=first(filter(filter.deck.matches.short-name, lcon(%!)))
+
+
+--------------------------------------------------------------------------------
+-- Orientation -----------------------------------------------------------------
+
+Randomize the orientation of a card
+
+0: attribute
+1: deck dbref
+returns: 0 (upright) or 1 (reversed)
+
+--
+
+&f.orientation Tarot Readings=rand(0, u(f.reversable?, %0, %1))
+
+
+================================================================================
+== Display =====================================================================
+
+For all:
+	0: <suit>.<number>[:<reversed>]
+	1: deck dbref
+
+--
+
+&display.deck Tarot Readings=v(d.deck)
+
+--
+
+&display.name Tarot Readings=
+	trim(last(first(get(%1/[first(%0, :)]), |), .))
+
+--
+
+&display.key Tarot Readings=
+	trim(first(get(%1/[first(%0, :)]), .))
+
+--
+
+&display.reversed? Tarot Readings=if(t(rest(%0, :)), ansi(xh, %b(reversed)))
+
+--
+
+&display.name.complete Tarot Readings=
+	[if(strmatch(first(get(%1/[first(%0, :)]), |), *.*), 
+		u(display.key, %0, %1).%b
+	)]
+	[u(display.name, %0, %1)]
+	[u(display.reversed?, %0)]
+
+--
+
+think u(tarot r/display.name.complete, major.0:1, #9800)
+
+--
+
+&display.desc Tarot Readings=
+	if(t(setr(d, elements(get(%1/[first(%0, :)]), 2, |))), 
+		%qd, 
+		No Description
+	)
+
+--
+
+&display.summary Tarot Readings=
+	if(eq(rest(%0, :), 1), 
+@@ reversed
+		u(display.summary.one, 
+			get(%1/[first(%0, :)]), 
+			5
+		), 
+
+@@ else, upright
+		u(display.summary.one, 
+			get(%1/[first(%0, :)]), 
+			3
+		)
+	)
+
+--
+
+&display.summary.one Tarot Readings=
+	[setq(s, elements(%0, %1, |))]
+	[if(t(%qs), 
+		%qs, 
+		(No summary.)
+	)]
+
+--
+
+&display.details Tarot Readings=
+	if(eq(rest(%0, :), 1), 
+@@ reversed
+		u(display.details.one, 
+			get(%1/[first(%0, :)]), 
+			6
+		), 
+
+@@ else, upright
+		u(display.details.one, 
+			get(%1/[first(%0, :)]), 
+			4
+		)
+	)
+
+--
+
+&display.details.one Tarot Readings=
+	[setq(s, elements(%0, %1, |))]
+	[if(t(%qs), 
+		%qs, 
+		(No details.)
+	)]
+
+--
+
+&display.cards Tarot Readings=
+	if(t(%0), 
+		itemize(
+			iter(%0, u(display.name.complete, %i0, %1), , |), 
+			|
+		), 
+		None
+	)
+
+--
+
+&display.cards.table Tarot Readings=
+	if(t(%0), 
+		vtable(
+			iter(%0, u(display.name.complete, %i0, %1), , |), 
+			0, 
+			|
+		), 
+		None
+	)
+
+--
+
+@@ Displays everything you need to know about one card.
+@@ 0: card attribute, 1: deck dbref, 2: true (1) for 'you'
+@@ o: orientation (if any), a: attribute for card, r: is card reversable?
+
+	think u(tarot r/display.one-card, major.iii:0, #9800, 1)
+	think u(tarot r/display.one-card, major.iii:0, #9800, 0)
+	think u(tarot r/display.one-card, major.iii, #9800, 0)
+
+
+&display.one-card Tarot Readings=
+	[setq(o, rest(%0, :))]
+	[setq(a, before(%0, :))]
+	[setq(r, u(f.reversable?, %qa, %2))]
+
+@@ >> Header
+@@ Without a upright/reversed code, this may only be a "card detail"
+@@ Else it's a drawn card. (The message needs to be improved)
+
+	[header(
+		if(strmatch(%qo, ), 
+			Card Details, 
+			[if(t(%2), You draw, %N draws)] a card...
+		)
+	)]%r
+
+@@ >> Card Key (if applicable)
+	[if(strmatch(first(get(%1/%qa), |), *.*), 
+		[ljust(Key:, 9)] [u(display.key, %0, %1)]%r
+	)]
+
+@@ >> Card Name (reversed?)
+	[ljust(Card:, 9)] 
+	[u(display.name, %0, %1)]
+	[u(display.reversed?, %0, %1)]%r
+
+@@ >> Card Summary
+	[ljust(Summary:, 9)] 
+	[u(display.summary, %0, %1)]%r
+
+@@ .. (if there is no upright/reversed code passed, present entire card summary)
+	[if(and(strmatch(%qo, ), %qr), 
+		[ljust(Reversed:, 9)] 
+		[u(display.summary, %0:1, %1)]%r
+	)]
+
+@@ >> Card Description
+	[divider(Description)]%r
+	[u(display.desc, %0, %1)]%r
+
+@@ >> Details
+	[if(t(%2), 
+		[divider(Details)]%r
+		[u(display.details, %0, %1)]%r
+@@ .. (if there is no upright/reversed code passed, present entire card detail)
+		[if(and(strmatch(%qo, ), %qr), 
+			[divider(Revesed)]%r
+			[u(display.details, %0:1, %1)]%r
+		)]
+	)]
+	[footer(name(%1))]
+
+--
+
+&display.orientation.error Tarot Readings=
+	[wdivider(%0 Orientation)]%r
+	%b %bCard has no [lcstr(%0)] meaning.
+
+--
+
+
+
+================================================================================
+== Commands ====================================================================
+
+
+--
+
+`shuffle - Use and shuffle all cards into the deck
+
+&c.shuffle Tarot Readings=$`shuffle:
+	@eval setq(d, u(f.deck)); 
+
+	&d.shuffle %!=
+		shuffle(iter(
+			setdiff(lattr(%qd/*.*), v(d.ignored-attrs)), 
+			%i0:[u(f.orientation, %i0, %qf)]
+		));
+
+	&d.table %!=; 
+
+	@pemit %#= u(.msg, Table cleared and '[u(display.deck)]' deck shuffled.); 
+
+	@oemit %#=u(.msg, %N clears the table and shuffles the '[u(display.deck)]' deck.); 
+
+--
+
+&c.draw Tarot Readings=$`draw:
+	@eval setq(c, first(v(d.shuffle))); 
+	@eval setq(d, u(f.deck)); 
+
+	@if t(%qc)={ 
+		&d.shuffle %!=rest(v(d.shuffle)); 
+		&d.table %!=[v(d.table)] %qc; 
+		@pemit %#=ulocal(display.one-card, %qc, %qd, 1); 
+		@oemit %#=ulocal(display.one-card, %qc, %qd, 0); 
+	}, 
+	{ 
+		@pemit %#=u(.msg, The '[u(display.deck)]' deck is empty.); 
+	}
+
+--
+
+&c.card Tarot Readings=$`card*:
+	@pemit %#=I will eventually give you information about card '[trim(%0)]'.
+
+--
+
+&c.table Tarot Readings=$`table:
+	@pemit %#=
+		[wheader(Cards on the Table -- '[u(display.deck)]')]%r
+		[u(display.cards.table, v(d.table), u(f.deck))]%r
+		[wfooter([words(v(d.table))] cards drawn%, [words(v(d.shuffle))] cards remain)]
+
+--
+
+@@ i: input
+@@ d: matching deck dbref(s)
+@@ n: short-name for the deck
+
+&c.deck Tarot Readings=$`deck*:
+	@switch/first 1=
+
+@@ `decks* : list available decks
+		strmatch(%0, s*), { @pemit %#=u(display.decks-available) }, 
+
+@@ `deck <xxx> : change deck
+		comp(setr(i, trim(%0)), ), {
+			@eval setq(d, 
+				filter(filter.deck.matches.input, lcon(%!), , , %qi*)
+			); 
+
+			@switch/first 0=
+				words(%qd), { @pemit %#=u(.msg, No matches.); }, 
+
+				eq(words(%qd), 1), 
+				{ @pemit %#=u(.msg, Too many matches.); }, 
+
+				not(strmatch(setr(n, get(%qd/d.short-name)), v(d.deck))), 
+				{ @pemit %#=u(.msg, You're already using the '%qn' deck.); }, 
+
+				{
+					&d.deck me=%qn; 
+					@pemit %#=u(.msg, You are now using the '%qn' deck. Remember to shuffle.); 
+					@oemit %#=u(.msg, %N is now using the '%qn' deck.); 
+				}
+		}, 
+@@ `deck : which deck is current?
+		{ @pemit %#=u(display.deck-used); }
+
+--
+
+&display.decks-available Tarot Readings=
+	msg(h, Tarot, 
+		Available Decks: 
+		[itemize(
+			iter(filter(filter.has.short-name, lcon(%!)), 
+				get(%i0/d.short-name), 
+				, |
+			), 
+			|
+		)]
+	)
+
+--
+
+&display.deck-used Tarot Readings=
+	msg(h, Tarot, 
+		You are using the '[default(d.deck, <unset>)]' deck.
+	)
+
+
+--
+
+think [setq(0, major.0:1)][setq(1, #9800)][header(%N draws a card ...)]%r[if(strmatch(first(get(%q1/[first(%q0, :)]), |), *.*), [ljust(Key:, 8)] [u(tarot r/display.key, %q0, %q1)]%r)][ljust(Card:, 8)] [u(tarot r/display.name, %q0, %q1)][u(tarot r/display.reversed?, %q0, %q1)]%rSummary: [u(tarot r/display.summary, %q0, %q1)]%r[footer(name(%q1))]
+
+========================> Thenomain draws a card ... <=========================
+Key:     0
+Card:    The Fool (reversed)
+Summary: Summary Reversed
+=======================================================> Rider-Waite Deck <====
+
+
+think [setq(0, cups.iii:0)][setq(1, #9800)]
+	[header(%N draws a card ...)]%r
+	[if(strmatch(first(get(%q1/[first(%q0, :)]), |), *.*), [ljust(Key:, 8)] [u(tarot r/display.key, %q0, %q1)]%r)]
+	[ljust(Card:, 8)] 
+	[u(tarot r/display.name, %q0, %q1)]
+	[u(tarot r/display.reversed?, %q0, %q1)]%r
+	Summary: [u(tarot r/display.summary, %q0, %q1)]%r
+	[footer(name(%q1))]
+
+========================> Thenomain draws a card ... <=========================
+Card:    3 of Cups
+Summary: Summary Upright
+=======================================================> Rider-Waite Deck <====
+
+
+@@ o: orientation
+
+think 
+	[setq(0, major.iii:0)][setq(1, #9800)][setq(2, 1)]
+	[setq(o, rest(%q0, :))]
+	[setq(a, before(%q0, :))]
+	[setq(r, u(tarot r/f.reversable?, %qa, %q2))]
+
+@@ >> Header
+@@ Without a upright/reversed code, this may only be a "card detail"
+@@ Else it's a drawn card. (The message needs to be improved)
+
+	[header(
+		if(strmatch(%qo, ), 
+			Card Details, 
+			[if(t(%q2), You draw, %N draws)] a card...
+		)
+	)]%r
+
+@@ >> Card Key (if applicable)
+	[if(strmatch(first(get(%q1/%qa), |), *.*), 
+		[ljust(Key:, 9)] [u(tarot r/display.key, %q0, %q1)]%r
+	)]
+
+@@ >> Card Name (reversed?)
+	[ljust(Card:, 9)] 
+	[u(tarot r/display.name, %q0, %q1)]
+	[u(tarot r/display.reversed?, %q0, %q1)]%r
+
+@@ >> Card Summary
+	[ljust(Summary:, 9)] 
+	[u(tarot r/display.summary, %q0, %q1)]%r
+
+@@ .. (if there is no upright/reversed code passed, present entire card summary)
+	[if(and(strmatch(%qo, ), %qr), 
+		[ljust(Reversed:, 9)] 
+		[u(tarot r/display.summary, %q0:1, %q1)]%r
+	)]
+
+@@ >> Card Description
+	[divider(Description)]%r
+	[u(tarot r/display.desc, %q0, %q1)]%r
+
+@@ >> Details
+	[if(t(%q2), 
+		[divider(Details)]%r
+		[u(tarot r/display.details, %q0, %q1)]%r
+@@ .. (if there is no upright/reversed code passed, present entire card detail)
+		[if(and(strmatch(%qo, ), %qr), 
+			[divider(Revesed)]%r
+			[u(tarot r/display.details, %q0:1, %q1)]%r
+		)]
+	)]
+	[footer(name(%q1))]
+
+
+============================> You draw a card ... <============================
+Key:     III
+Card:    The Empress
+Summary: Summary Upright
+----> Description <------------------------------------------------------------
+A description
+----> Details <----------------------------------------------------------------
+Details Upright
+=======================================================> Rider-Waite Deck <====
+
+
+---> Shaiya <------------------------------------------------------> Tarot <---
+Key:         XVIII
+Card:        The Moon
+Association: Instinct
+----------------------------------------------------------------> Reversed <---
+ 
+---> Shaiya <------------------------------------------------------> Tarot <---
+Key:         VI
+Card:        The Lovers
+Association: Recognition
+-------------------------------------------------------------------------------
+ 
+---> Shaiya <------------------------------------------------------> Tarot <---
+Key:         V
+Card:        The Hierophant
+Association: Teaching
+----------------------------------------------------------------> Reversed <---
+ 
+---> Shaiya <------------------------------------------------------> Tarot <---
+Card:        Five of Wands
+Association: fire, endeavors, passions, expansion, instability
+-------------------------------------------------------------------------------
+ 
+Shaiya says, “See? That one doesn't have a key.”
+ 
+---> Shaiya <------------------------------------------------------> Tarot <---
+Key:         XIX
+Card:        The Sun
+Association: Clarity
+----------------------------------------------------------------> Reversed <---
+ 
+---> Shaiya <------------------------------------------------------> Tarot <---
+Card:        Two of Wands
+Association: fire, endeavors, passions, balance, instinct
+----------------------------------------------------------------> Reversed <---
