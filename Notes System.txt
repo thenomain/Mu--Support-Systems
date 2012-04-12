@@ -37,11 +37,12 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 
 @@ viewing:
 	/view <item>|<note>|<item/note>
-		Special rules using the +view alias:
+		Special rules using the +view alias (not '/view'):
 			+view: view here
 			+view <item>: view item (processed first)
 			+view <note>: view here/note
-	/show <note>=<targets>
+	/show <targets>=<note>
+	/show <note> [??]
 
 @@ permissions (approval falls off using any of these unless staff):
 	/permissions <note>[=<permission level>]
@@ -55,7 +56,6 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 			+bg/new - private
 			+note/new - private
 			+judgenote/new - staff
-
 
 
 --
@@ -74,7 +74,245 @@ think
 Get a list of all orphaned UUIDs:
 
 think 
-	[setq(r, sql(SELECT DISTINCT concat('#', target) AS target FROM mush_notes;))][iter(%qr, %i0[setq(s, sql(u(sql.one_dbref.unused_uuid, %i0)))] [if(t(%qs), Orphaned: %qs, : Valid)], , %b==>%b)]
+	[setq(r, sql(SELECT DISTINCT concat('#', target) AS target FROM mush_notes;))][iter(%qr, %i0[setq(s, sql(u(notes/sql.one_dbref.unused_uuid, %i0)))] [if(t(%qs), Orphaned: %qs, : Valid)], , %b==>%b)]
+
+
+================================================================================
+== COMMANDS SETUP ==============================================================
+
+Mistress system again.
+
+n: name of the command for finding right attr, afterward can be clobbered
+
+--
+
+&c.notes Notes System=$note*:@pemit %#=
+	[setq(n, notes)]
+	[switch(%0, 
+@@ Without 's' ending
+		, u(c.%qn.default), 
+		/*, u(c.%qn.switch, first(%0), rest(%0)), 
+		%b*, u(c.%qn.specific, trim(%0)), 
+
+@@ With 's' ending
+		s, u(c.%qn.default), 
+		s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), 
+		s%b*, u(c.%qn.specific, trim(rest(%0))), 
+
+@@ No match
+		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
+	)]
+
+
+--------------------------------------------------------------------------------
+-- notes/<switch> -------------------------------------------------------------
+
+Handles all /switches, which is to say it makes sure they exist and passes them on.
+
+Also handles pseudo-switches, passing them on as elements to any switched item.
+
+Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if %1 is empty.
+
+--
+
+0: /<switch>[/<switch>/<switch>, etc.]
+1: [<more>], stuff to pass to c.<name>/<switch>, if any
+
+n: Name of the command, global register set in &c.<name> (set above)
+   'qn' may be clobbered after this command
+
+a: all c.<name>/* on this object
+s: /valid/command/switches/found
+p: /pseudo/switches/found, pass to c.<name>[/<switch>]
+
+--
+
+&c.notes.switch Notes System=
+	[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))]
+	[iter(rest(%0, /), 
+		if(
+			t(grab(%qa, c.%qn/%i0*)), 
+			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
+			setq(p, %qp/%i0)
+		), 
+		/, @@
+	)]
+	[if(t(%qs), 
+		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+		if(t(%1), 
+			ulocal(c.%qn.specific, %1, %qp), 
+			ulocal(c.%qn.default, %1, %qp)
+		)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- notes (default) ------------------------------------------------------------
+
+Nothing for now.
+
+--
+
+0: ignored
+1: fake /switches, ignored
+
+l: location of %#
+
+--
+
+&c.notes.default Notes System=>>> notes default -- 0: %0 -- 1: %1
+
+
+--------------------------------------------------------------------------------
+-- notes <stuff> (specific) ---------------------------------------------------
+
+Show information about a particular note
+
+>> DO NOT WORK IF ROOM IS SET HALT <<
+
+Because of the @aleave/@startup that's noted on a room, if it's set halt then the cleanup code won't work properly.  Annoy people to unset it.
+
+--
+
+0: note name or number
+1: fake /switches, ignored
+
+ql: location of %#
+qn: number of location, if name or #<num> passed
+
+--
+
+&c.notes.specific Notes System=>>> notes specific -- 0: %0 -- 1: %1
+
+
+================================================================================
+== /view =======================================================================
+
+	+notes/view [<object>[/<note>]]
+	+notes/view [<object>]
+	+notes/view [<note>]
+
+The '+notes' default should detect default <object> and replace with '%!'.
+The '+view' alias should detect default <object> and replace with 'here'.
+
+Priority: Search for <object> first, then <note>
+	(You can always +notes/view me/note)
+
+--
+
+0: input
+1: pseudo-switches, if any
+
+o: object
+d: object dbref
+n: note, if any
+
+e: error, if any
+
+--
+
+&c.notes/view Notes System=
+	strcat( 
+
+@@ >> Determine %qo And %qn
+		case( 1, 
+@@ .. if input '*/*' then <object>/<note>
+			strmatch( %0, */* ), 
+			strcat( setq( o, first( %0, / )), setq( n, rest(%0, / ))), 
+@@ .. else if input is object, then input is <object> & null <note>
+			or( t( setr( o, locate( %#, %0, *P ))), strmatch( %qo, #-2 )), 
+			setq( n, @@( null )), 
+@@ .. else <object> is '%#', input is <note>
+			strcat( setq( o, %# ), setq( n, %0 ))
+		), 
+
+@@ >> Make Sure 'd' Is Set
+		setq( d, num( %qo )), 
+
+@@ >> Error Checks
+		setq(e, 
+			case( 0, 
+@@ .. object has too many matches
+				comp( %qo, #-2 ), 
+				ERROR: Object has too many matches, 
+@@ .. object is dbref
+				t( %qd ), 
+				ERROR: Object not found, 
+@@ .. 
+				@@( more errors to follow )
+			)
+		), 
+
+@@ >> Error, List or Detail
+		case(1, 
+			t( %qe ), %qe, 
+			t( %qn ), u( f.notes/view.detail, %qd, %qn ), 
+			u( f.notes/view.list, %qd )
+		)
+	)
+
+
+--------------------------------------------------------------------------------
+-- /view: list -----------------------------------------------------------------
+
+0: object
+
+--
+
+&f.notes/view.list Notes System=
+	>>> View List: %0
+
+
+--------------------------------------------------------------------------------
+-- /view: detail ---------------------------------------------------------------
+
+0: object
+1: note name
+
+--
+
+&f.notes/view.detail Notes System=
+	>>> View Detail: %0 -- %1
+
+
+================================================================================
+== /show =======================================================================
+
+	+notes/show <targets>=<note>
+	+notes/show <note> (???)
+
+0: input
+1: psuedo-switches, if any
+
+t: targets dbrefs ('all' -> room contents)
+
+--
+
+&c.notes/show Notes System=
+	>>> /show -- 0: %0 -- 1: %1
+
+
+--------------------------------------------------------------------------------
+-- /show: list -----------------------------------------------------------------
+
+0: object
+
+--
+
+&f.notes/view.list Notes System=
+	u(f.notes/view.list)
+
+
+--------------------------------------------------------------------------------
+-- /show: detail ---------------------------------------------------------------
+
+0: object
+1: note name
+
+--
+
+&f.notes/show.detail Notes System=
+	u(f.notes/view.detail)
 
 
 ================================================================================
@@ -320,6 +558,8 @@ Various outputs.
 0: primary key (#target|#editor|time-in-secs)
    (we do it like this so we can extract primary key from, say, keyword search)
    (a cheap 'join')
+
+The | delimiter is for legibility only.
 
 --
 
