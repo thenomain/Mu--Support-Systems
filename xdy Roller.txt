@@ -37,12 +37,12 @@ returns: num, dice, text
 
 now that we discovered what type the element is, is it valid?
 
-&f.element.valid?.num xxx=if(isint(%0), 1, #-1 modifier must be an integer)
+&f.element.valid?.num xxx=case(0, isint(%0), #-1 modifier must be an integer, lte(%0, xxx), #-1 modifier may not be more than xxx, %0)
 
 &f.element.vaid?.stat xxx=if(strmatch(%0, #-*), 1, %0)
 
 &f.element.valid?.roll xxx=
-	case(1, 
+	case(0, 
 		or(
 			isint(before(%0, d)), 
 			not(comp(first(%0, d), ))
@@ -94,3 +94,72 @@ returns: <what to roll>:<what was rolled>
 		xxx, 
 		+
 	)
+
+
+
+
+You say, “You know the #1 thing I hate about Mu* softcode?”
+You say, “Parsing rolls.”
+You say, “x + y - z”
+You say, “This should be easy. Push value, push operator, recurse until done, pop.”
+You say, “Hm. If I edit + to ++ and - to +-, I could use '+' as a delimiter and still push the operator.”
+You say, “Then I don't have to process bloody '-stat' vs '-num'.”
+No entry for ‘push(’.
+You say, “Now if they didn't remove the push() pop() functions.”
+
+
+GLOBAL STACKS (registers):
+
+	o : operators
+	i : inputs
+	r : results
+
+e.g. (using space as output delimiter, meaning 'this that' -> 'this_that')
+
+	d6 + 3
+		o : +
+		i : 1d6 3
+		r : 4 3
+		e.g.: ladd(4 3)
+
+	str + 3d6 - 2
+		o: + -
+		i: Strength_Modifier 3d6 2
+		r: 2 12 2
+		e.g.: ladd(2 12 -2)
+
+----
+
+
+&FN_NORMALIZE_EXPRESSION %va=
+  switch(
+    edit(
+      edit(
+        edit(
+          edit(
+            strcat(0+,strip(%0,%b)),
+            -+,-),
+          --,+),
+        -,+-),
+      ++,+),
+    0+,0,
+    0+*,after(#$,+))
+-
+
+&FN_PRETTY_PRINT_EXPRESSION %va=
+  edit(
+    iter(u(%va/fn_normalize_expression,%0),
+      strcat(
+        switch(sign(itext(0)),-1,-),
+        u(%va/fn_cnum,abs(itext(0)))),
+      +,%b+%b),
+    %b+%b-,%b-%b)
+-
+
+&FN_EXPRESSION %va=
+  ladd(u(%va/fn_normalize_expression,%0),+)
+-
+
+&FN_CNUM %va=ansi(get(%va/v_color_number),%0)
+
+
