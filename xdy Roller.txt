@@ -137,13 +137,13 @@ e.g. (using space as output delimiter, meaning 'this that' -> 'this_that')
       edit(
         edit(
           edit(
-            strcat(0+,strip(%0,%b)),
-            -+,-),
-          --,+),
-        -,+-),
-      ++,+),
-    0+,0,
-    0+*,after(#$,+))
+            strcat(0+, strip(%0, %b)),
+            -+, -), 
+          --, +), 
+        -, +-), 
+      ++, +), 
+    0+, 0, 
+    0+*, after(#$, +))
 -
 
 &FN_PRETTY_PRINT_EXPRESSION %va=
