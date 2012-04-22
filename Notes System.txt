@@ -154,7 +154,7 @@ Nothing for now.
 --
 
 0: ignored
-1: fake /switches, ignored
+1: fake /switches
 
 l: location of %#
 
@@ -168,14 +168,12 @@ l: location of %#
 
 Show information about a particular note
 
->> DO NOT WORK IF ROOM IS SET HALT <<
-
-Because of the @aleave/@startup that's noted on a room, if it's set halt then the cleanup code won't work properly.  Annoy people to unset it.
+(will work if room is halt - that's from the Places code)
 
 --
 
 0: note name or number
-1: fake /switches, ignored
+1: fake /switches
 
 ql: location of %#
 qn: number of location, if name or #<num> passed
@@ -213,7 +211,6 @@ e: error, if any
 
 &c.notes/view Notes System=
 	strcat( 
-
 @@ >> Determine %qo And %qn
 		case( 1, 
 @@ .. if input '*/*' then <object>/<note>
@@ -234,10 +231,10 @@ e: error, if any
 			case( 0, 
 @@ .. object has too many matches
 				comp( %qo, #-2 ), 
-				ERROR: Object has too many matches, 
+				[u( _notice, Object has too many matches )], 
 @@ .. object is dbref
 				t( %qd ), 
-				ERROR: Object not found, 
+				[u( _notice, Object not found )], 
 @@ .. 
 				@@( more errors to follow )
 			)
@@ -257,10 +254,16 @@ e: error, if any
 
 0: object
 
+l: list of notes/note details (col|col|col:...)
+
 --
 
 &f.notes/view.list Notes System=
-	>>> View List: %0
+	u( display.list-notes, 
+		sql(u(sql.one-dbref, %0), :, | ),  
+		Notes on [name(%0)], 
+		No notes on [name(%0)] 
+	)
 
 
 --------------------------------------------------------------------------------
@@ -269,10 +272,33 @@ e: error, if any
 0: object
 1: note name
 
+l: list of matching notes in the sql.one-dbref.title-lookup / sql.one-dbref fmt
+
 --
 
 &f.notes/view.detail Notes System=
-	>>> View Detail: %0 -- %1
+		case( 0, 
+
+@@ >> No notes (also populates %ql)
+			words( 
+				setr( l, sql(u(sql.one-dbref.title-lookup, %0, %1 ), :, |)), 
+				: 
+			), 
+			u( _notice, No match ), 
+
+@@ >> Too many matches (display matches)
+			eq( words( %ql, : ), 1 ), 
+			u( _notice, 
+				I don't know which you mean: 
+				[itemize( 
+					iter( %ql, elements(%i0, 4, |), :, : ), 
+					:, or 
+				)]
+			), 
+
+@@ >> Good, display note
+			u( display.one-note, elements( %ql, 1 2 3, |, | ))
+		)
 
 
 ================================================================================
@@ -427,7 +453,8 @@ output: target (dbref), editor (dbref), time (secs),
 		UNIX_TIMESTAMP(time) AS time, 
 		title, 
 		permission, 
-		IF(IFNULL(approved_by, NULL), concat('#', approved_by), '') AS approved_by, 
+		IF(IFNULL(approved_by, NULL), concat('#', approved_by), '') 
+			AS approved_by, 
 		IF(IFNULL(locked_by, NULL), concat('#', locked_by), '') AS locked_by 
 	FROM mush_notes 
 	WHERE 
@@ -548,6 +575,34 @@ Various outputs.
 
 (for CODP)
 &prefix.displays Notes System=display.
+
+--------------------------------------------------------------------------------
+-- DISPLAY: List Of Notes ------------------------------------------------------
+
+0: list of notes/note details in the 'sql.one-dbref' format.
+1: Header text
+2: Fail text (if any)
+
+--
+
+&display.list-notes Notes System=
+
+	if( t( %0 ), 
+
+@@ >> Display items
+		strcat(
+			list( 1, u( _header, %1 )), 
+			list( 
+				%0, 
+				elements( %i0, 4, | ), 
+				:
+			), 
+			list( 1, u( _footer, words( %0, : )))
+		), 
+
+@@ >> Nothing to display (default msg)
+		u( _notice, if(t(%2), %2, Nothing to display ))
+	)
 
 
 --------------------------------------------------------------------------------
