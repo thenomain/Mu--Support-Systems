@@ -43,20 +43,21 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 			+view <note>: view here/note
 	/show <targets>=<note>
 	/show <note> [??]
+	/contents <item>
+		Show items in <item> that contains notes at <permission level(s)>.
 
 @@ permissions (approval falls off using any of these unless staff):
 	/permissions <note>[=<permission level>]
-		view, public
-		note, private
-		judgenote, staff
-		(other use Access System Fob)
+		view -> 'public'
+		note -> 'private'
+		staffnote -> 'hidden'
+		deleted -> 'archived'
 
 		Aliases chould assume permissions level.  e.g.:
-			+view/new - public
-			+bg/new - private
-			+note/new - private
-			+judgenote/new - staff
-
+			+view/new -> public
+			+bg/new> - private
+			+note/new -> private
+			+judgenote/new -> hidden
 
 --
 
@@ -82,11 +83,12 @@ think
 
 Mistress system again.
 
-n: name of the command for finding right attr, afterward can be clobbered
+n: name of the command for finding right attr
+   GLOBAL REGISTER - holds command/alias player is using
 
 --
 
-&c.notes Notes System=$note*:@pemit %#=
+&c.notes Notes System=$`note*:@pemit %#=
 	[setq(n, notes)]
 	[switch(%0, 
 @@ Without 's' ending
@@ -115,11 +117,11 @@ Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if 
 
 --
 
-0: /<switch>[/<switch>/<switch>, etc.]
+	0: /<switch>[/<switch>/<switch>, etc.]
 1: [<more>], stuff to pass to c.<name>/<switch>, if any
 
 n: Name of the command, global register set in &c.<name> (set above)
-   'qn' may be clobbered after this command
+   'qn' MUST BE MAINTINED after this command (for aliases)
 
 a: all c.<name>/* on this object
 s: /valid/command/switches/found
@@ -151,16 +153,18 @@ p: /pseudo/switches/found, pass to c.<name>[/<switch>]
 
 Nothing for now.
 
+n: name of calling command/alias, MUST BE MAINTAINED after this command
+
 --
 
 0: ignored
-1: fake /switches
+1: fake /switches, if any
 
 l: location of %#
 
 --
 
-&c.notes.default Notes System=>>> notes default -- 0: %0 -- 1: %1
+&c.notes.default Notes System=u( c.notes/view, %0, %1 )
 
 
 --------------------------------------------------------------------------------
@@ -199,11 +203,14 @@ Priority: Search for <object> first, then <note>
 --
 
 0: input
-1: pseudo-switches, if any
+1: fake /switches, if any
+
+n: name of command/alias used to call this (from mistress system)
+   MUST BE MAINTAINED after this command
 
 o: object
 d: object dbref
-n: note, if any
+t: note text, if any
 
 e: error, if any
 
@@ -211,16 +218,26 @@ e: error, if any
 
 &c.notes/view Notes System=
 	strcat( 
-@@ >> Determine %qo And %qn
+@@ >> Determine %qo And %qt
 		case( 1, 
+
 @@ .. if input '*/*' then <object>/<note>
+@@ .. (same for all instances)
 			strmatch( %0, */* ), 
-			strcat( setq( o, first( %0, / )), setq( n, rest(%0, / ))), 
+			strcat( setq( o, first( %0, / )), setq( t, rest(%0, / ))), 
+
 @@ .. else if input is object, then input is <object> & null <note>
 			or( t( setr( o, locate( %#, %0, *P ))), strmatch( %qo, #-2 )), 
-			setq( n, @@( null )), 
-@@ .. else <object> is '%#', input is <note>
-			strcat( setq( o, %# ), setq( n, %0 ))
+			setq( t, @@( null )), 
+
+@@ .. else 
+@@ .. views: <object> is 'here', <note> is '%0'
+@@ .. default: <object> is '%#', <note> is '%0'
+			switch( %qn, 
+				views, 
+				strcat( setq( o, loc( %# )), setq( t, %0 )), 
+				strcat( setq( o, %# ), setq( t, %0 ))
+			)
 		), 
 
 @@ >> Make Sure 'd' Is Set
@@ -243,7 +260,7 @@ e: error, if any
 @@ >> Error, List or Detail
 		case(1, 
 			t( %qe ), %qe, 
-			t( %qn ), u( f.notes/view.detail, %qd, %qn ), 
+			t( %qt ), u( f.notes/view.detail, %qd, %qt ), 
 			u( f.notes/view.list, %qd )
 		)
 	)
@@ -252,17 +269,26 @@ e: error, if any
 --------------------------------------------------------------------------------
 -- /view: list -----------------------------------------------------------------
 
-0: object
+0: object dbref
 
-l: list of notes/note details (col|col|col:...)
+n: command name (notes, views, etc.)
+
+l: list of dbrefs
 
 --
 
 &f.notes/view.list Notes System=
 	u( display.list-notes, 
-		sql(u(sql.one-dbref, %0), :, | ),  
-		Notes on [name(%0)], 
-		No notes on [name(%0)] 
+		filter( 
+			filter.permission?,  
+			filter( filter.permissions,  
+				sql(u(sql.one-dbref, %0), :, | ), :, :, 
+				u( f.lookup.permissions.for, %qn )
+			), 
+			:, :, %#
+		), 
+		[capstr(%qn)] on [name(%0)], 
+		No %qn on [name(%0)] 
 	)
 
 
@@ -338,7 +364,106 @@ t: targets dbrefs ('all' -> room contents)
 --
 
 &f.notes/show.detail Notes System=
-	u(f.notes/view.detail)
+	u(f.notes/view.detail)	
+	
+	================================================================================
+== ALIAS: +views ===============================================================
+
+Mistress system on "views" -- we'll be careful to alias back over to 'notes' with the proper input.
+
+--
+
+&c.views Notes System=$`view*:@pemit %#=
+	[setq(n, views)]
+	[switch(%0, 
+@@ Without 's' ending
+		, u(c.notes.default), 
+		/*, u(c.notes.switch, first(%0), rest(%0)), 
+		%b*, u(c.notes.specific, trim(%0)), 
+
+@@ With 's' ending
+		s, u(c.notes.default), 
+		s/*, u(c.notes.switch, /[first(after(%0, /))], rest(%0)), 
+		s%b*, u(c.notes.specific, trim(rest(%0))), 
+
+@@ No match
+		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
+	)]
+
+-- 
+
+
+================================================================================
+== FILTERS =====================================================================
+
+--------------------------------------------------------------------------------
+-- Filter: Permissions ---------------------------------------------------------
+
+Return only those notes the <viewer> has permission to see.
+Right now that is one of: 
+	The note permission is 'public'
+	Viewer is staff
+	The viewer is target, and the note permission is not 'hidden'
+
+We're using softcode here to make it easier to read/update.
+
+--
+
+0: List of notes in the 'sql.one-dbref' format
+1: Viewer's dbref
+
+--
+
+&filter.permission? Notes System=
+	cor( 
+		strmatch( elements( %0, 5, | ), public ), 
+		u( _isstaff, %1 ), 
+		and( 
+			strmatch( %1, elements( %0, 1, | )), 
+			not( match( hidden, elements( %0, 5, | )))
+		)
+	)
+
+
+--------------------------------------------------------------------------------
+-- Filter: Permission Type -----------------------------------------------------
+
+0: List of notes in the 'sql.one-dbref' format
+1: List of permissions to allow (public, private, hidden)
+
+--
+
+&filter.permissions Notes System=t( match( %1, elements( %0, 5, | )))
+
+
+================================================================================
+== SUPPORT FUNCTIONS ===========================================================
+
+--------------------------------------------------------------------------------
+-- Lookup Permissions For ------------------------------------------------------
+
+Translates command into legal permission type
+
+0: Command(s) or permission-partial-match(es)
+output: full list of those permissions, unique & sorted via setunion()
+
+(note: each entry can take only one of these; the multi-lookup is for listings)
+
+--
+
+&f.lookup.permissions.for Notes System=
+setunion(
+	iter( %0, 
+		switch( %i0, 
+			views, public, 
+			notes, private, 
+			staffnotes, hidden, 
+			backgrounds, private, 
+			deleted, archived, 
+			grab( %0*, public private hidden archived )
+		)
+	), 
+)
 
 
 ================================================================================
@@ -374,6 +499,7 @@ Table SQL:
 DROP TABLE IF EXISTS mush_notes; 
 CREATE TABLE IF NOT EXISTS mush_notes
 (
+	action           VARCHAR(255)    NOT NULL DEFAULT 'UNKNOWN', 
     target           INT             NOT NULL, 
     editor           INT             NOT NULL, 
     time             TIMESTAMP       NOT NULL, 
@@ -385,8 +511,30 @@ CREATE TABLE IF NOT EXISTS mush_notes
     locked_by        INT, 
 
     PRIMARY KEY (target, editor, time), 
-    INDEX target_UUID (target, target_created)
+    INDEX target_UUID (target, target_created), 
+	UNIQUE INDEX (target, title)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+
+Valid actions:
+
+	NEW - first instance
+
+	MOVE - 
+
+Future possible actions:
+	READ - use a different lookup table to record these
+
+	/write/chown/chmod/move/copy
+
+--
+
+Sample population: 
+
+think sql( u( notes/sql.insert, NEW, %#, %#, Testing, This is a test))
+think sql( u( notes/sql.insert, NEW, %#, %#, Wasting Away Again, In Margaritaville.))
+think sql( u( notes/sql.insert, NEW, %#, %#, Looking for that, Lost shaker of salt., public, 1, 1))
 
 
 --------------------------------------------------------------------------------
@@ -412,23 +560,24 @@ CREATE TABLE IF NOT EXISTS mush_notes
 
 Basic insert + optional approve + optional loc
 
-0: editor dbref, 1: target dbref, 2: title, 3: note, 4: permission, 
-5: approve?, 6: lock?
+0: action -- 1: editor dbref -- 2: target dbref -- 3: title -- 4: note -- 
+5: permission -- 6: approved by this editor? -- 7: locked by this editor?
 
 --
 
 &sql.insert Notes System=
 	INSERT INTO mush_notes 
 	VALUES (
+		'%0', 
+		[rest(%2, #)], 
 		[rest(%1, #)], 
-		[rest(%0, #)], 
 		NOW(), 
-		FROM_UNIXTIME('[convtime(get(%1/created), , 6)]'), 
-		'%2', 
+		FROM_UNIXTIME('[convtime(get(%2/created), , 6)]'), 
 		'%3', 
-		'[if(t(%4), %4, private)]', 
-		[if(t(%5), rest(%0, #), NULL)], 
-		[if(t(%6), rest(%0, #), NULL)]
+		'%4', 
+		'[if(t(%5), %5, private)]', 
+		[if(t(%6), rest(%1, #), NULL)], 
+		[if(t(%7), rest(%1, #), NULL)]
 	);
 
 
@@ -576,6 +725,7 @@ Various outputs.
 (for CODP)
 &prefix.displays Notes System=display.
 
+
 --------------------------------------------------------------------------------
 -- DISPLAY: List Of Notes ------------------------------------------------------
 
@@ -661,8 +811,11 @@ Code which will probably be different from game to game.
 
 --
 
-&_header Notes System=wheader(%0)
-&_footer Notes System=wfooter(%0)
-&_divider Notes System=wdivider(%0)
+&_header Notes System=wheader( %0 )
+&_footer Notes System=wfooter( %0 )
+&_divider Notes System=wdivider( %0 )
 
-&_notice Notes System=[ansi(xh, GAME:)] %0
+&_notice Notes System=[ansi( xh, GAME: )] %0
+&_isstaff Notes System=isstaff( %0 )
+
+
