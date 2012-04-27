@@ -51,7 +51,7 @@ For now, the Blood-Bather Ritual system (+baths) is the master prototype.
 &_alert bbb=[ansi(r, >%b, nh, %0, nr, %b<)] %1
 
 &_lmax bbb=lmax(%0, %1)
-&_titlestr bbb=titlestr(%0, %1)
+&_titlestr bbb=u(_titlestr, %0, %1)
 &_crumple bbb=crumple(%0, %1)
 
 @@ The following are functions known to cause cross-platform issues
@@ -95,7 +95,7 @@ The name of the storage group.  Must exist, always.
 &element.name.display bbb=
 	localize(
 		[setq(t, name)]
-		[setq(v, titlestr(%0))]
+		[setq(v, u(_titlestr, %0))]
 		[setq(e, u(f.element.validate, %qt, %0))]
 		[if(t(%qe), 
 			%qv, 
@@ -230,7 +230,7 @@ localize(
 	[setq(m, expires bath blood frequency effects preparation)]
 	[if(
 		land(
-			iter(u(bbb/f.get.entry.elements, %0, %qm), 
+			iter(u(f.get.entry.elements, %0, %qm), 
 				t(%i0), 
 				|
 			)
@@ -313,7 +313,7 @@ More of the same.
 &element.bath.display bbb=
 	localize(
 		[setq(t, bath)]
-		[setq(v, titlestr(%0))]
+		[setq(v, u(_titlestr, %0))]
 		[setq(e, u(f.element.validate, %qt, %0))]
 		[if(t(%qe), 
 			%qv, 
@@ -328,7 +328,7 @@ More of the same.
 &element.blood.display bbb=
 	localize(
 		[setq(t, blood)]
-		[setq(v, titlestr(%0))]
+		[setq(v, u(_titlestr, %0))]
 		[setq(e, u(f.element.validate, %qt, %0))]
 		[if(t(%qe), 
 			%qv, 
@@ -343,7 +343,7 @@ More of the same.
 &element.frequency.display bbb=
 	localize(
 		[setq(t, frequency)]
-		[setq(v, titlestr(%0))]
+		[setq(v, u(_titlestr, %0))]
 		[setq(e, u(f.element.validate, %qt, %0))]
 		[if(t(%qe), 
 			%qv, 
@@ -358,7 +358,7 @@ More of the same.
 &element.effects.display bbb=
 	localize(
 		[setq(t, effects)]
-		[setq(v, titlestr(%0))]
+		[setq(v, u(_titlestr, %0))]
 		[setq(e, u(f.element.validate, %qt, %0))]
 		[if(t(%qe), 
 			%qv, 
@@ -373,7 +373,7 @@ More of the same.
 &element.preparation.display bbb=
 	localize(
 		[setq(t, preparation)]
-		[setq(v, titlestr(%0))]
+		[setq(v, u(_titlestr, %0))]
 		[setq(e, u(f.element.validate, %qt, %0))]
 		[if(t(%qe), 
 			%qv, 
@@ -1391,6 +1391,22 @@ Filter is: How do I filter() for this? - 0: value, 2: comparison type (optional)
 -- Element: Players ------------------------------------------------------------
 
 @@ a single player is set for this, inherited from SASS
+@@ before 'players' can be set, 'expires' must also be set
+
+&element.players.set-check mw=
+localize(
+	[setq(m, expires)]
+	[if(
+		land(
+			iter(u(f.get.entry.elements, %0, %qm), 
+				t(%i0), 
+				|
+			)
+		), 
+		1, 
+		#-1 An entry must have [u(_itemize, %qm)] set before you can set players.
+	)]
+)
 
 
 --------------------------------------------------------------------------------
@@ -1407,7 +1423,7 @@ Filter is: How do I filter() for this? - 0: value, 2: comparison type (optional)
 &element.location.display mw=
 	localize(
 		[setq(t, location)]
-		[setq(v, titlestr(%0))]
+		[setq(v, u(_titlestr, %0))]
 		[setq(e, u(f.element.validate, %qt, %0))]
 		[if(t(%qe), 
 			%qv, 
@@ -1507,7 +1523,7 @@ These are all processed from the SASS parent.
 
 -----------
 
-&display.bath.PROVE Blood Bather Baths <bbb>=[setq(p, ulocal(f.get.entry.elements, %0, edit(%1, |, %b)))][u(_header, Bath #%0 (from %N))]%r[iter(%1, [setq(d, extract(%qp, inum(), 1, |))][setq(v, ulocal(f.element.validate, %i0, %qd))][setq(d, [ansi(h, [titlestr(%i0)]:)] [ulocal(display.element, %i0, %qd, true)])][ulocal(_wrap, %qd, sub(74, add(2, strlen(%i0))), left, %b%b, , add(2, strlen(%i0)), , 74)], |, %r)]%r[u(_footer, +bath/prove %0)]
+&display.bath.PROVE Blood Bather Baths <bbb>=[setq(p, ulocal(f.get.entry.elements, %0, edit(%1, |, %b)))][u(_header, Bath #%0 (from %N))]%r[iter(%1, [setq(d, extract(%qp, inum(), 1, |))][setq(v, ulocal(f.element.validate, %i0, %qd))][setq(d, [ansi(h, [u(_titlestr, %i0)]:)] [ulocal(display.element, %i0, %qd, true)])][ulocal(_wrap, %qd, sub(74, add(2, strlen(%i0))), left, %b%b, , add(2, strlen(%i0)), , 74)], |, %r)]%r[u(_footer, +bath/prove %0)]
 
 -----------
 
@@ -1588,7 +1604,7 @@ These are all processed from the SASS parent.
 
 -----------
 
-&C.BATH/RAW Blood Bather Baths <bbb>=[setq(n, first(%0, /))][setq(e, rest(%0, /))][setq(p, ulocal(f.get.entry.elements, %qn, %qe))][case(0, isstaff(%#), [alert(bath)] Staff only., t(%qn), [alert(bath)] Number not entered, t(%qe), [alert(bath)] Element not entered, eq(words(%qe)), [alert(bath)] One element only, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, comp(setr(e, first(u(f.data-elements.list, %qe))), ), [alert(bath)] Element not found, [alert(bath #%qn)] [ansi(h, titlestr(%qe))]: %qp)]
+&C.BATH/RAW Blood Bather Baths <bbb>=[setq(n, first(%0, /))][setq(e, rest(%0, /))][setq(p, ulocal(f.get.entry.elements, %qn, %qe))][case(0, isstaff(%#), [alert(bath)] Staff only., t(%qn), [alert(bath)] Number not entered, t(%qe), [alert(bath)] Element not entered, eq(words(%qe)), [alert(bath)] One element only, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, comp(setr(e, first(u(f.data-elements.list, %qe))), ), [alert(bath)] Element not found, [alert(bath #%qn)] [ansi(h, u(_titlestr, %qe))]: %qp)]
 
 -----------
 
