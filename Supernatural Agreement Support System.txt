@@ -1428,10 +1428,38 @@ What else does the Bather need to do?
 
 Set up enough to let the S.A.S.S. Mistress code process the rest.
 
-< To Be Continued >
+
+--------------------------------------------------------------------------------
+-- Sub-Mistress: Primary Command -----------------------------------------------
+
+1: /switches
+2: text
+
+########### Change %0 on all these the commands for '<command name>' ###########
+
+--
+
+&c.baths bbb=$^\+bath[s]?(/[^ ]*)?( .*)?$:
+	@pemit %#=
+		switch(1, 
+			t(strlen(%1)), 
+			u(c.mistress.switch, baths, %1, trim(%2)), 
+			
+			t(strlen(trim(%2))), 
+			u(c.mistress.specific, baths, trim(%2), @@(pseudo-switches)), 
+			
+			u(c.mistress.default, baths)
+		)
+
+--
+
+@set bbb/c.baths=regexp
 
 
+--------------------------------------------------------------------------------
+-- Sub-Mistress: Other ---------------------------------------------------------
 
+The rest of the system will use the functions on its parent.
 
 
 
