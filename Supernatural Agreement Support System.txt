@@ -68,6 +68,7 @@ Position is: <element name> <attribute prefix> <list position>
 Validation takes: %0 - entire item to validate
 Convert takes: 0: single element to convert, if list (e.g., players)
 			   1: should I also display the error text?
+Set-Check takes: 0: < fill in later >
 Display takes: %0 - list of elements to display
 Filter is: How do I filter() for this? - 0: value, 2: comparison type (optional)
 
@@ -122,7 +123,7 @@ The name of the storage group.  Must exist, always.
 --------------------------------------------------------------------------------
 -- Element: Expires ------------------------------------------------------------
 
-When does this element expire?
+When does this element expire? In most versions, so kept on the parent.
 
 --
 
@@ -194,7 +195,7 @@ localize(
 --------------------------------------------------------------------------------
 -- Element: Players ------------------------------------------------------------
 
-A list of players associated with the element
+A list of players associated with the element. Common, so left on parent.
 
 --
 
@@ -225,20 +226,8 @@ localize(
 
 --
 
-&element.players.set-check bbb=
-localize(
-	[setq(m, expires bath blood frequency effects preparation)]
-	[if(
-		land(
-			iter(u(f.get.entry.elements, %0, %qm), 
-				t(%i0), 
-				|
-			)
-		), 
-		1, 
-		#-1 An entry must have [u(_itemize, %qm)] set before you can set players.
-	)]
-)
+@@ Each element attached to this should check this as their needs.
+&element.players.set-check bbb=1
 
 --
 
@@ -275,7 +264,7 @@ localize(
 --------------------------------------------------------------------------------
 -- Element: Text ---------------------------------------------------------------
 
-The filler note-text.
+The filler note-text. Always available.
 
 --
 
@@ -304,82 +293,7 @@ The filler note-text.
 --------------------------------------------------------------------------------
 -- Element: Others -------------------------------------------------------------
 
-More of the same.
-
---
-
-&element.bath.position bbb=bath entry. 4
-&element.bath.validate bbb=case(0, t(%0), #-1 Bath cannot be empty, 1)
-&element.bath.display bbb=
-	localize(
-		[setq(t, bath)]
-		[setq(v, u(_titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
-			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
-		)]
-	)
-
---
-
-&element.blood.position bbb=blood entry. 5
-&element.blood.validate bbb=case(0, t(%0), #-1 Blood cannot be empty, 1)
-&element.blood.display bbb=
-	localize(
-		[setq(t, blood)]
-		[setq(v, u(_titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
-			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
-		)]
-	)
-
---
-
-&element.frequency.position bbb=frequency entry. 6
-&element.frequency.validate bbb=case(0, t(%0), #-1 Frequency cannot be empty, 1)
-&element.frequency.display bbb=
-	localize(
-		[setq(t, frequency)]
-		[setq(v, u(_titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
-			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
-		)]
-	)
-
---
-
-&element.effects.position bbb=effects entry. 7
-&element.effects.validate bbb=case(0, t(%0), #-1 Effects cannot be empty, 1)
-&element.effects.display bbb=
-	localize(
-		[setq(t, effects)]
-		[setq(v, u(_titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
-			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
-		)]
-	)
-
---
-
-&element.preparation.position bbb=preparation entry. 8
-&element.preparation.validate bbb=case(0, t(%0), #-1 Preparation cannot be empty, 1)
-&element.preparation.display bbb=
-	localize(
-		[setq(t, preparation)]
-		[setq(v, u(_titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
-			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
-		)]
-	)
+Other elements will be generated on each sub-system.
 
 
 ================================================================================
@@ -1315,6 +1229,208 @@ Sort entries by entry #
 --
 
 &sort.entries bbb=comp(rpad(last(%0, .), 3, 0), rpad(last(%1, .), 3, 0))
+
+
+################################################################################
+## BATHS #######################################################################
+
+The S.A.S.S. for Blood Bather's bath rituals.
+
+
+================================================================================
+== SETUP =======================================================================
+
+@create Blood Bather Baths <bbb>=10
+@set bbb=inherit safe
+@Desc Blood Bather Baths <bbb>=Num entries: [attrcnt(u(d.database)/entry.*)]
+
+@create Blood Bath Database <bbd>=10
+@set bbd=safe
+
+@fo me=@parent bbb=search(name=Supernatural Agreement Support System <sass>)
+
+
+--------------------------------------------------------------------------------
+-- Optional: Code Object Data Parent -------------------------------------------
+
+&prefix.elements bbb=element.
+&prefix.filters bbb=fil.
+&prefix.displays bbb=display.
+&prefix.cross-platform bbb=_
+
+================================================================================
+== DATA ========================================================================
+
+
+--------------------------------------------------------------------------------
+-- Data: Basic -----------------------------------------------------------------
+
+@fo me=&d.database bbb=num(Blood Bath Database <bbd>)
+
+
+================================================================================
+== ELEMENTS ====================================================================
+
+
+--------------------------------------------------------------------------------
+-- Element: Name ---------------------------------------------------------------
+
+Entry name. Parented from S.A.S.S.
+Position: name entry. 1
+
+
+--------------------------------------------------------------------------------
+-- Element: Expires ------------------------------------------------------------
+
+When does this element expire? Parented from S.A.S.S.
+Position: expires entry. 2
+
+--------------------------------------------------------------------------------
+-- Element: Players ------------------------------------------------------------
+
+A list of players associated with the element. Parented from S.A.S.S.
+Position: players entry. 3
+
+--
+
+&element.players.set-check bbb=
+localize(
+	[setq(m, expires bath blood frequency effects preparation)]
+	[if(
+		land(
+			iter(u(f.get.entry.elements, %0, %qm), 
+				t(%i0), 
+				|
+			)
+		), 
+		1, 
+		#-1 An entry must have [u(_itemize, %qm)] set before you can set players.
+	)]
+)
+
+
+--------------------------------------------------------------------------------
+-- Element: Text ---------------------------------------------------------------
+
+The filler note-text. Parented from S.A.S.S.
+Postition: text text. 1
+
+
+--------------------------------------------------------------------------------
+-- Element: Bath ---------------------------------------------------------------
+
+The bath tub needed.
+
+--
+
+&element.bath.position bbb=bath entry. 4
+
+&element.bath.validate bbb=case(0, t(%0), #-1 Bath cannot be empty, 1)
+
+&element.bath.display bbb=
+	localize(
+		[setq(t, bath)]
+		[setq(v, u(_titlestr, %0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+
+--------------------------------------------------------------------------------
+-- Element: Blood --------------------------------------------------------------
+
+Kind of blood needed for the ritual.
+
+--
+
+&element.blood.position bbb=blood entry. 5
+
+&element.blood.validate bbb=case(0, t(%0), #-1 Blood cannot be empty, 1)
+
+&element.blood.display bbb=
+	localize(
+		[setq(t, blood)]
+		[setq(v, u(_titlestr, %0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+
+--------------------------------------------------------------------------------
+-- Element: Frequency ----------------------------------------------------------
+
+How often? (Text; easily copy/pasted to update the 'expires'.)
+
+--
+
+&element.frequency.position bbb=frequency entry. 6
+&element.frequency.validate bbb=case(0, t(%0), #-1 Frequency cannot be empty, 1)
+&element.frequency.display bbb=
+	localize(
+		[setq(t, frequency)]
+		[setq(v, u(_titlestr, %0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+
+--------------------------------------------------------------------------------
+-- Element: Effects ------------------------------------------------------------
+
+What does the Bather get out of it?
+
+--
+
+&element.effects.position bbb=effects entry. 7
+&element.effects.validate bbb=case(0, t(%0), #-1 Effects cannot be empty, 1)
+&element.effects.display bbb=
+	localize(
+		[setq(t, effects)]
+		[setq(v, u(_titlestr, %0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+
+--------------------------------------------------------------------------------
+-- Element: Preparation --------------------------------------------------------
+
+What else does the Bather need to do?
+
+&element.preparation.position bbb=preparation entry. 8
+&element.preparation.validate bbb=case(0, t(%0), #-1 Preparation cannot be empty, 1)
+&element.preparation.display bbb=
+	localize(
+		[setq(t, preparation)]
+		[setq(v, u(_titlestr, %0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+
+================================================================================
+== SUB-MISTRESS COMMANDS =======================================================
+
+Set up enough to let the S.A.S.S. Mistress code process the rest.
+
+< To Be Continued >
+
+
 
 
 
