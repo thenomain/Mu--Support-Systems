@@ -397,7 +397,7 @@ returns: The entire data segments from that list, |-delimited, partial-matches
 	iter(
 		%0, 
 		iter(
-			lattr(%!/element.[edit(%i0, %b, _)]*.position), 
+			lattrp(%!/element.[edit(%i0, %b, _)]*.position), 
 			v(%i0), 
 			, |
 		), 
@@ -1208,6 +1208,7 @@ This section needs minimal re-written per system.
 
 &display.entry.prove bbb=
 	if(not(strlen(%1)), 
+
 @@ No elements passed -- show entire entry
 		u(display.entry.full, 
 			%0, 
@@ -1309,30 +1310,143 @@ This looks complicated because we want it to rely entirely upon the data element
 --------------------------------------------------------------------------------
 -- Sortby: Entries -------------------------------------------------------------
 
+Sort entries by entry #
+
+--
+
 &sort.entries bbb=comp(rpad(last(%0, .), 3, 0), rpad(last(%1, .), 3, 0))
 
 
 
 
+################################################################################
+## WARDS #######################################################################
+
+The S.A.S.S. for supernatural, timed wards.
+
+Will need:
+	Title
+	Invoker
+	Location
+	Duration
+	Other Notes
 
 
+================================================================================
+== SETUP =======================================================================
+
+@create Magical Wards <mw>=10
+@set mw=inherit safe
+@Desc Magical Wards <mw>=Num entries: [attrcnt(u(d.database)/entry.*)]
+
+@fo me=@parent Magical Wards <mw>=search(name=Blood Bather Baths <bbb>)
+
+@create Magical Wards Database <mwdb>=10
+@set Magical Wards Database <mwdb>=safe
 
 
+--------------------------------------------------------------------------------
+-- Optional: Code Object Data Parent -------------------------------------------
+
+&prefix.elements Magical Wards <mw>=element.
+&prefix.filters Magical Wards <mw>=fil.
+&prefix.displays Magical Wards <mw>=display.
+&prefix.cross-platform Magical Wards <mw>=_
 
 
+================================================================================
+== DATA ========================================================================
 
 
+--------------------------------------------------------------------------------
+-- Data: Basic -----------------------------------------------------------------
+
+@fo me=&d.database Magical Wards <mw>=num(Magical Wards Database <mwdb>)
+@fo me=@tel mwdb=Magical Wards <mw>
 
 
+================================================================================
+== ELEMENTS ====================================================================
+
+Position is: <element name> <attribute prefix> <list position>
+Validation takes: %0 - entire item to validate
+Convert takes: 0: single element to convert, if list (e.g., players)
+			   1: should I also display the error text?
+Display takes: %0 - list of elements to display
+Filter is: How do I filter() for this? - 0: value, 2: comparison type (optional)
+
+--------------------------------------------------------------------------------
+-- Element: Name ---------------------------------------------------------------
+
+@@ all parts of this inherited from SASS - not going to be overwritten
 
 
+--------------------------------------------------------------------------------
+-- Element: Expires ------------------------------------------------------------
+
+@@ all parts of this inherited from SASS - not going to be overwritten
 
 
+--------------------------------------------------------------------------------
+-- Element: Players ------------------------------------------------------------
+
+@@ a single player is set for this, inherited from SASS
 
 
+--------------------------------------------------------------------------------
+-- Element: Text ---------------------------------------------------------------
+
+@@ see above
 
 
+--------------------------------------------------------------------------------
+-- Element: Others -------------------------------------------------------------
 
+&element.location.position mw=location entry. 4
+&element.location.validate mw=case(0, t(%0), #-1 Location cannot be empty, 1)
+&element.location.display mw=
+	localize(
+		[setq(t, location)]
+		[setq(v, titlestr(%0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+--
+
+&element.whitelist.position mw=location entry. 5
+&element.whitelist.validate mw=u(element.players.validate, %0)
+&element.whitelist.convert mw=u(element.players.convert, %0, %1)
+&element.whitelist.set-check mw=u(element.players.set-check, %0)
+&element.whitelist.display mw=
+	localize(
+		[setq(t, whitelist)]
+		[iter(%0, 
+			[setq(e, u(f.element.validate, %qt, %i0))]
+			[setq(v, name(%i0))]
+			[if(strmatch(%i0, #-*), 
+				[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))], 
+				%qv
+			)], 
+			|, %,%b
+		)]
+	)
+
+
+================================================================================
+== FUNCTIONS ===================================================================
+
+These are all processed from the SASS parent.
+
+
+================================================================================
+== MISTRESS COMMANDS ===========================================================
+
+
+		TO BE CONTINUED!
 
 
 
