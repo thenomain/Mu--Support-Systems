@@ -465,7 +465,6 @@ v: very-temporary-holder
 
 i: 'if' condition looking for at the moment so it can be reported
 
-
 --
 
 &f.report.rooms fmo=
@@ -477,53 +476,28 @@ localize(
 @@ .. name/dbref
 			divider( [name(%i0)] (%i0) ), %r, 
 
-@@ .. players link here!
-			if( 
-				t(setr( i, u( f.search.who-lives-here, %i0, player ))), 
-				ansi( h, cat( %b, words(%qi), people link here!%r ))
-			), 
-
-@@ .. objects link here!
-			if( 
-				t(setr( i, u( f.search.who-lives-here, %i0, object ))), 
-				ansi( h, cat( %b, words(%qi), objects link here!%r ))
-			), 
-
-@@ .. rooms dump here!
-			if( 
-				t(setr( i, u( f.search.who-lives-here, %i0, room ))), 
-				ansi( h, cat( %b, words(%qi), rooms dump here!%r ))
-			), 
+@@ .. link-reports: players, objects, rooms
+			if( t( setr( i, u( f.link-report.players, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( f.link-report.objects, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( f.link-report.rooms, %i0 ))), %b %qi ), 
 
 @@ .. coords
 			if( t( setr( i, get( %i0/coord ))), 
-				ansi( h, %b Coord:%b, n, %qi %r )
+				ansi( h, %b &coord:%b, n, %qi %r )
 			), 
 
 @@ .. owner(s)
 			if( t( setr( i, get( %i0/owner ))), 
-				ansi( h, %b Owner:%b, n, %qi %r )
+				ansi( h, %b &owner:%b, n, %qi %r )
 			), 
 
-@@ .. places?
-			if( t( setr( i, places( list, %i0 ))), 
-				cat(%b This room has, words( %qi, | ), place(s) %r)
-			), 
+@@ .. places report
+			if( t( setr( i, u( f.places-report ))), %b %qi ), 
 
-@@ .. views?
-			if( t( setr( i, u( f.notes.list-notes-attrs, %i0, views ))), 
-				cat(%b This room has, words( %qi ), view(s). %r)
-			), 
-
-@@ .. notes?
-			if( t( setr( i, u( f.notes.list-notes-attrs, %i0, notes ))), 
-				cat(%b This room has, words( %qi ), note(s). %r)
-			), 
-
-@@ .. staffnotes?
-			if( t( setr( i, u( f.notes.list-notes-attrs, %i0, staffnotes ))), 
-				cat(%b This room has, words( %qi ), staffnote(s). %r)
-			), 
+@@ .. notes-reports: views, notes, staffnotes
+			if( t( setr( i, u( f.note-report.views, %i0, room ))), %b %qi ), 
+			if( t( setr( i, u( f.note-report.notes, %i0, room ))), %b %qi ), 
+			if( t( setr( i, u( f.note-report.staffnotes, %i0, room ))), %b %qi ), 
 
 @@ .. report on exits
 			if( 
@@ -556,6 +530,91 @@ think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 t
 
 &f.search.who-lives-here fmo=search( e%1=strmatch( %0, home( ## )))
 
+--
+
+&f.search.it-is-here fmo=search( e%1=strmatch( %0, loc( ## )))
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Link Report: Players ----------------------------------------------
+
+&f.link-report.players fmo=
+	if( 
+		t(setr( i, u( f.search.who-lives-here, %0, player ))), 
+		ansi( h, cat( words(%qi), people link here!%r ))
+	)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Link Report: Objects ----------------------------------------------
+
+&f.link-report.objects fmo=
+	if( 
+		t(setr( i, u( f.search.who-lives-here, %0, object ))), 
+		ansi( h, cat( words(%qi), objects link here!%r ))
+	)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Link Report: Rooms ------------------------------------------------
+
+&f.link-report.rooms fmo=
+	if( 
+		t(setr( i, u( f.search.who-lives-here, %0, room ))), 
+		ansi( h, cat( words(%qi), rooms dump here!%r ))
+	)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Link Report: Exits ------------------------------------------------
+
+&f.link-report.exits fmo=
+		if( 
+			t(setr( i, u( f.search.it-is-here, %0, exit ))), 
+			ansi( h, cat( words(%qi), exits link here!%r ))
+		)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Note Report: Views ------------------------------------------------
+
+0: dbref, 1: object type
+
+--
+
+&f.note-report.views fmo=
+	if( t( setr( i, u( f.notes.list-notes-attrs, %0, views ))), 
+		cat( This %1 has, words( %qi ), view(s). %r )
+	)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Note Report: Notes ------------------------------------------------
+
+&f.note-report.notes fmo=
+	if( t( setr( i, u( f.notes.list-notes-attrs, %i0, notes ))), 
+		cat( This %1 has, words( %qi ), note(s). %r )
+	)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Note Report: Staffnotes -------------------------------------------
+
+&f.note-report.staffnotes fmo=
+	if( t( setr( i, u( f.notes.list-notes-attrs, %i0, staffnotes ))), 
+		cat( This %1 has, words( %qi ), staffnote(s). %r )
+	)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Places Report -----------------------------------------------------
+
+&f.places-report fmo=
+	if( t( setr( i, places( list, %i0 ))), 
+		cat(This room has, words( %qi, | ), place(s) %r)
+	)
+
+
 
 --------------------------------------------------------------------------------
 -- FUNCTION: Report Exits in Room owned by Player ------------------------------
@@ -586,20 +645,10 @@ localize(
 		ansi( h, %b %b Dest:%b ), 
 		name( loc( %0 )), %b%(, loc( %0 ), %) %r, 
 
-@@ .. views?
-		if( t( setr( i, u( f.notes.list-notes-attrs, %i0, views ))), 
-			cat(%b This exit has, words( %qi ), view(s). %r)
-		), 
-
-@@ .. notes?
-		if( t( setr( i, u( f.notes.list-notes-attrs, %i0, notes ))), 
-			cat(%b This exit has, words( %qi ), note(s). %r)
-		), 
-
-@@ .. staffnotes?
-		if( t( setr( i, u( f.notes.list-notes-attrs, %i0, staffnotes ))), 
-			cat(%b This exit has, words( %qi ), staffnote(s). %r)
-		), 
+@@ .. notes-reports: views, notes, staffnotes
+			if( t( setr( i, u( f.note-report.views, %i0, room ))), %b %qi ), 
+			if( t( setr( i, u( f.note-report.notes, %i0, room ))), %b %qi ), 
+			if( t( setr( i, u( f.note-report.staffnotes, %i0, room ))), %b %qi ), 
 	)
 )
 
@@ -646,6 +695,49 @@ localize(
 think [setq(0, #3225)][setq(r, search(%q0 type=rooms))][setq(e, search(%q0 type=exits))][setq(o, iter(%qr, filter(#1642/filter.owned-by-player, lexits(%i0), , , %q0)))][u(#1642/f.report.other-exits, setdiff(%qe, %qo))]
 
 think [setq(0, pmatch(meadow))][setq(r, search(%q0 type=rooms))][setq(e, search(%q0 type=exits))][setq(o, iter(%qr, filter(#1642/filter.owned-by-player, lexits(%i0), , , %q0)))][u(#1642/f.report.other-exits, setdiff(%qe, %qo))]
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Report on Objects -------------------------------------------------
+
+0: list of objects
+1: owner dbref
+
+i: 'if' condition looking for at the moment so it can be reported
+
+--
+
+&f.report.objects fmo=
+localize( 
+	iter( %0, 
+@@ for each object ...
+		strcat( 
+
+@@ .. name/dbref
+			divider( [name(%i0)] (%i0) ), %r, 
+
+@@ .. link-reports: players, objects, rooms, exits
+			if( t( setr( i, u( f.link-report.players, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( f.link-report.objects, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( f.link-report.rooms, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( f.link-report.exits, %i0 ))), %b %qi ), 
+
+@@ .. home
+			ansi( h, %b Home:%b ), 
+			name( home( %i0 )), %b%(, home( %i0 ), %)%b%r, 
+
+@@ .. notes-reports: views, notes, staffnotes
+			if( t( setr( i, u( f.note-report.views, %i0, object ))), %b %qi ), 
+			if( t( setr( i, u( f.note-report.notes, %i0, object ))), %b %qi ), 
+			if( t( setr( i, u( f.note-report.staffnotes, %i0, object ))), %b %qi ), 
+
+@@ .. exit report
+			if( t(setr( i, lexits( %i0 ))), 
+				cat( %b Object has, words( %i0 ), exits )
+			)
+		)
+	)
+)
 
 
 ================================================================================
