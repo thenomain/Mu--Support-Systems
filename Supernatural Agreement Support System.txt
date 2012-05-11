@@ -549,29 +549,18 @@ It is entirely function-based.  Use trigger() when necessary.
 1: /switches
 2: text
 
-
-&c.baths bbb=$^\+bath[s]?(/[^ ]*)?( .*)?$:
-	@pemit %#=
-		switch(1, 
-			t(strlen(%1)), 
-			u(c.baths.switch, %1, trim(%2)), 
-			
-			t(strlen(trim(%2))), 
-			u(c.baths.specific, trim(%2), @@(pseudo-switches)), 
-			
-			u(c.baths.default)
-		)
-
 --
 
-@set bbb/c.baths=regexp
+&c.sass bbb=$+sass*:@pemit %#=
+	u(_alert, S.A.S.S., The following Supernatural Agreement systems are known to this system:%r...)
 
 
 --------------------------------------------------------------------------------
 -- Mistress: Switches ----------------------------------------------------------
 
-0: /switch/es
-1: text (if passed)
+0: <command name>, passed up from Sub-Mistress systems (e.g., 'baths')
+1: /switch/es
+2: text (if passed)
 
 n: command name ('poses')
 s: switches found (c.baths/*)
@@ -579,15 +568,15 @@ p: pseudo-switches (others)
 
 --
 
-&c.baths.switch bbb=
-	[setq(n, baths)]
+&c.mistress.switch bbb=
+	[setq(n, %0)]
 	[setq(s, )]
 	[setq(p, )]
 	[setq(a, lattr(%!/c.%qn/*))]
 
 @@ filter real (%qs) and psudo-switches (%qp)
 	[iter(
-		rest(%0, /), 
+		rest(%1, /), 
 		if(
 			t(grab(%qa, c.%qn/%i0*)), 
 			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
@@ -601,13 +590,13 @@ p: pseudo-switches (others)
 	[if(t(%qs), 
 
 @@ .. pass to first real-switch passed
-		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %2, %qp), 
 
 @@ .. else pass to '.specific' or '.default' with pseudo-switches
 		if(
-			t(%1), 
-				ulocal(c.%qn.specific, %1, %qp), 
-				ulocal(c.%qn.default, %qp)
+			t(%2), 
+				ulocal(c.mistress.specific, %0, %2, %qp), 
+				ulocal(c.mistress.default, %0, %qp)
 		)
 	)]
 
@@ -615,35 +604,40 @@ p: pseudo-switches (others)
 --------------------------------------------------------------------------------
 -- Mistress: Default -----------------------------------------------------------
 
-0: psudo-switches, if passed (error'd, for now)
+0: <command name>
+1: psudo-switches, if passed (error'd, for now)
 
 --
 
-&c.baths.default bbb=
-	if(strlen(%0), 
+&c.mistress.default bbb=
+	if(strlen(%1), 
 @@ error on psudo-switches
-		u(_alert, baths, I don't recognize that switch), 
+		u(_alert, lcstr(%0), I don't recognize that switch), 
 
 @@ ok
-		u(c.baths/view)
+		u(c.mistress/view, %0)
 	)
 
 
 --------------------------------------------------------------------------------
 -- Mistress: Specific ----------------------------------------------------------
 
-0: item to pass on
-1: psudo-switches, if passed (errored, for now)
+0: <command name>
+1: text
+2: psudo-switches, if passed (errored, for now)
 
 --
 
-&c.baths.specific bbb=
-	if(strlen(%1), 
+&c.mistress.specific bbb=
+	if(strlen(%2), 
 @@ error on psudo-switches
-		u(_alert, baths, I don't recognize that switch), 
+		u(_alert, lcstr(%0), I don't recognize that switch), 
 
 @@ ok
-		u(c.baths/view, %0)
+		if(hasattr(%!/u(c.%0/view, %1)), 
+			u(c.%0/view, %1), 
+			u(c.mistress/view, %0, %1)
+		)
 	)
 
 
@@ -1444,10 +1438,10 @@ Set up enough to let the S.A.S.S. Mistress code process the rest.
 		switch(1, 
 			t(strlen(%1)), 
 			u(c.mistress.switch, baths, %1, trim(%2)), 
-			
+
 			t(strlen(trim(%2))), 
 			u(c.mistress.specific, baths, trim(%2), @@(pseudo-switches)), 
-			
+
 			u(c.mistress.default, baths)
 		)
 
@@ -1605,7 +1599,21 @@ These are all processed from the SASS parent.
 == MISTRESS COMMANDS ===========================================================
 
 
-		TO BE CONTINUED!
+&c.wards mw=$^\+ward[s]?(/[^ ]*)?( .*)?$:
+	@pemit %#=
+		switch(1, 
+			t(strlen(%1)), 
+			u(c.mistress.switch, wards, %1, trim(%2)), 
+
+			t(strlen(trim(%2))), 
+			u(c.mistress.specific, wards, trim(%2), @@(pseudo-switches)), 
+
+			u(c.mistress.default, wards)
+		)
+
+--
+
+@set mw/c.wards=regexp
 
 
 
