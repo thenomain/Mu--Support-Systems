@@ -1,0 +1,752 @@
+=========================> @whence command matches <============================
+   #653 Random Global Storage  (Is) ......... do_freezer ......... +freeze *
+=================================================================> 1 match <====
+DO_FREEZER [#3087]: $+freeze *:[setq(0, pmatch++(%0))]; @swi/first 0=isstaff(%#), {@pemit %#=Huh? (Type "help" for help.)}, isdbref(%q0), {@pemit %#=[ansi(hx, ERROR)]: '[secure(%0)]' does not seem to be the name of a player.}, not(match(loc(%q0), #1408)), {@pemit %#=[ansi(hx, GAME)]: [name(%q0)] is already in the Freezer.}, {&freezer_loc %q0 = [loc(%q0)]; @lock %q0/freezer_loc; @tel %q0=#1408; &freezer_home %q0 = [home(%q0)]; @lock %q0/freezer_home; @link %q0=#1408; @pemit %#=[ansi(hx, GAME)]: You sent [name(%q0)] to the Freezer.; @name %q0=[name(%q0)]_[rest(%q0, #)]; @pemit %q0=[ansi(hx, GAME)]: %N has sent you to the Freezer and renamed you to [name(%q0)].; @set %q0=!APPROVED FIXED; think [u(#3088/FCT.XP.UPDATE, %#, %q0, 0, Character Frozen)]}
+
+--
+
+&DO_FREEZER #653=$+freeze *:
+
+think setq(0, pmatch++(%0)); 
+
+@swi/first 0=
+	isstaff(%#), 
+	{ @pemit %#=Huh? (Type "help" for help.) }, 
+
+	isdbref(%q0), 
+	{ @pemit %#=[ansi(hx, ERROR)]: '[secure(%0)]' does not seem to be the name of a player. }, 
+
+	not(match(loc(%q0), #1408)), 
+	{ @pemit %#=[ansi(hx, GAME)]: [name(%q0)] is already in the Freezer. }, 
+
+@@ .. else
+	{ 
+		&freezer_loc %q0 = [loc(%q0)]; 
+
+		@lock %q0/freezer_loc; 
+
+		@tel %q0=#1408; 
+
+		&freezer_home %q0 = [home(%q0)]; 
+
+		@lock %q0/freezer_home; 
+
+		@link %q0=#1408; 
+
+		@pemit %#=[ansi(hx, GAME)]: You sent [name(%q0)] to the Freezer.; 
+
+		@name %q0=[name(%q0)]_[rest(%q0, #)]; 
+
+		@pemit %q0=[ansi(hx, GAME)]: %N has sent you to the Freezer and renamed you to [name(%q0)].; 
+
+		@set %q0=!APPROVED FIXED; 
+
+		think u(#3088/FCT.XP.UPDATE, %#, %q0, 0, Character Frozen) 
+	}
+
+--
+
+F_PMATCH++ [#3087]: localize(if(setr(p, pmatch(%0)), %qp, first(search(eplayer=strmatch(name(##), %0*)))))
+
+
+--
+
+c.freezer
+trig.freezer.staff
+trig.freezer.frozen
+trig.freezer.permafrozen
+trig.freezer.create-job
+
+--
+
+ex #978/fp*isapproved
+&FP_ISAPPROVED #978=or(isstaff(%0),hasflag(%0,approved))
+
+
+################################################################################
+## FREEZER MANAGEMENT CODE #####################################################
+
+Yeah, it's complex enough that it gets its own object.
+
+
+================================================================================
+== CREATE: Freezer Management Object ===========================================
+
+@create Freezer Management Object <fmo>=10
+
+@set fmo=safe inherit
+
+@parent fmo=#2833
+&prefix.cross-platform_functions fmo=.
+
+
+================================================================================
+== CROSS-PLATFORM FUNCTIONS ====================================================
+
+&.isstaff fmo=isstaff( %0 )
+
+
+================================================================================
+== DATA ========================================================================
+
+&d.freezer.player fmo=#1408
+&d.freezer.staff fmo=#803
+
+&d.ajobs.job-tracker fmo=#2594
+&d.ajobs.report-jgroup fmo=+Build
+
+&d.notes.object fmo=#116
+
+
+
+================================================================================
+== USER FUNCTION: isapproved() =================================================
+
+	isapproved(<dbref>[, <approval type>])
+
+This is the updated isapproved() function. Priv'd Function.
+
+FLAGS:
+	approved, frozen, exstaff, permafrozen
+
+APPROVAL TYPES:
+	approved: has the approval flag (default)
+	frozen: has the frozen or exstaff flag
+	exstaff, ex-staff, staff: has the exstaff flag
+	permafrozen: has the permafrozen flag
+	unapproved, never: none of the above
+
+--
+
+0: <dbref>
+1: <approval type>
+
+--
+
+&ufunc.isapproved fmo=
+	switch( %1, 
+		a*, cor( isstaff( %0 ), hasflag( %0, approved )), 
+		f*, hasflag( %0, frozen ), 
+		ex*, hasflag( %0, exstaff ), 
+		st*, hasflag( %0, exstaff ), 
+		p*, hasflag( %0, permafrozen ), 
+		un*, not(cor( u( .isstaff, %0 ), orflags( %0, 0167 ))), 
+		nev*, not(cor( u( .isstaff, %0 ), orflags( %0, 0167 ))), 
+		cor( isstaff( %0 ), hasflag( %0, approved ))
+	)
+
+
+================================================================================
+== MISTRESS SYSTEM =============================================================
+
+The usual cascading command to switches, unknown switches sent as "fake" switches, but will almost certainly be ignored.
+
+
+--------------------------------------------------------------------------------
+-- Mistress: Setup -------------------------------------------------------------
+
+n: name of the command for finding right attr
+   GLOBAL REGISTER - holds command/alias player is using
+
+--
+
+&c.freezer fmo=$+freeze*:@pemit %#=
+	[setq(n, freezer)]
+	[switch(%0, 
+
+@@ Without 'r' ending
+		, u(c.%qn.default), 
+		/*, u(c.%qn.switch, first(%0), rest(%0)), 
+		%b*, u(c.%qn.specific, trim(%0)), 
+
+@@ With 'r' ending
+		r, u(c.%qn.default), 
+		r/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), 
+		r%b*, u(c.%qn.specific, trim(rest(%0))), 
+
+@@ No match
+		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
+	)]
+
+
+--------------------------------------------------------------------------------
+-- freezer/<switch> ------------------------------------------------------------
+
+Handles all /switches, which is to say it makes sure they exist and passes them on.
+
+Also handles pseudo-switches, passing them on as elements to any switched item.
+
+Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if %1 is empty.
+
+--
+
+0: /<switch>[/<switch>/<switch>, etc.]
+1: [<more>], stuff to pass to c.<name>/<switch>, if any
+
+n: Name of the command, global register set in &c.<name> (set above)
+   'qn' MUST BE MAINTINED after this command (for aliases)
+
+a: all c.<name>/* on this object
+s: /valid/command/switches/found
+p: /pseudo/switches/found, pass to c.<name>[/<switch>]
+
+--
+
+&c.freezer.switch fmo=
+	[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))]
+	[iter(rest(%0, /), 
+		if(
+			t(grab(%qa, c.%qn/%i0*)), 
+			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
+			setq(p, %qp/%i0)
+		), 
+		/, @@
+	)]
+	[if(t(%qs), 
+		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+		if(t(%1), 
+			ulocal(c.%qn.specific, %1, %qp), 
+			ulocal(c.%qn.default, %1, %qp)
+		)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- freezer (default) -----------------------------------------------------------
+
+Nothing for now.
+
+n: name of calling command/alias, MUST BE MAINTAINED after this command
+
+--
+
+0: ignored
+1: fake /switches, if any
+
+l: location of %#
+
+--
+
+&c.freezer.default fmo=<freezer> No default available.
+
+
+--------------------------------------------------------------------------------
+-- freezer <stuff> (specific) --------------------------------------------------
+
+Freeze this person
+
+--
+
+0: player to freeze
+1: fake /switches
+
+t: target
+
+--
+
+&c.freezer.specific fmo=
+	[setq( t, pmatch++( trim( secure( %0 ))))]
+
+	[case( 0, 
+		isstaff(%#), <freezer> Staff only, 
+
+		t(hastype( %qt, PLAYER )), 
+		<freezer> Cannot find '[trim( secure( %0 ))]', 
+
+		not( u( ufunc.isapproved, %qt, permafrozen )), 
+		<freezer> '[name( %qt )]' is already permafrozen, 
+
+		not( u( ufunc.isapproved, %qt, exstaff )), 
+		<freezer> '[name( %qt )]' is already exstaff, 
+
+		not( u( ufunc.isapproved, %qt, frozen )), 
+		<freezer> '[name( %qt )]' is already frozen, 
+
+		not( u( ufunc.isapproved, %qt, unapproved )), 
+		<freezer> '[name( %qt )]' (%qt) has never been approved and should be destroyed instead, 
+
+@@ OK GO
+		trigger(%!/trig.freeze, 
+			%#, 
+			%qt, 
+			if( u( .isstaff, %qt ), staff, player )
+		)
+	)]
+
+
+================================================================================
+== SWITCH: /permafreeze ========================================================
+
+&c.freezer/permafreeze fmo=I Am /Permafreeze
+
+
+================================================================================
+== SWITCH: /list ===============================================================
+
+(???)
+	+freezer/list [<approval type>]
+
+--
+
+&c.freezer/list fmo=I Am /List
+
+
+================================================================================
+== TRIGGER: Freeze Person ======================================================
+
+0: trigerer
+1: person to freeze
+2: 'player' or 'staff'
+
+n: name of staffer
+
+--
+
+&trig.freeze fmo=
+	think >> trig.freeze (%2) >> target name: [setr(n, name( %1 ))]; 
+
+	@pemit %0=<freeze> Trying to %2-freeze %qn (%1); 
+
+@@ remove all powers
+	@power %0=[iter( powers( %1 ), !%i0) ]; 
+
+@@ remove all staff-related flags
+	@set %0=!staff !royalty !dark !inherit; 
+
+@@ move to correct freezer
+	@tel/quiet %1=[v( d.freezer.%2 )]; 
+	@link %1=[v( d.freezer.%2 )]; 
+
+@@ remove from +jgroups (Anomaly Jobs)
+	@trigger %!/trig.ajobs.remove-from-jgroups=%1, %qn; 
+
+@@ >> staffer
+	@if strmatch( %2, staff )=
+		{ 
+
+@@ .. remove from 'staff' channel
+			@cboot %1=Staff; 
+
+@@ .. remove from staff rosters (different on every game)
+			@trigger %!/trig.staff-roster.remove=%1; 
+
+@@ .. >> MUST BE DONE BY HAND: 
+@@ .. .. Remove Wiz Flag (if exists)
+			@if hasflag(%1, WIZARD)=
+				{ @pemit %0=<freeze> Remember to remove the Wizard flag from '%qn' }; 
+
+@@ .. .. Remove Wiki & Forum privs
+			{ @pemit %0=<freeze> Remember to remove privs from '%qn' on the Wiki and Forums }
+		 }; 
+
+@@ >> OK, MAKE THE JOB
+	@trigger %!/trig.create-freeze-job=%0, %1, %2; 
+
+
+================================================================================
+== TRIGGER: Remove from Staff Rosters ==========================================
+
+The Reach: +staff/del name=dept to remove them from the #99 +staff lists
+
+--
+
+&trig.staff-roster.remove fmo=
+	@dolist grepi( #99, v_dept_*, %0 )=
+		{ +staff/del [name( %0 )]=[last(##, _)] }; 
+
+
+================================================================================
+== ANOMALY JOBS ================================================================
+
+Interfaces for Anomaly Jobs
+
+--------------------------------------------------------------------------------
+-- TRIGGER: remove from jgroups ------------------------------------------------
+
+&trig.ajobs.remove-from-jgroups fmo=
+	@dolist u( f.ajobs.belongs-to-jgroups, %0 )=
+		{ +jgroup/member %1=[name( ## )] }; 
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: belongs to jgroups ------------------------------------------------
+
+0: player dbref
+
+--
+
+&f.ajobs.belongs-to-jgroups fmo=
+	filter( filter.ajobs.belongs-to-jgroup, 
+		lcon( v( d.ajobs.job-tracker )), , , %0 
+	)
+
+
+--------------------------------------------------------------------------------
+-- FILTER: belongs to +jgroup --------------------------------------------------
+
+0: +jgroup object dbref
+1: player dbref
+
+--
+
+&filter.ajobs.belongs-to-jgroup fmo=t( match( get( %0/memberlist ), %1 ))
+
+
+================================================================================
+== TRIGGER: Create Freezer Job =================================================
+
+This is a personal game-by-game feature.
+
+
+--------------------------------------------------------------------------------
+-- Create Freeze Job -----------------------------------------------------------
+
+Player dbref must be validated by now.
+
+1) Discover lists of what player owns
+2) Discover lists of notes, player-visible and 'invisible'
+2) Turn lists into readable format
+3) Create +Build & <player> job with readable format, to allow player to respond
+
+--
+
+0: dbref of enactor
+1: dbref of target
+2: 'player' or 'staff'
+
+r: rooms list
+e: exits list
+o: objects list
+p: players list (very rarely used, if ever)
+n: visible notes list
+i: invisible notes list (staffnotes)
+
+x: output
+v: very-temporary-holder
+
+--
+
+&trig.create-freeze-job fmo=
+	think 
+		strcat( 
+			>> trig.create-freeze-job >>%r, 
+			>> dbref: %1%r, 
+			>> rooms:%b, setr( r, search( %1 type=rooms )), %r, 
+			>> exits:%b, setr( e, search( %1 type=exits )), %r, 
+			>> objects:%b, setr( o, search( %1 type=objects )), %r, 
+			>> players:%b, setr( p, search( %1 type=players )), %r, 
+			>> notes:%b, setr( n, u( f.notes.list-notes, %1, player ) ), %r, 
+			>> invisible notes: , setr( i, u( f.notes.list-notes, %1, staff ))
+		); 
+
+
+
+	think 
+		setr( x, 
+			header( Freeze for [capstr( %2 )]: [name( %1 )] (%1) )%r
+		); 
+
+	@if t( words( %qr ))={ 
+		setr(x, 
+			strcat( %qx, 
+				header(Rooms (count: [words( %qr )]) ), %r,
+				u( f.report.rooms, %qr )
+			)
+		) 
+	}
+
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Report on Rooms ---------------------------------------------------
+
+0: list of rooms
+1: owner dbref
+
+i: 'if' condition looking for at the moment so it can be reported
+
+
+--
+
+&f.report.rooms fmo=
+localize( 
+	iter( %0, 
+@@ for each room ...
+		strcat( 
+
+@@ .. name/dbref
+			divider( [name(%i0)] (%i0) ), %r, 
+
+@@ .. players link here!
+			if( 
+				t(setr( i, u( f.search.who-lives-here, %i0, player ))), 
+				ansi( h, cat( %b, words(%qi), people link here!%r ))
+			), 
+
+@@ .. objects link here!
+			if( 
+				t(setr( i, u( f.search.who-lives-here, %i0, object ))), 
+				ansi( h, cat( %b, words(%qi), objects link here!%r ))
+			), 
+
+@@ .. rooms dump here!
+			if( 
+				t(setr( i, u( f.search.who-lives-here, %i0, room ))), 
+				ansi( h, cat( %b, words(%qi), rooms dump here!%r ))
+			), 
+
+@@ .. coords
+			if( t( setr( i, get( %i0/coord ))), 
+				ansi( h, %b Coord:%b, n, %qi %r )
+			), 
+
+@@ .. owner(s)
+			if( t( setr( i, get( %i0/owner ))), 
+				ansi( h, %b Owner:%b, n, %qi %r )
+			), 
+
+@@ .. places?
+			if( t( setr( i, places( list, %i0 ))), 
+				cat(%b This room has, words( %qi, | ), place(s) %r)
+			), 
+
+@@ .. views?
+			if( t( setr( i, u( f.notes.list-notes-attrs, %i0, views ))), 
+				cat(%b This room has, words( %qi ), view(s). %r)
+			), 
+
+@@ .. notes?
+			if( t( setr( i, u( f.notes.list-notes-attrs, %i0, notes ))), 
+				cat(%b This room has, words( %qi ), note(s). %r)
+			), 
+
+@@ .. staffnotes?
+			if( t( setr( i, u( f.notes.list-notes-attrs, %i0, staffnotes ))), 
+				cat(%b This room has, words( %qi ), staffnote(s). %r)
+			), 
+
+@@ .. report on exits
+			if( 
+				t(setr( i, filter( filter.owned-by-player, lexits( %i0 ), , , %1 ))), 
+				iter( %qi, u( f.report.room-exit, %i0 ), , @@ )
+			), 
+
+@@ .. report on 'other exits' (exits not owned by target player)
+			if( 
+				t( setr( i, setdiff( lexits( %i0 ), %qi ))), 
+				%b There are [words(%qi)] other exit(s) in this room. %r
+			)
+
+		), , @@
+	)
+)
+
+--
+
+think u(fmo/f.report.rooms, setr(r, search(#3225 type=room)), #3225)
+
+think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 type=room)), %q0)]
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Who Lives Here? ---------------------------------------------------
+
+0: room
+1: 'player', 'object', 'room', 'exit' (better served with lexits())
+
+&f.search.who-lives-here fmo=search( e%1=strmatch( %0, home( ## )))
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Report Exits in Room owned by Player ------------------------------
+
+0: exit dbref
+
+--
+
+&f.report.room-exit fmo=
+localize( 
+	strcat( 
+
+@@ .. name/dbref
+		ansi( h, %b * EXIT:%b ), 
+		name( %0 ), %b%(, %0, %)%b, 
+
+@@ .. dark flag?
+		if( hasflag( %0, dark ), 
+			ansi( xh, %(dark%)%b )
+		), 
+
+@@ .. locked?
+		if( lock( %0 ), 
+			ansi( xh, %(locked%) )
+		), %r, 
+
+@@ .. destination
+		ansi( h, %b %b Dest:%b ), 
+		name( loc( %0 )), %b%(, loc( %0 ), %) %r, 
+
+@@ .. views?
+		if( t( setr( i, u( f.notes.list-notes-attrs, %i0, views ))), 
+			cat(%b This exit has, words( %qi ), view(s). %r)
+		), 
+
+@@ .. notes?
+		if( t( setr( i, u( f.notes.list-notes-attrs, %i0, notes ))), 
+			cat(%b This exit has, words( %qi ), note(s). %r)
+		), 
+
+@@ .. staffnotes?
+		if( t( setr( i, u( f.notes.list-notes-attrs, %i0, staffnotes ))), 
+			cat(%b This exit has, words( %qi ), staffnote(s). %r)
+		), 
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- FILTER: Player Owns item ----------------------------------------------------
+
+	filter(filter.owned-by-player, <exit list>, , , <owner dbref>)
+
+0: exit dbref
+1: owner dbref
+
+--
+
+&filter.owned-by-player fmo=strmatch(owner(%0), %1)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Report on (other) Exits -------------------------------------------
+
+These are meant to be exits owned by a player, but are not in a room that they own.
+
+0: list of exits
+
+--
+
+&f.report.other-exits fmo=
+localize( 
+	iter( %0, 
+@@ for each exit ...
+		strcat( 
+@@ .. source room
+			divider( OTHER ROOM: [name( home( %i0 ))] ([home( %i0 )]) ), %r, 
+@@ .. exit details
+			u( f.report.room-exit, %i0 )
+
+		), 
+		, @@
+	)
+)
+
+--
+
+think [setq(0, #3225)][setq(r, search(%q0 type=rooms))][setq(e, search(%q0 type=exits))][setq(o, iter(%qr, filter(#1642/filter.owned-by-player, lexits(%i0), , , %q0)))][u(#1642/f.report.other-exits, setdiff(%qe, %qo))]
+
+think [setq(0, pmatch(meadow))][setq(r, search(%q0 type=rooms))][setq(e, search(%q0 type=exits))][setq(o, iter(%qr, filter(#1642/filter.owned-by-player, lexits(%i0), , , %q0)))][u(#1642/f.report.other-exits, setdiff(%qe, %qo))]
+
+
+================================================================================
+== NOTES =======================================================================
+
+Interfaces to Ebla's Notes system
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: List Notes Attributes ---------------------------------------------
+
+'player': list '_notes' and '_views'
+'staff': list '_staffnotes'
+'both', concat both lists
+
+'notes': list '_notes'
+'views': list '_views'
+'staffnotes': list '_staffnotes'
+
+returns list of attributes
+
+--
+
+0: whose notes
+1: 'player', 'staff', 'both'
+
+--
+
+&f.notes.list-notes-attrs fmo=
+	case( %1, 
+		views, lattr( %0/_view_* ), 
+		notes, lattr( %0/_note_* ), 
+		staffnotes, lattr( %0/_staffnote_* ), 
+		
+		player, 
+		setunion( 
+			u( f.notes.list-notes-attrs, %0, views ), 
+			u( f.notes.list-notes-attrs, %0, notes ) 
+		), 
+
+		staff, 
+		u( f.notes.list-notes-attrs, %0, staffnotes ), 
+
+		both, 
+		setunion( 
+			u( f.notes.list-notes-attrs, %0, player ), 
+			u( f.notes.list-notes-attrs, %0, staff )
+		), 
+	)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Get Note Text ----------------------------------------------------
+
+0: target dbref
+1: attribtue
+
+--
+
+&f.notes.get-text fmo=translate( extract( get( %0/%1 ),  9, 999999, | ), p )
+
+
+
+
+
+
+
+
+
+
+
+
+
+_NOTE_LIBRARY [#1154]: 1335106715|#10082|approved|1335106727|#10082|locked|1335106732|#10082|Xenos keeps a secure hardcopy and digital copy of his library in a specialist document storage facility in Boston. Due to a recent conflict with a spirit just prior to his Becoming, his library was damaged. As a result he's requested copies of his library, physical duplicates of his stored volumes in section blah through blah. He'll also be adding to it with his own more recent knowledge and experience, ultimately resulting in the first segment of his Library 1 (Spirit).
+
+
+
+
+
+-- f.freezer.room.public ----
+
+0: room dbref
+
+	Name
+	Dbref
+	&owner
+	&coords
+	notes
+
+-- f.freezer.room.staff ----
+	Name
+	Dbref
+	staffnotes
+	+dir reminder
+
+
+--------------------------------------------------------------------------------
+-- f.freezer.room.cords --------------------------------------------------------
+
+&f.freezer.room.cords #xxx=ucstr( get( %0/coords ))
+
+
+
+
