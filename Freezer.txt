@@ -78,12 +78,21 @@ Yeah, it's complex enough that it gets its own object.
 
 @parent fmo=#2833
 &prefix.cross-platform_functions fmo=.
+&prefix.reports fmo=report.
 
 
 ================================================================================
 == CROSS-PLATFORM FUNCTIONS ====================================================
 
 &.isstaff fmo=isstaff( %0 )
+&.pmatch+ fmo=pmatch++( %0 )
+
+&.header fmo=header( %0 )
+&.footer fmo=footer( %0 )
+&.divider fmo=divider( %0 )
+&.notice fmo=ansi(h, <freeze>)
+
+&.places fmo=places( %0, %1, %2 )
 
 
 ================================================================================
@@ -227,7 +236,7 @@ l: location of %#
 
 --
 
-&c.freezer.default fmo=<freezer> No default available.
+&c.freezer.default fmo=[u(.notice)] No default available.
 
 
 --------------------------------------------------------------------------------
@@ -245,25 +254,26 @@ t: target
 --
 
 &c.freezer.specific fmo=
-	[setq( t, pmatch++( trim( secure( %0 ))))]
+	[setq( t, u( .pmatch+, trim( secure( %0 ))))]
 
 	[case( 0, 
-		isstaff(%#), <freezer> Staff only, 
+		isstaff(%#), 
+		[u(.notice)] Staff only, 
 
 		t(hastype( %qt, PLAYER )), 
-		<freezer> Cannot find '[trim( secure( %0 ))]', 
+		[u(.notice)] Cannot find '[trim( secure( %0 ))]', 
 
 		not( u( ufunc.isapproved, %qt, permafrozen )), 
-		<freezer> '[name( %qt )]' is already permafrozen, 
+		[u(.notice)] '[name( %qt )]' is already permafrozen, 
 
 		not( u( ufunc.isapproved, %qt, exstaff )), 
-		<freezer> '[name( %qt )]' is already exstaff, 
+		[u(.notice)] '[name( %qt )]' is already exstaff, 
 
 		not( u( ufunc.isapproved, %qt, frozen )), 
-		<freezer> '[name( %qt )]' is already frozen, 
+		[u(.notice)] '[name( %qt )]' is already frozen, 
 
 		not( u( ufunc.isapproved, %qt, unapproved )), 
-		<freezer> '[name( %qt )]' (%qt) has never been approved and should be destroyed instead, 
+		[u(.notice)] '[name( %qt )]' (%qt) has never been approved and should be destroyed instead, 
 
 @@ OK GO
 		trigger(%!/trig.freeze, 
@@ -305,7 +315,7 @@ n: name of staffer
 &trig.freeze fmo=
 	think >> trig.freeze (%2) >> target name: [setr(n, name( %1 ))]; 
 
-	@pemit %0=<freeze> Trying to %2-freeze %qn (%1); 
+	@pemit %0=[u(.notice)] Trying to %2-freeze %qn (%1); 
 
 @@ remove all powers
 	@power %0=[iter( powers( %1 ), !%i0) ]; 
@@ -318,7 +328,7 @@ n: name of staffer
 	@link %1=[v( d.freezer.%2 )]; 
 
 @@ remove from +jgroups (Anomaly Jobs)
-	@trigger %!/trig.ajobs.remove-from-jgroups=%1, %qn; 
+	@trigger %!/ajobs.trig.remove-from-jgroups=%1, %qn; 
 
 @@ >> staffer
 	@if strmatch( %2, staff )=
@@ -333,10 +343,10 @@ n: name of staffer
 @@ .. >> MUST BE DONE BY HAND: 
 @@ .. .. Remove Wiz Flag (if exists)
 			@if hasflag(%1, WIZARD)=
-				{ @pemit %0=<freeze> Remember to remove the Wizard flag from '%qn' }; 
+				{ @pemit %0=[u(.notice)] Remember to remove the Wizard flag from '%qn' }; 
 
 @@ .. .. Remove Wiki & Forum privs
-			{ @pemit %0=<freeze> Remember to remove privs from '%qn' on the Wiki and Forums }
+			{ @pemit %0=[u(.notice)] Remember to remove privs from '%qn' on the Wiki and Forums }
 		 }; 
 
 @@ >> OK, MAKE THE JOB
@@ -361,10 +371,16 @@ The Reach: +staff/del name=dept to remove them from the #99 +staff lists
 Interfaces for Anomaly Jobs
 
 --------------------------------------------------------------------------------
+-- SETUP: ajobs for codp -------------------------------------------------------
+
+&prefix.anomaly_jobs fmo=ajobs.
+
+
+--------------------------------------------------------------------------------
 -- TRIGGER: remove from jgroups ------------------------------------------------
 
-&trig.ajobs.remove-from-jgroups fmo=
-	@dolist u( f.ajobs.belongs-to-jgroups, %0 )=
+&ajobs.trig.remove-from-jgroups fmo=
+	@dolist u( ajobs.f.belongs-to-jgroups, %0 )=
 		{ +jgroup/member %1=[name( ## )] }; 
 
 
@@ -375,8 +391,8 @@ Interfaces for Anomaly Jobs
 
 --
 
-&f.ajobs.belongs-to-jgroups fmo=
-	filter( filter.ajobs.belongs-to-jgroup, 
+&ajobs.f.belongs-to-jgroups fmo=
+	filter( ajobs.filter.belongs-to-jgroup, 
 		lcon( v( d.ajobs.job-tracker )), , , %0 
 	)
 
@@ -389,7 +405,7 @@ Interfaces for Anomaly Jobs
 
 --
 
-&filter.ajobs.belongs-to-jgroup fmo=t( match( get( %0/memberlist ), %1 ))
+&ajobs.filter.belongs-to-jgroup fmo=t( match( get( %0/memberlist ), %1 ))
 
 
 ================================================================================
@@ -404,7 +420,7 @@ This is a personal game-by-game feature.
 Player dbref must be validated by now.
 
 1) Discover lists of what player owns
-2) Discover lists of notes, player-visible and 'invisible'
+2) Discover lists onotes. player-visible and 'invisible'
 2) Turn lists into readable format
 3) Create +Build & <player> job with readable format, to allow player to respond
 
@@ -435,30 +451,31 @@ v: very-temporary-holder
 			>> exits:%b, setr( e, search( %1 type=exits )), %r, 
 			>> objects:%b, setr( o, search( %1 type=objects )), %r, 
 			>> players:%b, setr( p, search( %1 type=players )), %r, 
-			>> notes:%b, setr( n, u( f.notes.list-notes, %1, player ) ), %r, 
-			>> invisible notes: , setr( i, u( f.notes.list-notes, %1, staff ))
+			>> notes:%b, setr( n, u( notes.list-notes, %1, player ) ), %r, 
+			>> invisible notes: , setr( i, u( notes.list-notes, %1, staff ))
 		); 
-
-
 
 	think 
 		setr( x, 
-			header( Freeze for [capstr( %2 )]: [name( %1 )] (%1) )%r
+			u( .header, Freeze for [capstr( %2 )]: [name( %1 )] (%1) )%r
 		); 
 
 	@if t( words( %qr ))={ 
 		setr(x, 
 			strcat( %qx, 
-				header(Rooms (count: [words( %qr )]) ), %r,
-				u( f.report.rooms, %qr )
+				u( .header, Rooms (count: [words( %qr )]) ), %r,
+				u( report.rooms, %qr )
 			)
 		) 
 	}
 
 
+================================================================================
+== REPORTS =====================================================================
+
 
 --------------------------------------------------------------------------------
--- FUNCTION: Report on Rooms ---------------------------------------------------
+-- REPORT: A List of Rooms -----------------------------------------------------
 
 0: list of rooms
 1: owner dbref
@@ -467,19 +484,19 @@ i: 'if' condition looking for at the moment so it can be reported
 
 --
 
-&f.report.rooms fmo=
+&report.rooms fmo=
 localize( 
 	iter( %0, 
 @@ for each room ...
 		strcat( 
 
 @@ .. name/dbref
-			divider( [name(%i0)] (%i0) ), %r, 
+			u( .divider, [name(%i0)] (%i0) ), %r, 
 
 @@ .. link-reports: players, objects, rooms
-			if( t( setr( i, u( f.link-report.players, %i0 ))), %b %qi ), 
-			if( t( setr( i, u( f.link-report.objects, %i0 ))), %b %qi ), 
-			if( t( setr( i, u( f.link-report.rooms, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( report.link.players, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( report.link.objects, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( report.link.rooms, %i0 ))), %b %qi ), 
 
 @@ .. coords
 			if( t( setr( i, get( %i0/coord ))), 
@@ -492,17 +509,17 @@ localize(
 			), 
 
 @@ .. places report
-			if( t( setr( i, u( f.places-report ))), %b %qi ), 
+			if( t( setr( i, u( report.places ))), %b %qi ), 
 
 @@ .. notes-reports: views, notes, staffnotes
-			if( t( setr( i, u( f.note-report.views, %i0, room ))), %b %qi ), 
-			if( t( setr( i, u( f.note-report.notes, %i0, room ))), %b %qi ), 
-			if( t( setr( i, u( f.note-report.staffnotes, %i0, room ))), %b %qi ), 
+			if( t( setr( i, u( report.note.views, %i0, room ))), %b %qi ), 
+			if( t( setr( i, u( report.note.notes, %i0, room ))), %b %qi ), 
+			if( t( setr( i, u( report.note.staffnotes, %i0, room ))), %b %qi ), 
 
 @@ .. report on exits
 			if( 
 				t(setr( i, filter( filter.owned-by-player, lexits( %i0 ), , , %1 ))), 
-				iter( %qi, u( f.report.room-exit, %i0 ), , @@ )
+				iter( %qi, u( report.room-exit, %i0 ), , @@ )
 			), 
 
 @@ .. report on 'other exits' (exits not owned by target player)
@@ -517,9 +534,9 @@ localize(
 
 --
 
-think u(fmo/f.report.rooms, setr(r, search(#3225 type=room)), #3225)
+think u(fmo/report.rooms, setr(r, search(#3225 type=room)), #3225)
 
-think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 type=room)), %q0)]
+think [setq(0, pmatch(grid builder))][u(fmo/report.rooms, setr(r, search(%q0 type=room)), %q0)]
 
 
 --------------------------------------------------------------------------------
@@ -538,7 +555,7 @@ think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 t
 --------------------------------------------------------------------------------
 -- FUNCTION: Link Report: Players ----------------------------------------------
 
-&f.link-report.players fmo=
+&report.link.players fmo=
 	if( 
 		t(setr( i, u( f.search.who-lives-here, %0, player ))), 
 		ansi( h, cat( words(%qi), people link here!%r ))
@@ -548,7 +565,7 @@ think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 t
 --------------------------------------------------------------------------------
 -- FUNCTION: Link Report: Objects ----------------------------------------------
 
-&f.link-report.objects fmo=
+&report.link.objects fmo=
 	if( 
 		t(setr( i, u( f.search.who-lives-here, %0, object ))), 
 		ansi( h, cat( words(%qi), objects link here!%r ))
@@ -558,7 +575,7 @@ think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 t
 --------------------------------------------------------------------------------
 -- FUNCTION: Link Report: Rooms ------------------------------------------------
 
-&f.link-report.rooms fmo=
+&report.link.rooms fmo=
 	if( 
 		t(setr( i, u( f.search.who-lives-here, %0, room ))), 
 		ansi( h, cat( words(%qi), rooms dump here!%r ))
@@ -568,7 +585,7 @@ think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 t
 --------------------------------------------------------------------------------
 -- FUNCTION: Link Report: Exits ------------------------------------------------
 
-&f.link-report.exits fmo=
+&report.link.exits fmo=
 		if( 
 			t(setr( i, u( f.search.it-is-here, %0, exit ))), 
 			ansi( h, cat( words(%qi), exits link here!%r ))
@@ -582,8 +599,8 @@ think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 t
 
 --
 
-&f.note-report.views fmo=
-	if( t( setr( i, u( f.notes.list-notes-attrs, %0, views ))), 
+&report.note.views fmo=
+	if( t( setr( i, u( notes.list-notes-attrs, %0, views ))), 
 		cat( This %1 has, words( %qi ), view(s). %r )
 	)
 
@@ -591,8 +608,8 @@ think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 t
 --------------------------------------------------------------------------------
 -- FUNCTION: Note Report: Notes ------------------------------------------------
 
-&f.note-report.notes fmo=
-	if( t( setr( i, u( f.notes.list-notes-attrs, %i0, notes ))), 
+&report.note.notes fmo=
+	if( t( setr( i, u( notes.list-notes-attrs, %i0, notes ))), 
 		cat( This %1 has, words( %qi ), note(s). %r )
 	)
 
@@ -600,8 +617,8 @@ think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 t
 --------------------------------------------------------------------------------
 -- FUNCTION: Note Report: Staffnotes -------------------------------------------
 
-&f.note-report.staffnotes fmo=
-	if( t( setr( i, u( f.notes.list-notes-attrs, %i0, staffnotes ))), 
+&report.note.staffnotes fmo=
+	if( t( setr( i, u( notes.list-notes-attrs, %i0, staffnotes ))), 
 		cat( This %1 has, words( %qi ), staffnote(s). %r )
 	)
 
@@ -609,21 +626,20 @@ think [setq(0, pmatch(grid builder))][u(fmo/f.report.rooms, setr(r, search(%q0 t
 --------------------------------------------------------------------------------
 -- FUNCTION: Places Report -----------------------------------------------------
 
-&f.places-report fmo=
-	if( t( setr( i, places( list, %i0 ))), 
+&report.places fmo=
+	if( t( setr( i, u( .places, list, %i0 ))), 
 		cat(This room has, words( %qi, | ), place(s) %r)
 	)
 
 
-
 --------------------------------------------------------------------------------
--- FUNCTION: Report Exits in Room owned by Player ------------------------------
+-- REPORT: Report Exits in Room owned by Player --------------------------------
 
 0: exit dbref
 
 --
 
-&f.report.room-exit fmo=
+&report.room-exit fmo=
 localize( 
 	strcat( 
 
@@ -646,9 +662,9 @@ localize(
 		name( loc( %0 )), %b%(, loc( %0 ), %) %r, 
 
 @@ .. notes-reports: views, notes, staffnotes
-			if( t( setr( i, u( f.note-report.views, %i0, room ))), %b %qi ), 
-			if( t( setr( i, u( f.note-report.notes, %i0, room ))), %b %qi ), 
-			if( t( setr( i, u( f.note-report.staffnotes, %i0, room ))), %b %qi ), 
+			if( t( setr( i, u( report.note.views, %i0, room ))), %b %qi ), 
+			if( t( setr( i, u( report.note.notes, %i0, room ))), %b %qi ), 
+			if( t( setr( i, u( report.note.staffnotes, %i0, room ))), %b %qi ), 
 	)
 )
 
@@ -667,7 +683,7 @@ localize(
 
 
 --------------------------------------------------------------------------------
--- FUNCTION: Report on (other) Exits -------------------------------------------
+-- REPORT: Report on (other) Exits ---------------------------------------------
 
 These are meant to be exits owned by a player, but are not in a room that they own.
 
@@ -675,15 +691,15 @@ These are meant to be exits owned by a player, but are not in a room that they o
 
 --
 
-&f.report.other-exits fmo=
+&report.other-exits fmo=
 localize( 
 	iter( %0, 
 @@ for each exit ...
 		strcat( 
 @@ .. source room
-			divider( OTHER ROOM: [name( home( %i0 ))] ([home( %i0 )]) ), %r, 
+			u( .divider, OTHER ROOM: [name( home( %i0 ))] ([home( %i0 )]) ), %r, 
 @@ .. exit details
-			u( f.report.room-exit, %i0 )
+			u( report.room-exit, %i0 )
 
 		), 
 		, @@
@@ -692,9 +708,9 @@ localize(
 
 --
 
-think [setq(0, #3225)][setq(r, search(%q0 type=rooms))][setq(e, search(%q0 type=exits))][setq(o, iter(%qr, filter(#1642/filter.owned-by-player, lexits(%i0), , , %q0)))][u(#1642/f.report.other-exits, setdiff(%qe, %qo))]
+think [setq(0, #3225)][setq(r, search(%q0 type=rooms))][setq(e, search(%q0 type=exits))][setq(o, iter(%qr, filter(#1642/filter.owned-by-player, lexits(%i0), , , %q0)))][u(#1642/report.other-exits, setdiff(%qe, %qo))]
 
-think [setq(0, pmatch(meadow))][setq(r, search(%q0 type=rooms))][setq(e, search(%q0 type=exits))][setq(o, iter(%qr, filter(#1642/filter.owned-by-player, lexits(%i0), , , %q0)))][u(#1642/f.report.other-exits, setdiff(%qe, %qo))]
+think [setq(0, pmatch(meadow))][setq(r, search(%q0 type=rooms))][setq(e, search(%q0 type=exits))][setq(o, iter(%qr, filter(#1642/filter.owned-by-player, lexits(%i0), , , %q0)))][u(#1642/report.other-exits, setdiff(%qe, %qo))]
 
 
 --------------------------------------------------------------------------------
@@ -707,29 +723,29 @@ i: 'if' condition looking for at the moment so it can be reported
 
 --
 
-&f.report.objects fmo=
+&report.objects fmo=
 localize( 
 	iter( %0, 
 @@ for each object ...
 		strcat( 
 
 @@ .. name/dbref
-			divider( [name(%i0)] (%i0) ), %r, 
+			u( .divider, [name(%i0)] (%i0) ), %r, 
 
 @@ .. link-reports: players, objects, rooms, exits
-			if( t( setr( i, u( f.link-report.players, %i0 ))), %b %qi ), 
-			if( t( setr( i, u( f.link-report.objects, %i0 ))), %b %qi ), 
-			if( t( setr( i, u( f.link-report.rooms, %i0 ))), %b %qi ), 
-			if( t( setr( i, u( f.link-report.exits, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( report.link.players, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( report.link.objects, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( report.link.rooms, %i0 ))), %b %qi ), 
+			if( t( setr( i, u( report.link.exits, %i0 ))), %b %qi ), 
 
 @@ .. home
 			ansi( h, %b Home:%b ), 
 			name( home( %i0 )), %b%(, home( %i0 ), %)%b%r, 
 
 @@ .. notes-reports: views, notes, staffnotes
-			if( t( setr( i, u( f.note-report.views, %i0, object ))), %b %qi ), 
-			if( t( setr( i, u( f.note-report.notes, %i0, object ))), %b %qi ), 
-			if( t( setr( i, u( f.note-report.staffnotes, %i0, object ))), %b %qi ), 
+			if( t( setr( i, u( report.note.views, %i0, object ))), %b %qi ), 
+			if( t( setr( i, u( report.note.notes, %i0, object ))), %b %qi ), 
+			if( t( setr( i, u( report.note.staffnotes, %i0, object ))), %b %qi ), 
 
 @@ .. exit report
 			if( t(setr( i, lexits( %i0 ))), 
@@ -745,12 +761,16 @@ localize(
 
 Interfaces to Ebla's Notes system
 
+--
+
+&prefix.ebla's_notes fmo=notes.
+
 
 --------------------------------------------------------------------------------
 -- FUNCTION: List Notes Attributes ---------------------------------------------
 
 'player': list '_notes' and '_views'
-'staff': list '_staffnotes'
+'staff': list '_staffnotes 
 'both', concat both lists
 
 'notes': list '_notes'
@@ -766,7 +786,7 @@ returns list of attributes
 
 --
 
-&f.notes.list-notes-attrs fmo=
+&notes.list-notes-attrs fmo=
 	case( %1, 
 		views, lattr( %0/_view_* ), 
 		notes, lattr( %0/_note_* ), 
@@ -774,17 +794,17 @@ returns list of attributes
 		
 		player, 
 		setunion( 
-			u( f.notes.list-notes-attrs, %0, views ), 
-			u( f.notes.list-notes-attrs, %0, notes ) 
+			u( notes.list-notes-attrs, %0, views ), 
+			u( notes.list-notes-attrs, %0, notes ) 
 		), 
 
 		staff, 
-		u( f.notes.list-notes-attrs, %0, staffnotes ), 
+		u( notes.list-notes-attrs, %0, staffnotes ), 
 
 		both, 
 		setunion( 
-			u( f.notes.list-notes-attrs, %0, player ), 
-			u( f.notes.list-notes-attrs, %0, staff )
+			u( notes.list-notes-attrs, %0, player ), 
+			u( notes.list-notes-attrs, %0, staff )
 		), 
 	)
 
@@ -797,7 +817,8 @@ returns list of attributes
 
 --
 
-&f.notes.get-text fmo=translate( extract( get( %0/%1 ),  9, 999999, | ), p )
+&notes.get-text fmo=translate( extract( get( %0/%1 ),  9, 999999, | ), p )
+
 
 
 
