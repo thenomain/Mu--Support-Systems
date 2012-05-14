@@ -87,10 +87,11 @@ Yeah, it's complex enough that it gets its own object.
 &.isstaff fmo=isstaff( %0 )
 &.pmatch+ fmo=pmatch++( %0 )
 
+&.superheader fmo=edit( u( .header, %0 ), =, #, >, %[, <, %] )
 &.header fmo=header( %0 )
 &.footer fmo=footer( %0 )
 &.divider fmo=divider( %0 )
-&.notice fmo=ansi(h, <freeze>)
+&.notice fmo=ansi( h, <freeze> )
 
 &.places fmo=places( %0, %1, %2 )
 
@@ -417,12 +418,23 @@ This is a personal game-by-game feature.
 --------------------------------------------------------------------------------
 -- Create Freeze Job -----------------------------------------------------------
 
-Player dbref must be validated by now.
+1) Create job. Job is "opened by" frozen player, but an initial email is not sent.
 
-1) Discover lists of what player owns
-2) Discover lists onotes. player-visible and 'invisible'
-2) Turn lists into readable format
-3) Create +Build & <player> job with readable format, to allow player to respond
+Creation job text should include:
+	- Name/Dbref
+	- Frozen/Permafrozen/StaffFrozen
+
+Initial job timeout is 30 days for frozen, 14 days for permafrozen/staff frozen, which should be time enough to allow the player to respond.
+
+2) job/mail each additional report to it.
+	- Player Report
+	- Objects Report
+	- Rooms & Other Exits Report
+
+3) job/mail final information: Additional information entered by staffer & "Tell us what you want to do with this."
+
+
+Player dbref must be validated by now.
 
 --
 
@@ -436,6 +448,8 @@ o: objects list
 p: players list (very rarely used, if ever)
 n: visible notes list
 i: invisible notes list (staffnotes)
+f: factions
+c: complete list of factions
 
 x: output
 v: very-temporary-holder
@@ -443,6 +457,8 @@ v: very-temporary-holder
 --
 
 &trig.create-freeze-job fmo=
+
+@@ COMPILE LISTS
 	think 
 		strcat( 
 			>> trig.create-freeze-job >>%r, 
@@ -452,26 +468,160 @@ v: very-temporary-holder
 			>> objects:%b, setr( o, search( %1 type=objects )), %r, 
 			>> players:%b, setr( p, search( %1 type=players )), %r, 
 			>> notes:%b, setr( n, u( notes.list-notes, %1, player ) ), %r, 
-			>> invisible notes: , setr( i, u( notes.list-notes, %1, staff ))
+			>> invisible notes:%b, setr( i, u( notes.list-notes, %1, staff )), 
+			%r, 
+			>> factions:%b, 
+			setr( f, u( factions.list-factions, %1, player )), %r, 
+			>> compl fac:%b, 
+			setr( c, u( factions.list-factions, %1, staff )), %r, 
 		); 
 
+@@ OPEN JOB
+
+
+
+@@ REPORT ...
 	think 
 		setr( x, 
-			u( .header, Freeze for [capstr( %2 )]: [name( %1 )] (%1) )%r
-		); 
+			strcat(
+				u( .header, Freeze for [capstr( %2 )]: [name( %1 )] (%1) ), 
+				%r%r, 
 
-	@if t( words( %qr ))={ 
-		setr(x, 
-			strcat( %qx, 
-				u( .header, Rooms (count: [words( %qr )]) ), %r,
-				u( report.rooms, %qr )
+@@ .. ROOMS
+				if( t( %qr ), 
+					strcat( %qx, 
+						u( .header, Rooms (count: [words( %qr )]) ), %r,
+						u( report.rooms, %qr ), %r
+					)
+				), 
+
+@@ .. EXITS
+				if( t( %qe ), 
+					strcat( %qx, 
+						u( .header, Other Exits (count: [words( %qe )]) ), %r,
+						u( report.other-exits, %qr ), %r
+					)
+				), 
+
+
 			)
-		) 
-	}
+		)
+
+
+
+================================================================================
+== FACTIONS ====================================================================
+
+Interfaces with the Aether Factions System. If you use Amberyl's Org code, look here.
+
+--
+
+&prefix.factions fmo=factions.
+
+&d.factions fmo=#2832
+
+
+--------------------------------------------------------------------------------
+-- FACTIONS: List Factions -----------------------------------------------------
+
+	u( factions.list-factions, <player dbref>, 'staff' or 'player' )
+
+%0: player dbref
+%1: 'staff' or 'player' (default)
+
+--
+
+&factions.list-factions fmo=
+@@ filter from 'staff' (all) or 'player' (some may not be visible)
+filter(
+	v( d.factions )/fil.see-faction, 
+	setunion( 
+
+@@ .. from player object
+		iter( get( %0/_faction-member ), rest( %i0, ! ), | ), 
+
+@@ .. from faction objects
+		filter( factions.filter.player-in-faction, 
+			lcon( v( d.factions ), object ), , , %1 
+		)
+	), , , 
+@@ .. see faction list as '#1' if 'staff' is passed
+	switch(%1, st*, #1, %0)
+)
+
+
+--------------------------------------------------------------------------------
+-- FACTIONS: Filter, player in faction -----------------------------------------
+
+	filter(factions.filter.player-in-faction, <factions>, , , <player> )
+
+0: faction dbref
+1: player dbref
+
+--
+
+&factions.filter.player-in-faction fmo=hasattr(%0, member-%1)
+
+
+--------------------------------------------------------------------------------
+-- FACTIONS: Filter, object is faction -----------------------------------------
+
+Return things that are valid faction objects. We'll probably need this. We might not.
+
+0: faction dbref
+
+--
+
+&faction.filter.object-is-faction fmo=strmatch( loc( %0 ), v( d.factions ))
 
 
 ================================================================================
 == REPORTS =====================================================================
+
+&prefix.reports fmo=report.
+
+
+--------------------------------------------------------------------------------
+-- REPORT: Initial -------------------------------------------------------------
+
+The initial report has the general information for the freeze job. Because Anomaly Jobs doesn't seem to email the person who submitted the job (via TRIG_CREATE, at least), this is a boilerplate header.
+
+0: target dbref
+1: freeze, permafreeze, stafffreese
+
+--
+
+&report.initial fmo=
+	[u( .superheader, 
+		[ucstr( %1 )] for 
+		[if( u( .isstaff, %0 ), STAFF, PLAYER )]: [name( %0 )] (%0) 
+	)]%r
+	The player object [name( %0 )] (%0) is being [edit(lcstr( %1 ), freeze, frozen )] at [time()]. What follows are reports on items related to the player object.
+
+
+--------------------------------------------------------------------------------
+-- REPORT: Final ---------------------------------------------------------------
+
+After all the above reports are added to the job, a final summary report is filed which thanks the player and adds additional comments from the staffer doing the freezing.
+
+--
+
+0: target dbref
+1: enactor dbref
+2: final message (if any)
+
+--
+
+&report.final fmo=
+	[u( .superheader, 
+		Final Words
+	)]%r%r
+
+	[if( t( strlen( %2 )), u( .divider, Notes from [name( %1 )] )%r%2%r[u( .divider )]%r%r)]
+
+	If you have any questions, parting comments, or if you'd like to see something specific done with anything listed above, let staff know through this job and we'll do our best to accomodate you.%r%r
+
+	Thank you for all your time. - The Reach Staff
 
 
 --------------------------------------------------------------------------------
@@ -810,7 +960,7 @@ returns list of attributes
 
 
 --------------------------------------------------------------------------------
--- FUNCTION: Get Note Text ----------------------------------------------------
+-- FUNCTION: Get Note Text -----------------------------------------------------
 
 0: target dbref
 1: attribtue
@@ -832,8 +982,7 @@ returns list of attributes
 
 
 
-_NOTE_LIBRARY [#1154]: 1335106715|#10082|approved|1335106727|#10082|locked|1335106732|#10082|Xenos keeps a secure hardcopy and digital copy of his library in a specialist document storage facility in Boston. Due to a recent conflict with a spirit just prior to his Becoming, his library was damaged. As a result he's requested copies of his library, physical duplicates of his stored volumes in section blah through blah. He'll also be adding to it with his own more recent knowledge and experience, ultimately resulting in the first segment of his Library 1 (Spirit).
-
+_NOTE_LIBRARY [#1154]: 1335106715|#10082|approved|1335106727|#10082|locked|1335106732|#10082|.....
 
 
 
