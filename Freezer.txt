@@ -88,12 +88,28 @@ Yeah, it's complex enough that it gets its own object.
 &.pmatch+ fmo=pmatch++( %0 )
 
 &.superheader fmo=edit( u( .header, %0 ), =, #, >, %[, <, %] )
+&.superfooter fmo=edit( u( .footer, %0 ), =, #, >, %[, <, %] )
 &.header fmo=header( %0 )
 &.footer fmo=footer( %0 )
 &.divider fmo=divider( %0 )
 &.notice fmo=ansi( h, <freeze> )
+&.titlestr fmo=titlestr( %0, %1 )
 
 &.places fmo=places( %0, %1, %2 )
+
+
+--
+
+@@ Uses TinyMUX columns() - redefine for your platform of choice
+
+&.columns fmo=columns(%0, %1, %2, %3)
+
+--
+
+@@ some people have andlist()
+
+&.itemize fmo=itemize( %0, %1, %2, %3 )
+
 
 
 ================================================================================
@@ -104,8 +120,13 @@ Yeah, it's complex enough that it gets its own object.
 
 &d.ajobs.job-tracker fmo=#2594
 &d.ajobs.report-jgroup fmo=+Build
+&d.ajobs.report-bucket fmo=BUILD
 
 &d.notes.object fmo=#116
+
+&d.important-flags fmo=WIZARD ROYALTY STAFF IMMORTAL GAGGED GUEST PRPRUNNER NPC  OPEN_OK PARENT_OK ABODE ROBOT SLAVE
+
+&d.important-flags.hidden fmo=SITEMON SUSPECT
 
 
 
@@ -144,6 +165,7 @@ APPROVAL TYPES:
 		nev*, not(cor( u( .isstaff, %0 ), orflags( %0, 0167 ))), 
 		cor( isstaff( %0 ), hasflag( %0, approved ))
 	)
+
 
 
 ================================================================================
@@ -409,6 +431,7 @@ Interfaces for Anomaly Jobs
 &ajobs.filter.belongs-to-jgroup fmo=t( match( get( %0/memberlist ), %1 ))
 
 
+
 ================================================================================
 == TRIGGER: Create Freezer Job =================================================
 
@@ -467,8 +490,8 @@ v: very-temporary-holder
 			>> exits:%b, setr( e, search( %1 type=exits )), %r, 
 			>> objects:%b, setr( o, search( %1 type=objects )), %r, 
 			>> players:%b, setr( p, search( %1 type=players )), %r, 
-			>> notes:%b, setr( n, u( notes.list-notes, %1, player ) ), %r, 
-			>> invisible notes:%b, setr( i, u( notes.list-notes, %1, staff )), 
+			>> notes:%b, setr( n, u( notes.list-notes-attrs, %1, player )), %r, 
+			>> invisible notes:%b, setr( i, u( notes.list-notes-attrs, %1, staff )), 
 			%r, 
 			>> factions:%b, 
 			setr( f, u( factions.list-factions, %1, player )), %r, 
@@ -506,7 +529,6 @@ v: very-temporary-holder
 
 			)
 		)
-
 
 
 ================================================================================
@@ -575,6 +597,12 @@ Return things that are valid faction objects. We'll probably need this. We might
 &faction.filter.object-is-faction fmo=strmatch( loc( %0 ), v( d.factions ))
 
 
+--------------------------------------------------------------------------------
+-- FACTIONS: Get Faction Name --------------------------------------------------
+
+&factions.name fmo=name( %0 )
+
+
 ================================================================================
 == REPORTS =====================================================================
 
@@ -619,74 +647,273 @@ After all the above reports are added to the job, a final summary report is file
 
 	[if( t( strlen( %2 )), u( .divider, Notes from [name( %1 )] )%r%2%r[u( .divider )]%r%r)]
 
-	If you have any questions, parting comments, or if you'd like to see something specific done with anything listed above, let staff know through this job and we'll do our best to accomodate you.%r%r
+	If you have any questions, parting comments, or if you'd like to see something specific done with anything listed above, let staff know through this job and we'll do our best to accommodate you.%r%r
 
 	Thank you for all your time. - The Reach Staff
 
+--------------------------------------------------------------------------------
+-- REPORT: Player --------------------------------------------------------------
+
+Reports:
+	- Player name/dbref
+	- If staff
+	- Name of notes (views/staffnotes) visible to player
+	- Number of notes (etc.) not visible to player
+	- Items linked to player
+
+--
+
+0: player dbref
+1: dbref to view as (optional, defaults to %0)
+
+w: which is the target, player or staffer?
+v: view-as dbref
+s: which is the viewer, player or staffer?
+
+--
+
+&report.player fmo=
+strcat(
+	setq( w, if( u( .isstaff, %0 ), staffer, player )), 
+	setq( v, if( isdbref( %1 ), %1, %0 )), 
+	setq( x, if( u( .isstaff, %qv ), staffer, player )), 
+
+	u( .superheader, [ucstr(%qw)]: [name( %0 )] (%0) ), 
+
+@@ important flags & powers
+	if( 
+		t( setr( i, 
+			setinter( 
+				lflags( %0 ), 
+@@ .. list 'hidden' flags if viewer is staff
+				cat( 
+					v( d.important-flags ), 
+					if( strmatch( %qx, staffer ), v( d.important-flags.hidden ))
+				)
+			)
+		)), 
+		ansi(h, %rFlags:%b, n, lcstr( %qi ), n), 
+		setq( i, )
+	), 
+	if( not( t( %qi )), %r ), 
+
+	if( t( setr( i, powers( %0 ))), 
+		ansi( h, %rPowers:%b, n, lcstr( %qi ), n, %r )
+	), 
+
+@@ Factions info (before removed)
+	if( t( setr( f, ulocal( factions.list-factions, %0, %qx))), 
+		ulocal( report.factions, %0, %qf, Factions ), 
+	), 
+
+@@ SASS info (pledges, pacts, etc.)
+	if( t( setr( s, ulocal( sass.list-items, %0, %qx ))), 
+		ulocal( report.sass, %0, %qs, Agreements ), 
+	), 
+
+@@ notes/views/etc
+	u( report.notes, %0, %qx, Notes, header), 
+
+@@ linkages
+	ulocal( report.linkages, %0, Linkages, header ), 
+
+	u( .superfooter )
+)
+
 
 --------------------------------------------------------------------------------
--- REPORT: A List of Rooms -----------------------------------------------------
+-- REPORT: Notes ---------------------------------------------------------------
+
+Generic 'notes' report.
+
+0: dbref concerning report (target)
+1: viewer is 'player' or 'staffer'
+2: title
+3: header type, default 'header'
+
+n: list of notes
+i: various 'if' results
+
+--
+
+&report.notes fmo=
+localize(
+	strcat( 
+		setq( n, u( notes.list-notes-attrs, %0, %1 )), 
+		if( t( %qn ),  
+			strcat( 
+				u( .[if( t( %3 ), %3, header )], %2 ), %r, 
+				u( .columns, 
+					iter( %qn, u( notes.title, %0, %i0 ), , _ ), 
+					37, _, 2 
+				)
+			)
+		), 
+		if( 
+			cand(
+				t( setr( i, ulocal( notes.list-notes-attrs, %0, staff ))), 
+				not( strmatch( %1, staffer ))
+			), 
+			ansi( nh, 
+				cat( 
+					%rThere are, words( %qi ), 
+					additional notes not visible to this, 
+					lcstr( type( %0 )), bit.%r 
+				)
+			)
+		)
+	)
+)
+	
+
+
+--------------------------------------------------------------------------------
+-- REPORT: Factions ------------------------------------------------------------
+
+Generic 'factions' report. Will try to report regardless if any exist
+
+0: dbref concerning report (unused here, but better safe than sorry)
+1: list of factions (dbrefs)
+2: header
+
+--
+
+&report.factions fmo=
+	strcat( 
+		u( .header, %2 ), %r, 
+		u( .columns, iter( %1, u( factions.name, %i0 ), , _ ), 37, _, 2 )
+	)
+
+
+--------------------------------------------------------------------------------
+-- REPORT: S.A.S.S -------------------------------------------------------------
+
+Reports the various supernatural agreements held by the player. Tries to report regardless if there's anything there
+
+0: dbref of player (probably not needed, here just in case)
+1: output from 'sass.list-items'
+2: header
+
+--
+
+&report.sass fmo=
+	strcat( 
+		u( .header, %2 ), %r, 
+		iter( %1, 
+			strcat(
+				u( .divider, first( %i0, : )), %r, 
+				u( .columns, edit( rest( %i0, : ), :, %)%b ), 37, |, 2)
+			), 
+			||, %r 
+		)
+	)
+
+--
+
+think u(fmo/report.sass, pmatch(kelvin), u( fmo/sass.list-items, pmatch(kelvin), player ), AGREEMENTS)
+
+
+--------------------------------------------------------------------------------
+-- REPORT: Linkages ------------------------------------------------------------
+
+Players, objects, and rooms can link places. It's important to know.
+
+0: object dbref
+1: title
+2: header type (defaults divider)
+
+i: temp information
+r: temp report
+
+--
+
+&report.linkages fmo=
+localize( 
+	strcat( 
+		setq(r, ), 
+
+		if( t( setr( i, u( report.link.players, %0 ))), setq( r, %qr%b %qi )), 
+		if( t( setr( i, u( report.link.objects, %0 ))), setq( r, %qr%b %qi )), 
+		if( t( setr( i, u( report.link.rooms, %0 ))), setq( r, %qr%b %qi )), 
+
+		if( t( %qr ), u( .[if( t( %2 ), %2, divider )], %1 )%r%qr )
+	)
+)
+
+--------------------------------------------------------------------------------
+-- REPORT: Rooms ---------------------------------------------------------------
 
 0: list of rooms
-1: owner dbref
+1: target (player) dbref, expecting owner
+2: viewer's dbref (optional)
 
 i: 'if' condition looking for at the moment so it can be reported
+x: viewer is 'staffer' or 'player' - viewer defaults to target
 
 --
 
 &report.rooms fmo=
-localize( 
-	iter( %0, 
+localize(
+	strcat( 
+		setq( x, if( u( .isstaff, if( t( %2 ), %2, %1 )), staffer, player )), 
+		u( .superheader, ROOMS ), %r, 
+
 @@ for each room ...
-		strcat( 
+		iter( %0, 
+			strcat( 
+				u( .header, ROOM #[inum(0)] ), %r, 
 
-@@ .. name/dbref
-			u( .divider, [name(%i0)] (%i0) ), %r, 
+@@ .. basic data (name / dbref / &coord / &owner / places / linkages)
+				ansi( h, %b Name:%b), name( %i0 ), %r, 
+				ansi( h, %b Dbref:%b), %i0, %r, 
 
-@@ .. link-reports: players, objects, rooms
-			if( t( setr( i, u( report.link.players, %i0 ))), %b %qi ), 
-			if( t( setr( i, u( report.link.objects, %i0 ))), %b %qi ), 
-			if( t( setr( i, u( report.link.rooms, %i0 ))), %b %qi ), 
+				u( .columns, 
+					setunion( 
+						if( t( setr( i, lcstr( get( %i0/coord )))), 
+							ansi( h, &coord:%b, n, %qi )
+						), 
+						if( t( setr( i, get( %i0/owner ))), 
+							ansi( h, &owner:%b, n, %qi )
+							), 
+						|
+					), 
+					37, |, 2
+				), 
 
-@@ .. coords
-			if( t( setr( i, get( %i0/coord ))), 
-				ansi( h, %b &coord:%b, n, %qi %r )
-			), 
+				if( t( setr( i, u( report.places, %i0 ))), %b %qi ), 
+				ulocal( report.linkages, %i0, Linkages, none ), 
 
-@@ .. owner(s)
-			if( t( setr( i, get( %i0/owner ))), 
-				ansi( h, %b &owner:%b, n, %qi %r )
-			), 
-
-@@ .. places report
-			if( t( setr( i, u( report.places ))), %b %qi ), 
-
-@@ .. notes-reports: views, notes, staffnotes
-			if( t( setr( i, u( report.note.views, %i0, room ))), %b %qi ), 
-			if( t( setr( i, u( report.note.notes, %i0, room ))), %b %qi ), 
-			if( t( setr( i, u( report.note.staffnotes, %i0, room ))), %b %qi ), 
+@@ .. notes/views/etc
+				ulocal( report.notes, %i0, %qx, Notes, divider), 
 
 @@ .. report on exits
-			if( 
-				t(setr( i, filter( filter.owned-by-player, lexits( %i0 ), , , %1 ))), 
-				iter( %qi, u( report.room-exit, %i0 ), , @@ )
-			), 
+				if( 
+					t( setr( i, 
+						filter( filter.owned-by-player, lexits( %i0 ), , , %1 )
+					)), 
+					[u( .divider, Exits )]%r
+					[iter( %qi, u( report.room-exit, %i0, Exits ), , %r )]%r
+				), 
 
 @@ .. report on 'other exits' (exits not owned by target player)
-			if( 
-				t( setr( i, setdiff( lexits( %i0 ), %qi ))), 
-				%b There are [words(%qi)] other exit(s) in this room. %r
-			)
+				if( 
+					t( setr( i, setdiff( lexits( %i0 ), %qi ))), 
+					%b There are [words(%qi)] other exit(s) in this room. %r 
+				), 
 
-		), , @@
+				u( .footer )
+			), , %r 
+		), %r, 
+		u( .superfooter, [words(%0)] Rooms )
 	)
 )
 
+
 --
 
-think u(fmo/report.rooms, setr(r, search(#3225 type=room)), #3225)
+think [u(fmo/report.rooms, setr(r, search(#3225 type=room)), #3225)]
 
-think [setq(0, pmatch(grid builder))][u(fmo/report.rooms, setr(r, search(%q0 type=room)), %q0)]
+think [setq(0, pmatch(gil))][u(fmo/report.rooms, setr(r, search(%q0 type=room)), %q0)]
 
 
 --------------------------------------------------------------------------------
@@ -787,34 +1014,40 @@ think [setq(0, pmatch(grid builder))][u(fmo/report.rooms, setr(r, search(%q0 typ
 
 0: exit dbref
 
+i: temp information
+
 --
 
 &report.room-exit fmo=
 localize( 
 	strcat( 
-
-@@ .. name/dbref
-		ansi( h, %b * EXIT:%b ), 
-		name( %0 ), %b%(, %0, %)%b, 
-
-@@ .. dark flag?
-		if( hasflag( %0, dark ), 
-			ansi( xh, %(dark%)%b )
+@@ .. dark?
+		setq( i, 
+			if( hasflag( %0, dark ), 
+				setunion(%qi, dark, |)
+			)
 		), 
 
 @@ .. locked?
-		if( lock( %0 ), 
-			ansi( xh, %(locked%) )
-		), %r, 
+		setq( i, 
+			if( lock( %0 ), 
+				setunion(%qi, locked, |)
+			)
+		), 
 
-@@ .. destination
-		ansi( h, %b %b Dest:%b ), 
-		name( loc( %0 )), %b%(, loc( %0 ), %) %r, 
+		ansi( 
+			xh, %b Exit , 
+			xh, if( t(%qi), %b %([u( .itemize, %qi, |, %, )]%) ), 
+			xh, :%b
+		
+		), 
 
-@@ .. notes-reports: views, notes, staffnotes
-			if( t( setr( i, u( report.note.views, %i0, room ))), %b %qi ), 
-			if( t( setr( i, u( report.note.notes, %i0, room ))), %b %qi ), 
-			if( t( setr( i, u( report.note.staffnotes, %i0, room ))), %b %qi ), 
+		name( %0 ), %b%(, %0, %)%r, 
+
+		ansi( xh, %b %b Leads To:%b ), name( loc( %0 )), %b%(, loc( %0 ), %)%b, 
+
+@@ .. ignoring notes on exits until a better way presents itself
+
 	)
 )
 
@@ -868,43 +1101,49 @@ think [setq(0, pmatch(meadow))][setq(r, search(%q0 type=rooms))][setq(e, search(
 
 0: list of objects
 1: owner dbref
+2: viewed-by dbref (optional, defaults to %0)
 
+x: viewer is 'staffer' or 'player' - viewer defaults to target
 i: 'if' condition looking for at the moment so it can be reported
 
 --
 
 &report.objects fmo=
-localize( 
-	iter( %0, 
+localize(
+	strcat( 
+		setq( x, if( u( .isstaff, if( t( %2 ), %2, %1 )), staffer, player )), 
+		u( .superheader, OBJECTS ), %r, 
+
 @@ for each object ...
-		strcat( 
+		iter( %0, 
+			strcat( 
 
 @@ .. name/dbref
-			u( .divider, [name(%i0)] (%i0) ), %r, 
-
-@@ .. link-reports: players, objects, rooms, exits
-			if( t( setr( i, u( report.link.players, %i0 ))), %b %qi ), 
-			if( t( setr( i, u( report.link.objects, %i0 ))), %b %qi ), 
-			if( t( setr( i, u( report.link.rooms, %i0 ))), %b %qi ), 
-			if( t( setr( i, u( report.link.exits, %i0 ))), %b %qi ), 
+				u( .header, [name(%i0)] (%i0) ), %r, 
 
 @@ .. home
-			ansi( h, %b Home:%b ), 
-			name( home( %i0 )), %b%(, home( %i0 ), %)%b%r, 
-
-@@ .. notes-reports: views, notes, staffnotes
-			if( t( setr( i, u( report.note.views, %i0, object ))), %b %qi ), 
-			if( t( setr( i, u( report.note.notes, %i0, object ))), %b %qi ), 
-			if( t( setr( i, u( report.note.staffnotes, %i0, object ))), %b %qi ), 
+				ansi( h, %b Home:%b ), 
+				name( home( %i0 )), %b%(, home( %i0 ), %)%r, 
 
 @@ .. exit report
-			if( t(setr( i, lexits( %i0 ))), 
-				cat( %b Object has, words( %i0 ), exits )
-			)
-		)
+				if( t(setr( i, lexits( %i0 ))), 
+					cat( %b Object has, words( %i0 ), exits. )
+				), 
+
+@@ notes/views/etc
+				ulocal( report.notes, %i0, %qx, Notes, divider), 
+
+@@ linkages
+				ulocal( report.linkages, %0, divider ), 
+
+				u( .footer )
+			), 
+			, %r
+		), 
+		%r, 
+		u( .superfooter, [words(%0)] Objects )
 	)
 )
-
 
 ================================================================================
 == NOTES =======================================================================
@@ -931,7 +1170,7 @@ returns list of attributes
 
 --
 
-0: whose notes
+0: target dbref
 1: 'player', 'staff', 'both'
 
 --
@@ -951,11 +1190,17 @@ returns list of attributes
 		staff, 
 		u( notes.list-notes-attrs, %0, staffnotes ), 
 
-		both, 
-		setunion( 
+		staffer, 
+		cat( 
 			u( notes.list-notes-attrs, %0, player ), 
 			u( notes.list-notes-attrs, %0, staff )
 		), 
+
+		both, 
+		cat( 
+			u( notes.list-notes-attrs, %0, player ), 
+			u( notes.list-notes-attrs, %0, staff )
+		)
 	)
 
 
@@ -967,7 +1212,83 @@ returns list of attributes
 
 --
 
-&notes.get-text fmo=translate( extract( get( %0/%1 ),  9, 999999, | ), p )
+&notes.text fmo=extract( get( %0/%1 ),  9, 999999, | )
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Get Note Title ----------------------------------------------------
+
+0: target dbref (_notes_<title>, et al.)
+1: attribtue
+returns: <view type>: <title>
+
+--
+
+&notes.title fmo=titlestr(edit( ansi( nr, elements( %1, 2, _ ):%b,  n, rest( rest( %1, _ ), _ )), _, %b ))
+
+
+
+================================================================================
+== S.A.S.S =====================================================================
+
+Supernatural Agreement Support System: Pledges, pacts, blood-baths and so forth.
+Unfortunately the system isn't complete just yet, so we'll be doing stuff by hand for now.
+
+--
+
+&prefix.s.a.s.s fmo=sass.
+&d.sass.databases fmo=#2893 #4620 #8451 #10522
+
+
+--------------------------------------------------------------------------------
+-- S.A.S.S: List Items ---------------------------------------------------------
+
+0: player dbref
+output: <item>:<number>:<name>|<number>:<name>||<item>: ..
+<item>: Pledges, Blood Baths, etc.
+
+--
+
+&sass.list-items fmo=
+	filter( sass.filter.list-items, 
+		iter( v( d.sass.databases ), 
+			[before( name( %i0 ), %bDatabase)]:
+			[sortby( 
+				sass.sortby.items-by-num, 
+				[iter( grepi( %i0, *, %0 ), 
+					[rest( %i0, . )]:[first( get( %i1/%i0 ), | )], , | 
+				)], 
+				|, |
+			)], , || 
+		), ||, || 
+	)
+
+--
+
+think u(fmo/sass.list-items, pmatch(kelvin))
+
+
+--------------------------------------------------------------------------------
+-- S.A.S.S: Filter List Items --------------------------------------------------
+
+0: list of items in the 'list items' format: <type>:<item>|<item>
+returns: Only <type>s with <item>s in it
+
+--
+
+&sass.filter.list-items fmo=t( words( rest( %0, : ), | ))
+
+
+--------------------------------------------------------------------------------
+-- S.A.S.S: Sort Items by Number -----------------------------------------------
+
+	sortby( sass.sortby.items-by-num, <num>:<title>|<num>: ..., |, | )
+
+0: <num>:<title>
+
+--
+
+&sass.sortby.items-by-num fmo=sub( first( %0, : ), first( %1, : ))
 
 
 
@@ -976,6 +1297,10 @@ returns list of attributes
 
 
 
+
+think [setq(1, pmatch(xenos))][u(fmo/report.player, %q1)]%r[u(fmo/report.rooms, search( %q1 type=room ))]%r[u(fmo/report.objects, search( %q1 type=object ))]
+
+, setr( n, u( fmo/notes.list-notes-attrs, %q1, player )), setr( i, u( fmo/notes.list-notes-attrs, %q1, staff )))]
 
 
 
