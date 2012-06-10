@@ -311,7 +311,7 @@ strcat(
 				)
 			)
 		)), 
-		ansi(h, %rFlags:%b, n, lcstr( %qi ), n), 
+		ansi(h, %rFlags:%b, n, lcstr( %qi ), n, %r ), 
 		setq( i, )
 	), 
 	if( not( t( %qi )), %r ), 
