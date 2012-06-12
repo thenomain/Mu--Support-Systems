@@ -58,6 +58,7 @@ For now, the Blood-Bather Ritual system (+baths) is the master prototype.
 
 &.itemize SASS=if(strlen(%1), itemize(%0, %1), itemize(%0))
 &.wrap SASS=wrap(%0, %1, %2, %3, %4, %5, %6, %7)
+&.columns SASS=columns( %0, %1, %2, %3 )
 
 
 ================================================================================
@@ -169,9 +170,9 @@ localize(
 
 --
 
-&element.filter.date SASS=
+&element.filter.expires SASS=
 	localize(
-		[setq(t, date)]
+		[setq(t, expires)]
 		[setq(e, get(%!/element.%qt.position))]
 		[setq(k, 
 			case(%2, 
@@ -706,7 +707,13 @@ r: item to set on the attribute '<prefix.>%qc'
 	[setq(a, v(element.name.position))]
 	[setq(p, elements(%qa, 2))]
 	[setq(r, 
-		repeat(|, dec(words(grepi(%!, element.*.position, %qp))))
+		repeat(|, 
+			add(
+				words(grepi(%!, element.*.position, %qp)), 
+				words(grepi(parent(%!), element.*.position, %qp)), 
+				-1
+			)
+		)
 	)]
 
 	[setq(r, replace(%qr, last(%qa), %qn, |, |))]
@@ -731,7 +738,7 @@ r: item to set on the attribute '<prefix.>%qc'
 
 		[iter(
 			setdiff(
-				iter(lattr(%!/element.*.position), elements(v(%i0), 2)), 
+				iter(lattrp(%!/element.*.position), elements(v(%i0), 2)), 
 				entry.
 			), 
 			set(u(d.database), 
@@ -1003,7 +1010,7 @@ Display every entry
 --------------------------------------------------------------------------------
 -- Display: Full ---------------------------------------------------------------
 
-This is a very generic display, and should be overwritten by the specific system instead
+This is a very generic display, and should be overwritten by the specific system for finer control
 
 0: <cmd>
 1: entry number
@@ -1017,29 +1024,28 @@ p: main elements' contents
 &display.entry.full SASS=
 	[u(.header, cat(u(.titlestr, %0), #%1))]%r
 
-@@ >> section: core elements
+@@ >> section: core elements - display all regarless of errors
 	[setq(e, Name Players Expires)]
 	[setq(p, ulocal(f.get.entry.elements, %1, %qe))]
 
 	[iter(%qe, 
 		[setq(d, extract(%qp, inum(), 1, |))]
-		[setq(v, ulocal(f.element.validate, %i0, %qd))]
-		[setq(d, ulocal(f.element.display, %i0, %qd, true))]
-		[if(strlen(%qd), setq(d, [ansi(h, %i0:)] %qd))]
-		[if(t(strlen(%qd)), 
-			[ulocal(.wrap, 
-				%qd, 
-				sub(74, add(2, strlen(%i0))), 
-				left, %b%b, , add(2, strlen(%i0)), , 74
-			)]%r
-		)], 
-		, @@
-	)]
+		[setq(d, cat(ansi(h, %i0:), ulocal(f.element.display, %i0, %qd, true)))]
+
+		ulocal(.wrap, 
+			%qd, 
+			sub(74, add(2, strlen(%i0))), 
+			left, %b%b, , add(2, strlen(%i0)), , 74
+		), 
+		, %r
+	)]%r
 
 @@ >> section: secondary elements (extrapolated/estimated)
 	[setq(e, 
 		setdiff(
-			u(.titlestr, iter(u(f.list.elements.position, *), first(%i0), |)), 
+			u(.titlestr, 
+				iter(ulocal(f.list.elements.position, *), first(%i0), |)
+			), 
 			%qe Text
 		)
 	)]
@@ -1049,28 +1055,22 @@ p: main elements' contents
 
 	[iter(%qe, 
 		[setq(d, elements(%qp, inum(), |))]
-		[setq(d, ulocal(f.element.display, %i0, %qd, true))]
-
-		[if(strlen(%qd), setq(d, [ansi(h, %i0:)] %qd))]
-		[if(
-			t(strlen(%qd)), 
-			[ulocal(.wrap, 
-				%qd, 
-				sub(74, add(2, strlen(%i0))), 
-				left, %b%b, , add(2, strlen(%i0)), , 74
-			)]%r
+		[setq(d, cat(ansi(h, %i0:), ulocal(f.element.display, %i0, %qd, true)))]
+		[ulocal(.wrap, 
+			%qd, 
+			sub(74, add(2, strlen(%i0))), 
+			left, %b%b, , add(2, strlen(%i0)), , 74
 		)], 
-		, @@
-	)]
+		, %r
+	)]%r
 
 @@ >> section: detailed text
+	[u(.divider, Text)]%r
 	[setq(d, ulocal(f.get.entry.elements, %1, text))]
-	[setq(v, ulocal(f.element.validate, text, %qd))]
 	
 	[if(strlen(%qd), 
-		[u(.divider, Text)]%r
-		[ulocal(.wrap, %qd, 74, left, %b%b)]%r
-	)]
+		[ulocal(.wrap, %qd, 74, left, %b%b)]
+	)]%r
 	
 	[u(.footer, %2)]
 
@@ -1078,9 +1078,9 @@ p: main elements' contents
 --------------------------------------------------------------------------------
 -- Display: One Line -----------------------------------------------------------
 
-This section needs re-written per system.
+This section should be re-written per system.
 
-0: bath ritual number
+0: element number
 
 --
 
@@ -1435,183 +1435,6 @@ What else does the Bather need to do?
 	)
 
 
-================================================================================
-== SUB-MISTRESS COMMANDS =======================================================
-
-Set up enough to let the S.A.S.S. Mistress code process the rest.
-
-
---------------------------------------------------------------------------------
--- Sub-Mistress: Primary Command -----------------------------------------------
-
-1: /switches
-2: text
-
-########### Change %0 on all these the commands for '<command name>' ###########
-
---
-
-&c.baths bbb=$^\+bath[s]?(/[^ ]*)?( .*)?$:
-	@pemit %#=
-		switch(1, 
-			t(strlen(%1)), 
-			u(c.mistress.switch, baths, %1, trim(%2)), 
-
-			t(strlen(trim(%2))), 
-			u(c.mistress.specific, baths, trim(%2), @@(pseudo-switches)), 
-
-			u(c.mistress.default, baths)
-		)
-
---
-
-@set bbb/c.baths=regexp
-
-
---------------------------------------------------------------------------------
--- Sub-Mistress: Other ---------------------------------------------------------
-
-The rest of the system will use the functions on its parent.
-
-
-
-################################################################################
-## WARDS #######################################################################
-
-The S.A.S.S. for supernatural, timed wards.
-
-Will need:
-	Title
-	Invoker
-	Location
-	Duration
-	Other Notes
-
-
-================================================================================
-== SETUP =======================================================================
-
-@create Magical Wards <mw>=10
-@set mw=inherit safe
-@Desc Magical Wards <mw>=Num entries: [attrcnt(u(d.database)/entry.*)]
-
-@fo me=@parent Magical Wards <mw>=search(name=Blood Bather Baths <bbb>)
-
-@create Magical Wards Database <mwdb>=10
-@set Magical Wards Database <mwdb>=safe
-
-
---------------------------------------------------------------------------------
--- Optional: Code Object Data Parent -------------------------------------------
-
-&prefix.elements Magical Wards <mw>=element.
-&prefix.filters Magical Wards <mw>=fil.
-&prefix.displays Magical Wards <mw>=display.
-&prefix.cross-platform Magical Wards <mw>=_
-
-
-================================================================================
-== DATA ========================================================================
-
-
---------------------------------------------------------------------------------
--- Data: Basic -----------------------------------------------------------------
-
-@fo me=&d.database Magical Wards <mw>=num(Magical Wards Database <mwdb>)
-@fo me=@tel mwdb=Magical Wards <mw>
-
-
-================================================================================
-== ELEMENTS ====================================================================
-
-Position is: <element name> <attribute prefix> <list position>
-Validation takes: %0 - entire item to validate
-Convert takes: 0: single element to convert, if list (e.g., players)
-			   1: should I also display the error text?
-Display takes: %0 - list of elements to display
-Filter is: How do I filter() for this? - 0: value, 2: comparison type (optional)
-
---------------------------------------------------------------------------------
--- Element: Name ---------------------------------------------------------------
-
-@@ all parts of this inherited from SASS - not going to be overwritten
-
-
---------------------------------------------------------------------------------
--- Element: Expires ------------------------------------------------------------
-
-@@ all parts of this inherited from SASS - not going to be overwritten
-
-
---------------------------------------------------------------------------------
--- Element: Players ------------------------------------------------------------
-
-@@ a single player is set for this, inherited from SASS
-@@ before 'players' can be set, 'expires' must also be set
-
-&element.players.set-check mw=
-localize(
-	[setq(m, expires)]
-	[if(
-		land(
-			iter(u(f.get.entry.elements, %0, %qm), 
-				t(%i0), 
-				|
-			)
-		), 
-		1, 
-		#-1 An entry must have [u(.itemize, %qm)] set before you can set players.
-	)]
-)
-
-
---------------------------------------------------------------------------------
--- Element: Text ---------------------------------------------------------------
-
-@@ see above
-
-
---------------------------------------------------------------------------------
--- Element: Others -------------------------------------------------------------
-
-&element.location.position mw=location entry. 4
-&element.location.validate mw=case(0, t(%0), #-1 'Location' cannot be empty, 1)
-&element.location.display mw=
-	localize(
-		[setq(t, location)]
-		[setq(v, u(.titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
-			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
-		)]
-	)
-
---
-
-&element.whitelist.position mw=location entry. 5
-&element.whitelist.validate mw=u(element.players.validate, %0)
-&element.whitelist.convert mw=u(element.players.convert, %0, %1)
-&element.whitelist.display mw=
-	localize(
-		[setq(t, whitelist)]
-		[iter(%0, 
-			[setq(e, u(f.element.validate, %qt, %i0))]
-			[setq(v, name(%i0))]
-			[if(strmatch(%i0, #-*), 
-				[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))], 
-				%qv
-			)], 
-			|, %,%b
-		)]
-	)
-
-
-================================================================================
-== FUNCTIONS ===================================================================
-
-These are all processed from the SASS parent.
-
 
 ================================================================================
 == DISPLAYS ====================================================================
@@ -1694,6 +1517,372 @@ p: main elements' contents
 
 
 ================================================================================
+== SUB-MISTRESS COMMANDS =======================================================
+
+Set up enough to let the S.A.S.S. Mistress code process the rest.
+
+
+--------------------------------------------------------------------------------
+-- Sub-Mistress: Primary Command -----------------------------------------------
+
+1: /switches
+2: text
+
+--
+
+&c.baths bbb=$^\+bath[s]?(/[^ ]*)?( .*)?$:
+	@pemit %#=
+		switch(1, 
+			t(strlen(%1)), 
+			u(c.mistress.switch, baths, %1, trim(%2)), 
+
+			t(strlen(trim(%2))), 
+			u(c.mistress.specific, baths, trim(%2), @@(pseudo-switches)), 
+
+			u(c.mistress.default, baths)
+		)
+
+--
+
+@set bbb/c.baths=regexp
+
+
+--------------------------------------------------------------------------------
+-- Sub-Mistress: Other ---------------------------------------------------------
+
+The rest of the system will use the functions on its parent.
+
+
+
+################################################################################
+## WARDS #######################################################################
+
+The S.A.S.S. for supernatural, timed wards.
+
+Will need:
+	Title -> 'Name'
+	Invoker -> 'Players'
+	Duration -> 'Expires'
+	Location
+	Source -> one of: 
+		Supernal (Mage)
+		Ritual (Werewolf)
+		Gift (Werewolf)
+		Thebean Sorcery (Vampire)
+		Cruac (Vampire)
+		Thaumaturgy (Thaumaturge)
+		Siddhi (Immortal/Possessed)
+		Discipline (Vampire)
+		Numen (Spirit)
+		Endowment (Hunter)
+		Ceremony (Geist)
+		Magic Item (Any)
+
+	Whitelist
+	Other Notes -> 'Text'
+
+
+================================================================================
+== SETUP =======================================================================
+
+@create Magical Wards <mw>=10
+@set mw=inherit safe
+@Desc Magical Wards <mw>=Num entries: [attrcnt(u(d.database)/entry.*)]
+
+@fo me=@parent Magical Wards <mw>=search(name=Blood Bather Baths <bbb>)
+
+@create Magical Wards Database <mwdb>=10
+@set Magical Wards Database <mwdb>=safe
+
+
+--------------------------------------------------------------------------------
+-- Optional: Code Object Data Parent -------------------------------------------
+
+&prefix.elements Magical Wards <mw>=element.
+&prefix.filters Magical Wards <mw>=fil.
+&prefix.displays Magical Wards <mw>=display.
+&prefix.cross-platform Magical Wards <mw>=.
+
+
+================================================================================
+== DATA ========================================================================
+
+
+--------------------------------------------------------------------------------
+-- Data: Basic -----------------------------------------------------------------
+
+@fo me=&d.database Magical Wards <mw>=num(Magical Wards Database <mwdb>)
+@fo me=@tel mwdb=Magical Wards <mw>
+
+
+================================================================================
+== ELEMENTS ====================================================================
+
+Position is: <element name> <attribute prefix> <list position>
+Validation takes: %0 - entire item to validate
+Convert takes: 0: single element to convert, if list (e.g., players)
+			   1: should I also display the error text?
+Display takes: %0 - list of elements to display
+Filter is: How do I filter() for this? - 0: value, 2: comparison type (optional)
+
+
+--------------------------------------------------------------------------------
+-- Element: Name ---------------------------------------------------------------
+
+@@ all parts of this inherited from SASS - not going to be overwritten
+
+
+--------------------------------------------------------------------------------
+-- Element: Expires ------------------------------------------------------------
+
+@@ all parts of this inherited from SASS - not going to be overwritten
+
+
+--------------------------------------------------------------------------------
+-- Element: Players ------------------------------------------------------------
+
+@@ a single player is set for this, inherited from SASS
+@@ before 'players' can be set, 'expires' must also be set
+
+&element.players.set-check mw=
+localize(
+	[setq(m, expires)]
+	[if(
+		land(
+			iter(ulocal(f.get.entry.elements, %0, %qm), 
+				t(%i0), 
+				|
+			)
+		), 
+		1, 
+		#-1 An entry must have [u(.itemize, %qm)] set before you can set players.
+	)]
+)
+
+
+--------------------------------------------------------------------------------
+-- Element: Text ---------------------------------------------------------------
+
+@@ see above
+
+
+--------------------------------------------------------------------------------
+-- Element: Others -------------------------------------------------------------
+
+&element.location.position mw=location entry. 4
+&element.location.validate mw=case(0, t(%0), #-1 'Location' cannot be empty, 1)
+&element.location.display mw=
+	localize(
+		[setq(t, location)]
+		[setq(v, u(.titlestr, %0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+--
+
+&element.whitelist.position mw=whitelist entry. 5
+&element.whitelist.validate mw=u(element.players.validate, %0)
+&element.whitelist.convert mw=u(element.players.convert, %0, %1)
+&element.whitelist.display mw=
+	localize(
+		[setq(t, whitelist)]
+		[iter(%0, 
+			[setq(e, u(f.element.validate, %qt, %i0))]
+			[setq(v, name(%i0))]
+			[if(strmatch(%i0, #-*), 
+				[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))], 
+				%qv
+			)], 
+			|, %,%b
+		)]
+	)
+
+
+--------------------------------------------------------------------------------
+-- Element: Source -------------------------------------------------------------
+
+The source of the ward, what kind of power or item created it
+
+--
+
+&d.source-types mw=
+	Ritual (Werewolf)|
+	Gift (Werewolf)|
+	Discipline (Vampire)|
+	Thebean Sorcery (Vampire)|
+	Cruac (Vampire)|
+	Thaumaturgy (Thaumaturge)|
+	Siddhi (Immortal/Possessed)|
+	Numen (Spirit)|
+	Endowment (Hunter)|
+	Ceremony (Geist)|
+	Magic Item
+
+--
+
+&element.source.position mw=source entry. 6
+
+--
+
+&element.source.validate mw=
+	case(0, 
+		t(%0), #-1 'Source' cannot be empty, 
+		t(match(v(d.source-types), %0, |)), #-1 'Source' type not known, 
+		1
+	)
+
+--
+
+&element.source.convert mw=
+localize(
+	strcat(
+		setq(g, 
+			grab(
+				strcat(|, sort(v(d.source-types), , |, |)), 
+				%0*, |
+			)
+		), 
+
+		if(t(%qg), %qg, %0)
+	)
+)
+
+--
+
+&element.source.display mw=
+	localize(
+		[setq(t, source)]
+		[setq(v, u(.titlestr, %0))]
+		[setq(e, u(f.element.validate, %qt, %0))]
+		[if(t(%qe), 
+			%qv, 
+			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+		)]
+	)
+
+
+
+================================================================================
+== FUNCTIONS ===================================================================
+
+These are all processed from the SASS parent.
+
+
+================================================================================
+== DISPLAYS ====================================================================
+
+Wards-specific display elements, replacing those on the SASS parent.
+
+
+--------------------------------------------------------------------------------
+-- Display: Full ---------------------------------------------------------------
+
+0: <cmd> - safely ignored, we know this is +baths
+1: entry number
+2: footer add-on (optional)
+
+e: main elements' names
+p: main elements' contents
+
+--
+
+&display.entry.full mw=
+	[u(.header, cat(Ward, #%1))]%r
+
+@@ >> section: core elements - display all regarless of errors
+	[setq(e, Name Players Expires)]
+	[setq(p, ulocal(f.get.entry.elements, %1, %qe))]
+
+	[iter(%qe, 
+		[setq(d, extract(%qp, inum(), 1, |))]
+		[setq(d, cat(ansi(h, %i0:), ulocal(f.element.display, %i0, %qd, true)))]
+
+		ulocal(.wrap, 
+			%qd, 
+			sub(74, add(2, strlen(%i0))), 
+			left, %b%b, , add(2, strlen(%i0)), , 74
+		), 
+		, %r
+	)]%r
+
+@@ >> section: secondary elements (must have at least one for display purposes)
+	[setq(e, Bath Blood Frequency Effects Preparation)]
+	[setq(p, ulocal(f.get.entry.elements, %1, %qe))]
+
+	[u(.divider, 
+		if(strlen(edit(%qp, |, )), 
+			Benefits, 
+			%xr( Err: No Benefits Entered )%xn
+		)
+	)]%r
+
+	[iter(%qe, 
+		[setq(d, elements(%qp, inum(), |))]
+		[setq(d, cat(ansi(h, %i0:), ulocal(f.element.display, %i0, %qd, true)))]
+		[ulocal(.wrap, 
+			%qd, 
+			sub(74, add(2, strlen(%i0))), 
+			left, %b%b, , add(2, strlen(%i0)), , 74
+		)], 
+		, %r
+	)]%r
+
+@@ >> section: detailed text
+	[u(.divider, Text)]%r
+	[setq(d, ulocal(f.get.entry.elements, %1, text))]
+	
+	[if(strlen(%qd), 
+		[ulocal(.wrap, %qd, 74, left, %b%b)]
+	)]%r
+	
+	[u(.footer, %2)]
+
+
+--------------------------------------------------------------------------------
+-- Display: One Line -----------------------------------------------------------
+
+0: element number
+
+--
+
+&display.entry.line mw=
+
+@@ >> element number
+	[rjust(%0, 4)]) 
+
+@@ >> element name
+	[ljust(
+		ulocal(f.element.display, 
+			name, 
+			ulocal(f.get.entry.elements, %0, name)
+		), 
+		39
+	)] - 
+
+@@ >> source
+	[ljust(
+		ulocal(f.element.display, 
+			source, 
+			ulocal(f.get.entry.elements, %0, source)
+		), 
+		16
+	)] - 
+
+@@ >> expires
+	[ljust(
+		ulocal(f.element.display, 
+			expires, 
+			ulocal(f.get.entry.elements, %0, expires)
+		), 
+		11
+	)]
+
+
+================================================================================
 == MISTRESS COMMANDS ===========================================================
 
 Triggers the SASS parent
@@ -1717,6 +1906,27 @@ Triggers the SASS parent
 @set mw/c.wards=regexp
 
 
+--------------------------------------------------------------------------------
+-- Switch: Options -------------------------------------------------------------
+
+&c.switch/options mw=
+	[u(.header, Options for Wards)]%r
+	[setq(m, Wards has the following elements with special settings:)]
+	[u(.wrap, %qm, 76, , %b%b)]%r
+
+	[u(.divider, Expires)]%r
+	[setq(m, u(.itemize, Day|Week|Month|Quarter|Semi-Annual|Year|Five Years|<time fmt>, |))]
+	[u(.wrap, %qm, 76, , %b%b)]%r
+
+	[u(.divider, Source)]%r
+	[u(.columns, 
+		v(d.source-types), 
+		add(u(.lmax, iter(v(d.source-types), strlen(%i0), |)), 6), 
+		|, 2
+	)]
+
+	[u(.footer)]
+	
 
 
 
