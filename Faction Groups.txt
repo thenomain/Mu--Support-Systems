@@ -33,7 +33,7 @@ e.g.: faction(factions[, <partial faction name>])
 
 All user-defined or cross-platform function issues should (should, mind you) go in their own function class.
 
-	&_<function name>
+	&.<function name>
 
 
 -- TEMPORARY NOTES -------------------------------------------------------------
@@ -58,17 +58,17 @@ Lists return dbrefs unless mentioned otherwise.
 Items in (parenthesis) are the defaults for that command.
 
 System Actions/Queries - 
-	default: <item(s)>
-		Return the value of a default setting(s).
+	global: <item(s)>
+		Return the value of a global default setting(s).
 		- in these 'get' cases, return |-delim list of values. e.g.:
-		- faction(default, active title) -> 64|<null>
-	default: <item>, [<value>]
+		- faction(globals, active title) -> 64|<null>
+	global: <item>, <value>
 		Set a default setting.  If null, erase.
-		- active: Days until a player is considered inactive
+		- active: Days until a player is considered inactive (default: 30)
 		- power: The default member power level (default: member)
-		- rank: The default member numeric rank
-		- title: The default member title
-		- category: The default faction category
+		- rank: The default member numeric rank (default: null)
+		- title: The default member title (default: null)
+		- category: The default faction category (default: null)
 	powers: [<name filter>]
 		List (all) possible access level powers
 
@@ -77,33 +77,29 @@ Faction Actions/Queries -
 		Create/re-activate a faction.
 	deactivate: <faction>
 		Make a faction inactive.
+	default: <faction>, <item(s)> | <faction>, <item>, <value>
+		Change the default for this faction. See 'global', above.
+		- description: A decription of the faction
+		- permission.view (???): A permission on who's allowed to see the faction.
 	roster: <faction>[, active|inactive|all]
-		List all (active) faction members.
+		List all (default: active) faction members.
 	who: <faction>[, active|inactive|all]
 		List connected (active) faction members.
 		(add 'isfaction()' for backwards compatability)
 	mail: <faction>, <title>[, active|inactive|all]
 		Starts a @mail to all (active) faction members.
 	clean: <faction>
-		Force an activity check for members of, and the faction itself.
-	fget: <faction>, <item(s)>
-		Return the value(s) of a faction's setting.
-	fset: <faction>, <item>[, <value>]
-		Set a faction's setting.  If null, erase.
-		- description: A decription of the faction
-		- category: The primary category for faction
-		- permission.view (???): A permission on who's allowed to see the faction.
+		Force an "allowed to RP" check for members of, and the faction itself.
 
 Member Actions/Queries - 
-	add: <member>, <faction>
-		Add member to a faction (may be inactive).
+√	add: <member>, <faction>
+		Add member to a faction. (Faction may be inactive.)
 		@mail player if they can see the faction (e.g., not double-blind).
 	delete: <member>, <faction>
-		Completely remove a member from a faction (may be inactive.
-		- "Inactive" players are determined entirely by internal code
-	mget: <member>, <faction>, <item(s)>
+		Completely remove a member from a faction. (Faction may be inactive.)
+√	mget: <member>, <faction>, <item|list>
 		Return the value(s) of a faction member's setting
-	mset: <member>, <faction>, <item>[, <value>]
+√	mset: <member>, <faction>, <item>[, <value>]
 		Set a faction member's setting.  If null, set to null/default
 		- power: Numeric power level of a member: Null -> default
 		- rank: The numeric rank
@@ -236,8 +232,10 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 @set Faction Groups=safe
 
 @parent Faction Groups=codp
-&prefix.cross_platform Faction Groups=_
+&prefix.cross_platform Faction Groups=.
 &prefix.user_function_actions Faction Groups=action.
+
+&d.one-day Faction Groups=86400
 
 --
 
@@ -247,7 +245,7 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 
 @parent Faction Parent=codp
 
-@@ null defaults are reminders that they exist
+@@ >> global functions -- null defaults are reminders that they exist
 
 &member.active Faction Parent=30
 &member.power Faction Parent=member
@@ -264,17 +262,17 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 --------------------------------------------------------------------------------
 -- FUNCTION: Cross-Platform Functions ------------------------------------------
 
-&_header Faction Groups=wheader(%0)
-&_footer Faction Groups=wfooter(%0)
-&_divider Faction Groups=wdivider(%0)
+&.header Faction Groups=wheader(%0)
+&.footer Faction Groups=wfooter(%0)
+&.divider Faction Groups=wdivider(%0)
 
-&_msg Faction Groups=msg(h, %0, %1)
+&.msg Faction Groups=msg(h, %0, %1)
 
-&_isstaff Faction Groups=isstaff(%0)
+&.isstaff Faction Groups=isstaff(%0)
 
-&_isapproved Faction Groups=isapproved(%0)
+&.isapproved Faction Groups=isapproved(%0)
 
-&_crumple Faction Groups=trim(squish(%0))
+&.crumple Faction Groups=trim(squish(%0))
 
 
 ================================================================================
@@ -373,7 +371,7 @@ Show default factions setup: List factions
 
 --
 
-&c.factions.default Faction Groups=if(strlen(%1), u(_msg, factions, Factions doesn't take that switch. See +help factions), u(c.factions/default))
+&c.factions.default Faction Groups=if(strlen(%1), u(.msg, factions, Factions doesn't take that switch. See +help factions), u(c.factions/default))
 
 
 --------------------------------------------------------------------------------
@@ -388,7 +386,7 @@ Show information about a particular faction
 
 --
 
-&c.factions.specific Faction Groups=if(strlen(%1), u(_msg, factions, Factions doesn't take that switch. See +help factions), u(c.factions/faction))
+&c.factions.specific Faction Groups=if(strlen(%1), u(.msg, factions, Factions doesn't take that switch. See +help factions), u(c.factions/faction))
 
 
 --------------------------------------------------------------------------------
@@ -455,7 +453,7 @@ localize(
 	case(0, 
 
 @@ .. staff only
-		t(u(_isstaff, %@)), 
+		t(u(.isstaff, %@)), 
 		#-1 Staff only, 
 
 @@ .. check for valid faction object name
@@ -488,10 +486,6 @@ localize(
 
 --
 
-&action.create Faction Groups=localize(case(0, t(u(_isstaff, %@)), #-1 Staff only, valid(name, %0), #-1 That's a bad name for a faction, not(setr(m, grab(iter(filter(fil.valid_factions, lcon(%!)), name(%i0), , |), [strtrunc(%0, 5)]*, |))), #-1 A similar faction name already exists as '%qm', t(setr(f, create(%0, ))), #-1 Error when creating faction '%0', strcat(parent(%qf, v(d.faction_parent)), strmatch(parent(%qf), v(d.faction_parent))), #-1 Error when setting faction parent. Please type: @parent %qf=[v(d.faction_parent)], %qf))
-
---
-
 think u(fg/action.create, Test Fallacy)
 
 
@@ -519,7 +513,7 @@ localize(
 		eq(words(%qf), 1), 
 		#-1 Too many matching factions found, 
 
-@@ .. faction details (no player dbref passed): 
+@@ >> faction details (no player dbref passed): 
 @@ .. <dbref>|<member dbrefs>|<permissions>|<desc>
 		strlen(%1), 
 		%qf|
@@ -528,25 +522,21 @@ localize(
 		[get(%qf/desc)]|, 
 
 @@ .. player checks 
-		t(setr(p, pmatch(%qp))), 
+		t(setr(p, pmatch(%1))), 
 		#-1 Player '%1' has too many matches or not found, 
 
-		t(get(%qf/member.power.%qd)), 
-		#-1 Player '[name(%qd)]' not a member of faction '[name(%qf)]', 
+		t(get(%qf/member.power.%qp)), 
+		#-1 Player '[name(%qp)]' not a member of faction '[name(%qf)]', 
 
-@@ .. player details
+@@ >> player details
 @@ .. <dbref>|<power>|<rank>|<title>
 @@ .. (<rank> and <title> may be determined via code on faction or parent)
-		%qa|
-		[get(%qf/member.power.%qa)]|
-		[udefault(%qf/member.rank.%qa, u(%qf/default.rank, %qa))]|
-		[udefault(%qf/member.title.%qa, u(%qf/default.title, %qa))]
+		%qp|
+		[get(%qf/member.power.%qp)]|
+		[udefault(%qf/member.rank.%qp, u(%qf/default.rank, %qp))]|
+		[udefault(%qf/member.title.%qp, u(%qf/default.title, %qp))]
 	)
 )
-
---
-
-&action.details Faction Groups=localize(case(0, t(setr(f, u(action.factions, %0))), #-1 Faction '%0' not found, eq(words(%qf), 1), #-1 Too many matching factions found, strlen(%1), %qf|[iter(lattr(%qf/member.power.*), last(%i0, .))]|[get(%qf/permissions.view)]|[get(%qf/desc)]|, t(setr(p, pmatch(%qp))), #-1 Player '%1' has too many matches or not found, t(get(%qf/member.power.%qd)), #-1 Player '[name(%qd)]' not a member of faction '[name(%qf)]', %qa|[get(%qf/member.power.%qa)]|[udefault(%qf/member.rank.%qa, u(%qf/default.rank, %qa))]|[udefault(%qf/member.title.%qa, u(%qf/default.title, %qa))]))
 
 --
 
@@ -569,13 +559,13 @@ e: possible error from functions: set()
 localize(
 	case(0, 
 @@ .. basic checks
-		u(_isstaff, %@), 
+		u(.isstaff, %@), 
 		#-1 Staff only, 
 
 		t(setr(p, pmatch(%0))), 
 		#-1 Player '%0' not found, 
 
-		t(u(_isapproved, %qp)), 
+		t(u(.isapproved, %qp)), 
 		#-1 Player is not approved for RP, 
 
 		t(setr(f, u(action.factions, %1))), 
@@ -600,7 +590,7 @@ localize(
 
 --
 
-&action.add Faction Groups=localize(case(0, u(_isstaff, %@), #-1 Staff only, t(setr(p, pmatch(%0))), #-1 Player '%0' not found, t(u(_isapproved, %qp)), #-1 Player is not approved for RP, t(setr(f, u(action.factions, %1))), #-1 Faction '%1' not found, eq(words(%qf), 1), #-1 Multiple faction matches, not(hasattr(%qf, member.power.%qp)), #-1 '[name(%qp)]' is already member of faction '[name(%qf)]', eq(strlen(setr(e, set(%qf, member.power.%qp:<<< power lvl >>>))), 0), #-1 %qe, 1))
+&action.add Faction Groups=localize(case(0, u(.isstaff, %@), #-1 Staff only, t(setr(p, pmatch(%0))), #-1 Player '%0' not found, t(u(.isapproved, %qp)), #-1 Player is not approved for RP, t(setr(f, u(action.factions, %1))), #-1 Faction '%1' not found, eq(words(%qf), 1), #-1 Multiple faction matches, not(hasattr(%qf, member.power.%qp)), #-1 '[name(%qp)]' is already member of faction '[name(%qf)]', eq(strlen(setr(e, set(%qf, member.power.%qp:<<< power lvl >>>))), 0), #-1 %qe, 1))
 
 --
 
@@ -610,117 +600,146 @@ think u(fg/action.add, *thenomain, test)
 --------------------------------------------------------------------------------
 -- ACTION: Change Member's Power Level on Faction (individual) -----------------
 
+@@ TO BE CODED
+
 
 --------------------------------------------------------------------------------
--- ACTION: Change Member's Title -----------------------------------------------
+-- ACTION: Member Info: Set ----------------------------------------------------
 
-	faction(set title, <player>, <faction>[, <title>])
+	faction(mset, <player>, <faction>, <element>[, <entry>])
 
 p: dbref of player to add
 f: faction dbref
 
-e: possible error from functions: set()
+If <entry> is null, use faction default in display.
 
-If title is null, use faction default in display.
+If <player> is null, display valid <elements|>
 
 --
 
-&action.set_title Faction Groups=
+&action.mset Faction Groups=
 localize(
 	case(0, 
 @@ .. basic checks
-		u(_isstaff, %@), 
+		u(.isstaff, %@), 
 		#-1 Staff only, 
+
+@@ .. (if <player> is empty, show valid <elements|>)
+		gt(strlen(%1), 0), 
+		lcstr(edit(sort(lattr(%!/f.mset.*), , , |), F.MSET., , _, %b)), 
 
 		t(setr(f, u(action.factions, %1))), 
 		#-1 Faction '%1' not found, 
 
 		eq(words(%qf), 1), 
 		#-1 Multiple faction matches, 
+		
+		t(setr(p, pmatch(%0))), 
+		#-1 '%0' is not a valid player name, 
 
-		hasattr(%qf, member.power.[setr(p, pmatch(%0))]), 
+		hasattr(%qf, member.power.%qp), 
 		#-1 '[name(%qp)]' is not a member of faction '[name(%qf)]', 
 
-		lte(strlen(%2), 30), 
-		#-1 Title may be at most 30 characters, 
+		t(setr(a, lattr(%!/f.mset.%2*))), 
+		#-1 Mset for '%2' not found, 
 
-		eq(strlen(setr(e, set(%qf, member.title.%qp:[escape(%2)]))), 0), 
-		#-1 %qe, 
+		eq(words(%qa), 1), 
+		#-1 Multiple set-item matches, 
 
-@@ OK
-		1
+@@ .. ok to set
+		u(%qa, %qp, %qf, %3)
 	)
 )
 
 --
 
-think u(fg/action.set_title, *thenomain, test, \[title\])
+think u(fg/action.mset, *thenomain, test, title, \[title\])
 think u([first(u(fg/action.details, test), |)]/member.title.[pmatch(thenomain)])
 
+think u(fg/action.mset, *thenomain, test, rank, \[title\])
+think u(fg/action.mset, *thenomain, test, rank, 1500)
+
+think u(fg/action.mset, *thenomain, test, rank, 15)
+think u([first(u(fg/action.details, test), |)]/member.rank.[pmatch(thenomain)])
+
+think u(fg/action.mset, *thenomain, test, power, 15)
+
+think u(fg/action.mset, *thenomain, test, power, ad)
+think u([first(u(fg/action.details, test), |)]/member.power.[pmatch(thenomain)])
+
 
 --------------------------------------------------------------------------------
--- ACTION: Change Member's Rank ------------------------------------------------
+-- ACTION: Member Info: Get ----------------------------------------------------
 
-	faction(set rank, <player>, <faction>[, <rank>])
+	faction(mset, <player>, <faction>, <item|list>)
 
-p: dbref of player to add
+p: player dbref
 f: faction dbref
 
-e: possible error from functions: set()
+If <entry> is null, use faction default in display.
 
-Numeric, -999 to 999, determines faction's primary sort order.
-
-If rank is null, use faction default in display.
+If <player> is null, display valid <items|>
 
 --
 
-&action.set_rank Faction Groups=
+&action.mget Faction Groups=
 localize(
 	case(0, 
 @@ .. basic checks
-		u(_isstaff, %@), 
+		u(.isstaff, %@), 
 		#-1 Staff only, 
+
+@@ .. (if <player> is empty, show valid <elements|>)
+		gt(strlen(%1), 0), 
+		lcstr(edit(sort(lattr(%!/f.mget.*), , , |), F.MGET., , _, %b)), 
 
 		t(setr(f, u(action.factions, %1))), 
 		#-1 Faction '%1' not found, 
 
 		eq(words(%qf), 1), 
 		#-1 Multiple faction matches, 
+		
+		t(setr(p, pmatch(%0))), 
+		#-1 '%0' is not a valid player name, 
 
-		hasattr(%qf, member.power.[setr(p, pmatch(%0))]), 
+		hasattr(%qf, member.power.%qp), 
 		#-1 '[name(%qp)]' is not a member of faction '[name(%qf)]', 
 
-		or(isint(%2), not(comp(, %2))), 
-		#-1 Rank must be numeric or blank to clear, 
-
-		and(gte(%2, -999), lte(%2, 999)), 
-		#-1 Rank must be between -999 and 999 or blank to clear, 
-
-		lte(strlen(%2), 30), 
-		#-1 Title may be at most 30 characters, 
-
-		eq(strlen(setr(e, set(%qf, member.rank.%qp:[escape(%2)]))), 0), 
-		#-1 %qe, 
-
-@@ OK
-		1
+@@ .. ok to get
+		iter(%2, 
+			udefault(
+				first(sort(lattr(%!/f.mget.%i0*))), 
+				#-1 %i0, 
+				%qp, %qf, 
+			), 
+			|, |
+		)
 	)
 )
 
 --
 
-think u(fg/action.set_rank, *thenomain, test, \[title\])
+think 
 
-think u(fg/action.set_rank, *thenomain, test, 15)
-think u([first(u(fg/action.details, test), |)]/member.rank.[pmatch(thenomain)])
+think u(fg/action.mget, *thenomain, test, title)
+think u(fg/action.mget, *thenomain, test, rank)
+think u(fg/action.mget, *thenomain, test, power)
+
+think u(fg/action.mget, *thenomain, test, u(fg/action.mget))
+
+think u(fg/action.mget, *thenomain, test, title|flange|power)
 
 
+
+--------------------------------------------------------------------------------
+-- ACTION: Faction Roster ------------------------------------------------------
 
 
 
 
 ================================================================================
 == FILTERS =====================================================================
+
 
 --------------------------------------------------------------------------------
 -- FILTER: Valid Factions ------------------------------------------------------
@@ -760,6 +779,36 @@ Sample Usage:
 &fil.factions_byname Faction Groups=strmatch(name(%0), %1*)
 
 
+--------------------------------------------------------------------------------
+-- FILTER: Active Players in Faction -------------------------------------------
+
+	u(f.player-is-active, <player dbref>, <faction dbref>)
+	filter(f.player-is-active, <player list>, , , <faction dbref>)
+
+0: list of player dbrefs
+1: faction dbref (for pulling its 'active' default)
+
+--
+
+&fil.active_players Faction Groups=
+	lte(
+		if(hasflag(%0, CONNECT), 
+			idle(%0), 
+			sub(secs(), convtime(get(%0/last)))
+		), 
+		mul(get(%1/member.active), v(d.one-day))
+	)
+
+--
+
+think u(fg/fil.active_players, pmatch(thenomain), u(fg/action.factions, test))
+
+think filter(fg/fil.active_players, <roster>, , , u(fg/action.factions, test))
+
+think setdiff(<roster>, filter(fg/fil.active_players, <roster>, , , u(fg/action.factions, test)))
+
+
+
 ================================================================================
 == INTERNAL FUNCTIONS ==========================================================
 
@@ -776,7 +825,10 @@ List the categories from all (passed) faction dbrefs - not validated
 &f.categories.list Faction Groups=
 	setunion(
 		iter(
-			if(strlen(%0), %0, filter(fil.valid_factions, lcon(%!))), get(%i0/faction.category), 
+			if(strlen(%0), 
+				filter(fil.valid_factions, %0), 
+				filter(fil.valid_factions, lcon(%!))
+			), get(%i0/faction.category), 
 			@@(null), 
 			|
 		), 
@@ -786,7 +838,130 @@ List the categories from all (passed) faction dbrefs - not validated
 
 --
 
-&f.categories.list Faction Groups=setunion(iter(if(strlen(%0), %0, filter(fil.valid_factions, lcon(%!))), get(%i0/faction.category), @@(null), |), @@(null), |)
+think u(fg/f.categories.list)
+think u(fg/f.categories.list, #7673)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Member Set: Title -------------------------------------------------
+
+0: member dbref
+1: faction dbref
+2: title value
+
+&f.mset.title Faction Groups=
+localize(
+	case(0, 
+
+		lte(strlen(%2), 30), 
+		#-1 Title may be at most 30 characters, 
+
+		eq(strlen(setr(e, set(%1, member.title.%0:[escape(%2)]))), 0), 
+		#-1 %qe, 
+
+@@ OK
+		1
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Member Set: Rank --------------------------------------------------
+
+0: member dbref
+1: faction dbref
+2: rank value
+
+--
+
+&f.mset.rank Faction Groups=
+localize(
+	case(0, 
+
+		or(isint(%2), not(comp(, %2))), 
+		#-1 Rank must be numeric or blank to clear, 
+
+		and(gte(%2, -999), lte(%2, 999)), 
+		#-1 Rank must be between -999 and 999 or blank to clear, 
+
+		eq(strlen(setr(e, set(%1, member.rank.%0:%2))), 0), 
+		#-1 %qe, 
+
+@@ OK
+		1
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Member Set: Power -------------------------------------------------
+
+0: member dbref
+1: faction dbref
+2: power value ('power' must always be set!)
+
+--
+
+&f.mset.power Faction Groups=
+localize(
+	case(0, 
+
+@@ if <power value> is null, explicitly set
+		comp(, %2), 
+		if(
+			neq(strlen(setr(e, set(%1, 
+				member.power.%0:[get(%1/member.power)]
+			))), 0), 
+			#-1 %qe, 
+			1
+		), 
+
+		t(setr(p, grab(|[get(v(d.faction_parent)/d.powers)], %2*, |))), 
+		#-1 Power type not found, 
+
+		eq(strlen(setr(e, set(%1, member.power.%0:%qp))), 0), 
+		#-1 %qe, 
+
+@@ OK
+		1
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Member Get: Title -------------------------------------------------
+
+Read default if null
+
+0: member dbref
+1: faction dbref
+
+--
+
+&f.mget.title Faction Groups=ulocal(%1/member.title.%0, u(%1/member.title, %0))
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Member Get: Rank --------------------------------------------------
+
+0: member dbref
+1: faction dbref
+
+--
+
+&f.mget.rank Faction Groups=udefault(%1/member.rank.%0, u(%1/member.rank, %0))
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Member Get: Power -------------------------------------------------
+
+0: member dbref
+1: faction dbref
+
+--
+
+&f.mget.power Faction Groups=u(%1/member.power.%0)
+
 
 
 ================================================================================
