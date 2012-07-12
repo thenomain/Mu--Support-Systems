@@ -1686,18 +1686,18 @@ localize(
 
 &element.whitelist.position mw=whitelist entry. 5
 &element.whitelist.validate mw=u(element.players.validate, %0)
-&element.whitelist.convert mw=u(element.players.convert, %0, %1)
+&element.whitelist.convert mw=u(element.players.convert, %0)
 &element.whitelist.display mw=
 	localize(
 		[setq(t, whitelist)]
 		[iter(%0, 
 			[setq(e, u(f.element.validate, %qt, %i0))]
 			[setq(v, name(%i0))]
-			[if(strmatch(%i0, #-*), 
+			[if(strmatch(%qe, #-*), 
 				[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))], 
 				%qv
 			)], 
-			|, %,%b
+			, %,%b
 		)]
 	)
 
