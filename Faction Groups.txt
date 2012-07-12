@@ -58,12 +58,12 @@ Lists return dbrefs unless mentioned otherwise.
 Items in (parenthesis) are the defaults for that command.
 
 System Actions/Queries - 
-	global: <item(s)>
+	gget: <item|list>
 		Return the value of a global default setting(s).
 		- in these 'get' cases, return |-delim list of values. e.g.:
 		- faction(globals, active title) -> 64|<null>
-	global: <item>, <value>
-		Set a default setting.  If null, erase.
+	gset: <item>, <value>
+		Set a global default setting.  If null, erase.
 		- active: Days until a player is considered inactive (default: 30)
 		- power: The default member power level (default: member)
 		- rank: The default member numeric rank (default: null)
@@ -73,12 +73,15 @@ System Actions/Queries -
 		List (all) possible access level powers
 
 Faction Actions/Queries - 
-	activate: <faction>
-		Create/re-activate a faction.
+√	create: <faction>
+		Creates a faction.
 	deactivate: <faction>
-		Make a faction inactive.
-	default: <faction>, <item(s)> | <faction>, <item>, <value>
-		Change the default for this faction. See 'global', above.
+		Make a faction inactive. (do we really need this?)
+	activate: <faction>
+		Re-activates a faction. (do we really need this?)
+	fget: <faction>, <item|list>
+	fset: <faction>, <item>, <value>
+		Change the default for this faction. See 'gget/gset', above.
 		- description: A decription of the faction
 		- permission.view (???): A permission on who's allowed to see the faction.
 	roster: <faction>[, active|inactive|all]
@@ -95,7 +98,7 @@ Member Actions/Queries -
 √	add: <member>, <faction>
 		Add member to a faction. (Faction may be inactive.)
 		@mail player if they can see the faction (e.g., not double-blind).
-	delete: <member>, <faction>
+	delete: <member>, <faction>[, YES]
 		Completely remove a member from a faction. (Faction may be inactive.)
 √	mget: <member>, <faction>, <item|list>
 		Return the value(s) of a faction member's setting
@@ -559,6 +562,7 @@ e: possible error from functions: set()
 localize(
 	case(0, 
 @@ .. basic checks
+@@ >> staff or Power:Admin, not staff-only
 		u(.isstaff, %@), 
 		#-1 Staff only, 
 
@@ -577,20 +581,13 @@ localize(
 		not(hasattr(%qf, member.power.%qp)), 
 		#-1 '[name(%qp)]' is already member of faction '[name(%qf)]', 
 
-@@ power check here
-@@ 		xxx
-
-		eq(strlen(setr(e, set(%qf, member.power.%qp:<<< power lvl >>>))), 0), 
+		eq(strlen(setr(e, set(%qf, member.power.%qp:[u(%qf/member.power)]))), 0), 
 		#-1 %qe, 
 
 @@ OK
 		1
 	)
 )
-
---
-
-&action.add Faction Groups=localize(case(0, u(.isstaff, %@), #-1 Staff only, t(setr(p, pmatch(%0))), #-1 Player '%0' not found, t(u(.isapproved, %qp)), #-1 Player is not approved for RP, t(setr(f, u(action.factions, %1))), #-1 Faction '%1' not found, eq(words(%qf), 1), #-1 Multiple faction matches, not(hasattr(%qf, member.power.%qp)), #-1 '[name(%qp)]' is already member of faction '[name(%qf)]', eq(strlen(setr(e, set(%qf, member.power.%qp:<<< power lvl >>>))), 0), #-1 %qe, 1))
 
 --
 
@@ -961,6 +958,27 @@ Read default if null
 --
 
 &f.mget.power Faction Groups=u(%1/member.power.%0)
+
+
+
+================================================================================
+== TRIGGERS ====================================================================
+
+
+--------------------------------------------------------------------------------
+-- TRIGGER: Mail ---------------------------------------------------------------
+
+0: player-list
+1: topic
+2: message
+
+--
+
+&trig.mail Faction Groups=@mail/quick %0/%1=%2
+
+--
+
+think trigger(fg/trig.mail, %#, Test, Success!)
 
 
 
