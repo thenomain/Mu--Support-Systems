@@ -58,6 +58,8 @@ Lists return dbrefs unless mentioned otherwise.
 Items in (parenthesis) are the defaults for that command.
 
 System Actions/Queries - 
+	factions: [<faction name>]
+		Returns the dbref(s) of all factions or matching factions
 	gget: <item|list>
 		Return the value of a global default setting(s).
 		- in these 'get' cases, return |-delim list of values. e.g.:
@@ -75,20 +77,17 @@ System Actions/Queries -
 Faction Actions/Queries - 
 √	create: <faction>
 		Creates a faction.
-	deactivate: <faction>
-		Make a faction inactive. (do we really need this?)
-	activate: <faction>
-		Re-activates a faction. (do we really need this?)
+	destroy: <faction>[, YES]
+		Remove the faction.
 	fget: <faction>, <item|list>
 	fset: <faction>, <item>, <value>
 		Change the default for this faction. See 'gget/gset', above.
 		- description: A decription of the faction
 		- permission.view (???): A permission on who's allowed to see the faction.
-	roster: <faction>[, active|inactive|all]
+√	roster: <faction>[, active|inactive|all]
 		List all (default: active) faction members.
-	who: <faction>[, active|inactive|all]
-		List connected (active) faction members.
-		(add 'isfaction()' for backwards compatability)
+√	who: <faction>[, active|inactive|all]
+		List connected (default: active) faction members.
 	mail: <faction>, <title>[, active|inactive|all]
 		Starts a @mail to all (active) faction members.
 	clean: <faction>
@@ -98,7 +97,7 @@ Member Actions/Queries -
 √	add: <member>, <faction>
 		Add member to a faction. (Faction may be inactive.)
 		@mail player if they can see the faction (e.g., not double-blind).
-	delete: <member>, <faction>[, YES]
+√	remove: <member>, <faction>[, YES]
 		Completely remove a member from a faction. (Faction may be inactive.)
 √	mget: <member>, <faction>, <item|list>
 		Return the value(s) of a faction member's setting
@@ -107,8 +106,9 @@ Member Actions/Queries -
 		- power: Numeric power level of a member: Null -> default
 		- rank: The numeric rank
 		- title: The title
-	memberof: <member>[, active|inactive|all]
-		List all (active) factions a member is a part of.
+√	memberof: <member>[, <faction name>]
+		List all factions (filtered by <faction name> a member is a part of.
+		(add 'isfaction()' for backwards compatability)
 
 
 --------------------------------------------------------------------------------
@@ -154,9 +154,6 @@ Uses the Access System Fob (#3233 on The Reach).  General usage is applying the 
 
 &member.title
 	The default title for new members.  The default is <null>.
-
-&faction.active
-	Is faction active?  Default '1'.  If other, note on the Faction Object
 
 &faction.category
 	The faction's main category (for listing)
@@ -277,6 +274,8 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 
 &.crumple Faction Groups=trim(squish(%0))
 
+&.active Faction Groups=active(%0)
+
 
 ================================================================================
 == COMMAND SETUP ===============================================================
@@ -311,11 +310,6 @@ In the case of the switches, the first valid switch has their command called, if
 @@ No match
 		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
 	)]
-
---
-
-&c.factions Faction Groups=$faction*:@pemit %#=[setq(n, factions)][switch(%0, , u(c.%qn.default), /*, u(c.%qn.switch, first(%0), rest(%0)), %b*, u(c.%qn.specific, trim(%0)), s, u(c.%qn.default), s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), s%b*, u(c.%qn.specific, trim(rest(%0))), Error: I don't know what you mean. Please see [ansi(h, +help %qn)])]
-
 
 
 --------------------------------------------------------------------------------
@@ -356,10 +350,6 @@ qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
 			ulocal(c.%qn.default, %1, %qp)
 		)
 	)]
-
---
-
-&c.factions.switch Faction Groups=[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))][iter(rest(%0, /), if(t(grab(%qa, c.%qn/%i0*)), setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), setq(p, %qp/%i0)), /, @@)][if(t(%qs), ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), if(t(%1), ulocal(c.%qn.specific, %1, %qp), ulocal(c.%qn.default, %1, %qp)))]
 
 
 --------------------------------------------------------------------------------
@@ -423,16 +413,12 @@ List factions as appropriate for a certain player, which means throwing it throu
 	filter(fil.factions_byname, 
 		filter(fil.cansee_factions, 
 			filter(fil.valid_factions, lcon(%!)), 
-			@@(empty idelim), @@(empty odelim), 
+			@@(idelim), @@(odelim), 
 			%#
 		), 
-		@@(empty idelim), @@(empty odelim), 
+		@@(idelim), @@(odelim), 
 		%0
 	)
-
---
-
-&action.factions Faction Groups=filter(fil.factions_byname, filter(fil.cansee_factions, filter(fil.valid_factions, lcon(%!)), @@(empty idelim), @@(empty odelim), %#), @@(empty idelim), @@(empty odelim), %0)
 
 --
 
@@ -544,6 +530,7 @@ localize(
 --
 
 think u(fg/action.details, test fac)
+think u(fg/action.details, test fac, thenomain)
 
 
 --------------------------------------------------------------------------------
@@ -581,6 +568,7 @@ localize(
 		not(hasattr(%qf, member.power.%qp)), 
 		#-1 '[name(%qp)]' is already member of faction '[name(%qf)]', 
 
+@@ .. generic error
 		eq(strlen(setr(e, set(%qf, member.power.%qp:[u(%qf/member.power)]))), 0), 
 		#-1 %qe, 
 
@@ -595,13 +583,7 @@ think u(fg/action.add, *thenomain, test)
 
 
 --------------------------------------------------------------------------------
--- ACTION: Change Member's Power Level on Faction (individual) -----------------
-
-@@ TO BE CODED
-
-
---------------------------------------------------------------------------------
--- ACTION: Member Info: Set ----------------------------------------------------
+-- ACTION: Member Info: Set (individual) ---------------------------------------
 
 	faction(mset, <player>, <faction>, <element>[, <entry>])
 
@@ -609,8 +591,6 @@ p: dbref of player to add
 f: faction dbref
 
 If <entry> is null, use faction default in display.
-
-If <player> is null, display valid <elements|>
 
 --
 
@@ -666,7 +646,7 @@ think u([first(u(fg/action.details, test), |)]/member.power.[pmatch(thenomain)])
 
 
 --------------------------------------------------------------------------------
--- ACTION: Member Info: Get ----------------------------------------------------
+-- ACTION: Member Info: Get (individual) ---------------------------------------
 
 	faction(mset, <player>, <faction>, <item|list>)
 
@@ -727,10 +707,171 @@ think u(fg/action.mget, *thenomain, test, u(fg/action.mget))
 think u(fg/action.mget, *thenomain, test, title|flange|power)
 
 
+--------------------------------------------------------------------------------
+-- ACTION: Remove Player from Faction (individual) -----------------------------
+
+	faction(remove, <player>, <faction>[, YES])
+
+p: player dbref
+f: faction dbref
+
+--
+
+&action.remove Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+@@ .. player checks 
+		t(setr(p, pmatch(%0))), 
+		#-1 Player '%0' has too many matches or not found, 
+
+		hasattr(%qf, member.power.%qp), 
+		#-1 Player '[name(%qp)]' not a member of faction '[name(%qf)]', 
+
+@@ .. faction checks
+		t(setr(f, u(action.factions, %1))), 
+		#-1 Faction '%1' not found, 
+
+		eq(words(%qf), 1), 
+		#-1 Too many matching factions found, 
+
+@@ .. "YES" double-check
+		not(comp(%2, YES)), 
+		#-1 Verify removing this member with 'YES',
+
+@@ .. ok: wipe attributes and return '1'
+		null(iter(lattr(%qf/member.*.%qp), set(%qf, %i0:)))
+		1
+	)
+)
+
+--
+
+think u(fg/action.remove, *thenomain, testfd)
+
 
 --------------------------------------------------------------------------------
--- ACTION: Faction Roster ------------------------------------------------------
+-- ACTION: List Factions Player is Member Of (individual) ----------------------
 
+	faction(memberof, <player>[, <faction name>])
+
+Nested filters:
+	valid factions -> name filter (optional) -> can-see filter -> member filter
+
+--
+
+&action.memberof Faction Groups=
+
+filter(fil.member.of, 
+	filter(fil.cansee_factions, 
+		filter(fil.factions_byname, 
+			filter(fil.valid_factions, 
+			lcon(%!)
+		), 
+			, , %1*
+		), 
+		, , %@
+	), 
+	, , pmatch(%0)
+)
+
+--
+
+think u(fg/action.memberof, anderson)
+think u(fg/action.memberof, thenomain)
+think u(fg/action.memberof, thenomain, *est*)
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Roster of Faction (faction) -----------------------------------------
+
+	faction(roster, <faction name>[, active|inactive|all])
+
+f: faction dbref
+w: words(<faction dbref(s)>)
+a: activity
+r: roster dbrefs
+l: roster's player list
+
+--
+
+&action.roster Faction Groups=
+localize( 
+	strcat( 
+		setq( a, 
+			switch( %1, 
+				ac*, active, 
+				i*, inactive, 
+				al*, all, 
+				active
+			)
+		), 
+		case( 0, 
+
+			strlen( setr( f, u( action.factions, %0 ))), 
+			#-1 No factions found, 
+	
+			eq( setr( w, words( %qf )), 1 ), 
+			#-1 '%qw' factions found, 
+
+			strcat( 
+				setq( l, u( f.members.list, %qf )), 
+				case( 0, 
+@@ .. active
+					comp( %qa, active ), 
+					filter( fil.active_players, %ql, , , %qf ), 
+
+@@ .. inactive
+					comp( %qa, inactive ), 
+					setdiff( 
+						%ql, 
+						filter( fil.active_players, %ql, , , %qf )
+					), 
+
+@@ .. all
+					comp( %qa, all ), 
+					%ql 
+				)
+			)
+		)
+	)
+)
+
+--
+
+think u(fg/action.roster, test)
+
+think u(fg/action.roster, fd)
+
+think u(fg/action.roster)
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Faction Who (faction) -----------------------------------------------
+
+	faction(who, <faction name>[, active|inactive|all])
+
+Mainly calls 'roster', above.
+
+--
+
+&action.who Faction Groups=
+localize( 
+	strcat( 
+		setq( r, u( action.roster, %0, %1 )), 
+		case( 1, 
+			strmatch( %qr, #-1* ), %qr, 
+			filter( fil.connected, %qr )
+		)
+	)
+)
+
+--
+
+think u(action.who, test)
 
 
 
@@ -743,7 +884,7 @@ think u(fg/action.mget, *thenomain, test, title|flange|power)
 
 Filters a list of dbrefs and returns those that meet the 'valid faction' criteria, for a bit of security.
 
-Sample Usage: filter(fil.valid_factions, lcon(%!))
+Sample Usage: filter( fil.valid_factions, lcon( %! ))
 
 --
 
@@ -758,15 +899,21 @@ Filters a list of dbrefs (should be checked as 'valid factions') to only the one
 Sample Usage: 
 	filter(fil.cansee_factions, filter(fil.valid_factions, lcon(%!)), , , %#)
 
+(Basic Initial Code: Belongs to group or is staff)
+
 --
 
-&fil.cansee_factions Faction Groups=1
+&fil.cansee_factions Faction Groups=
+	cor(
+		u(.isstaff, %1), 
+		hasattr(%0, member.power.%1)
+	)
 
 
 --------------------------------------------------------------------------------
 -- FILTER: Faction Name Filter -------------------------------------------------
 
-Filters a list of dbrefs (should be checked as 'valid factions') to only the ones that a player can see.
+Filters a list of dbrefs (should be checked as 'valid factions') to only the ones matching a particular name.
 
 Sample Usage: 
 	filter(fil.factions_byname, filter(fil.valid_factions, lcon(%!)), , , *est*)
@@ -777,10 +924,22 @@ Sample Usage:
 
 
 --------------------------------------------------------------------------------
+-- FILTER: List of factions someone is a member of -----------------------------
+
+Sample Usage:
+	filter(fil.member.of, filter(fil.valid_factions, lcon(%!)), , , pmatch(thenomain))
+
+
+--
+
+&fil.member.of Faction Groups=hasattr(%0, member.power.%1)
+
+
+--------------------------------------------------------------------------------
 -- FILTER: Active Players in Faction -------------------------------------------
 
-	u(f.player-is-active, <player dbref>, <faction dbref>)
-	filter(f.player-is-active, <player list>, , , <faction dbref>)
+	u(fil.active_players, <player dbref>, <faction dbref>)
+	filter(fil.active_players, <player list>, , , <faction dbref>)
 
 0: list of player dbrefs
 1: faction dbref (for pulling its 'active' default)
@@ -788,12 +947,9 @@ Sample Usage:
 --
 
 &fil.active_players Faction Groups=
-	lte(
-		if(hasflag(%0, CONNECT), 
-			idle(%0), 
-			sub(secs(), convtime(get(%0/last)))
-		), 
-		mul(get(%1/member.active), v(d.one-day))
+	lte( 
+		u( .active, %0 ), 
+		mul( get( %1/member.active ), v( d.one-day ))
 	)
 
 --
@@ -804,10 +960,42 @@ think filter(fg/fil.active_players, <roster>, , , u(fg/action.factions, test))
 
 think setdiff(<roster>, filter(fg/fil.active_players, <roster>, , , u(fg/action.factions, test)))
 
+--------------------------------------------------------------------------------
+-- FILTER: Active Players in Faction -------------------------------------------
+
+	filter( fil.connected, <player list> )
+
+Pretty straightforward.
+
+--
+
+&fil.connected Faction Groups=hasflag( %0, connect )
 
 
 ================================================================================
 == INTERNAL FUNCTIONS ==========================================================
+
+--------------------------------------------------------------------------------
+-- FUNCTION: List Members of Faction -------------------------------------------
+
+List all player dbrefs of a particular faction
+
+0: Faction dbref - assumed valid
+
+--
+
+&f.members.list Faction Groups=
+	sort(
+		edit(
+			lattr( %0/MEMBER.POWER.* ), 
+			MEMBER.POWER., 
+			@@( null )
+		)
+	)
+
+--
+
+think u(fg/f.members.list, u(fg/action.factions, test))
 
 
 --------------------------------------------------------------------------------
