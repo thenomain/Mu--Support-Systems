@@ -83,7 +83,8 @@ Faction Actions/Queries -
 	fset: <faction>, <item>, <value>
 		Change the default for this faction. See 'gget/gset', above.
 		- description: A decription of the faction
-		- permission.view (???): A permission on who's allowed to see the faction.
+		- permission.view (???): A permission on who's allowed to see the 
+		  faction.
 √	roster: <faction>[, active|inactive|all]
 		List all (default: active) faction members.
 √	who: <faction>[, active|inactive|all]
@@ -108,7 +109,8 @@ Member Actions/Queries -
 		- title: The title
 √	memberof: <member>[, <faction name>]
 		List all factions (filtered by <faction name> a member is a part of.
-		(add 'isfaction()' for backwards compatability)
+		(add 'isfaction()' -> action.memberof, <member>, <faction name> 
+		for backwards compatability)
 
 
 --------------------------------------------------------------------------------
