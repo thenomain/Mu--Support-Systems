@@ -420,7 +420,7 @@ think u(tarot r/display.name.complete, major.11:1, #10632)
 --
 
 &display.desc Tarot Readings=
-	[setr(d, elements(get(%1/[first(%0, :)]), 2, |))]
+	[setq(d, elements(get(%1/[first(%0, :)]), 2, |))]
 	[if(t(strlen(%qd)), 
 		s(%qd), 
 		(No Description)
