@@ -92,7 +92,7 @@ Faction Actions/Queries -
 	mail: <faction>, <title>[, active|inactive|all]
 		Starts a @mail to all (active) faction members.
 	clean: <faction>
-		Force an "allowed to RP" check for members of, and the faction itself.
+		Force an "allowed to RP" check for members of the faction.
 
 Member Actions/Queries - 
 √	add: <member>, <faction>
