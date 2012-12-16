@@ -29,6 +29,7 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 @@ moving (approval falls off using any of these): 
 	/move <note>=<target>|<new name>|<target>/<new name>
 	/clone <note>=<target>|<new name>|<target>/<new name>
+	/merge <note>=<note>
 
 @@ locks (stacks with basics and moving, except /delete):
 	/[un]apporove
@@ -117,7 +118,7 @@ Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if 
 
 --
 
-	0: /<switch>[/<switch>/<switch>, etc.]
+0: /<switch>[/<switch>/<switch>, etc.]
 1: [<more>], stuff to pass to c.<name>/<switch>, if any
 
 n: Name of the command, global register set in &c.<name> (set above)
@@ -171,8 +172,6 @@ l: location of %#
 -- notes <stuff> (specific) ---------------------------------------------------
 
 Show information about a particular note
-
-(will work if room is halt - that's from the Places code)
 
 --
 
@@ -282,12 +281,12 @@ l: list of dbrefs
 		filter( 
 			filter.permission?,  
 			filter( filter.permissions,  
-				sql(u(sql.one-dbref, %0), :, | ), :, :, 
+				sql( u( sql.one-dbref, %0 ), :, | ), :, :, 
 				u( f.lookup.permissions.for, %qn )
 			), 
-			:, :, %#
+			:, :, %# 
 		), 
-		[capstr(%qn)] on [name(%0)], 
+		[capstr( %qn )] on [name( %0 )], 
 		No %qn on [name(%0)] 
 	)
 
@@ -347,12 +346,54 @@ t: targets dbrefs ('all' -> room contents)
 --------------------------------------------------------------------------------
 -- /show: list -----------------------------------------------------------------
 
-0: object
+0: object dbref
+1: target(s)
+
+n: command name (notes, views, etc.)
+
+l: list of notes
+d: list of target dbrefs
 
 --
 
 &f.notes/view.list Notes System=
-	u(f.notes/view.list)
+	strcat( 
+
+		setq( l, 
+			filter( 
+				filter.permission?,  
+				filter( filter.permissions,  
+					sql( u( sql.one-dbref, %0 ), :, | ), :, :, 
+					u( f.lookup.permissions.for, %qn )
+				), 
+				:, :, %# 
+			)
+		), 
+
+		setq( d, 
+			setunion( %#, 
+				case( 1, 
+					or( strmatch( %1, all ), strmatch( %1, here )), 
+					lcon( loc(%#) ), 
+
+					filter( filter.pagable, 
+						iter( %1, locate( %#, %i0, amnP ))
+					)
+				)
+			)
+		), 
+
+
+@@ display to 'all' or 
+		if( t( %qn ), 
+			u( display.list-notes, 
+				%qn, 
+				(From %N:) [capstr( %qn )] on [name( %0 )]
+			), 
+			No %qn on [name(%0)] 
+		) 
+	)
+
 
 
 --------------------------------------------------------------------------------
@@ -434,6 +475,26 @@ We're using softcode here to make it easier to read/update.
 --
 
 &filter.permissions Notes System=t( match( %1, elements( %0, 5, | )))
+
+
+
+--------------------------------------------------------------------------------
+-- Filter: Pagable -------------------------------------------------------------
+
+0: list of dbrefs targeted
+1: %#
+
+--
+
+&filter.pagable Notes System=
+or( 
+	hastype( %0, object ), 
+	and( 
+		hastype( %0, connect ), 
+		not( or( elock( %1/pagelock, %0 ), elock( %0/pagelock, %1 )))
+	)
+)
+
 
 
 ================================================================================
@@ -751,7 +812,7 @@ Various outputs.
 		), 
 
 @@ >> Nothing to display (default msg)
-		u( _notice, if(t(%2), %2, Nothing to display ))
+		u( _notice, if( t( %2 ), %2, Nothing to display ))
 	)
 
 
