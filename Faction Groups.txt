@@ -60,12 +60,13 @@ Items in (parenthesis) are the defaults for that command.
 System Actions/Queries - 
 √	factions: [<faction name>]
 		Returns the dbref(s) of all factions or matching factions
-	gget: <item|list>
+√	gget: <item|list>
 		Return the value of a global default setting(s).
 		- in these 'get' cases, return |-delim list of values. e.g.:
 		- faction(globals, active title) -> 64|<null>
 	gset: <item>, <value>
 		Set a global default setting.  If null, erase.
+		** Wizard Only **
 		- active: Days until a player is considered inactive (default: 30)
 		- power: The default member power level (default: member)
 		- rank: The default member numeric rank (default: null)
@@ -79,7 +80,7 @@ Faction Actions/Queries -
 		Creates a faction.
 	destroy: <faction>[, YES]
 		Remove the faction.
-	fget: <faction>, <item|list>
+√	fget: <faction>, <item|list>
 	fset: <faction>, <item>, <value>
 		Change the default for this faction. See 'gget/gset', above.
 		- description: A decription of the faction
@@ -163,12 +164,14 @@ Uses the Access System Fob (#3233 on The Reach).  General usage is applying the 
 &faction.permission.<type>
 	Permission of type <type>
 	- view: Who can see this faction. If 'faction:!<faction name>', nobody can
+	- ??? (don't know how this will work)
 
 &d.powers
 	A list of valid member power levels
 	- member: Nothing special, normal member
 	- view: Member who can view faction even with double-blind
 	- admin: View rights plus can edit, add & remove members, staff are admin
+	- (may not be changable from within the system)
 
 --
 
@@ -184,7 +187,7 @@ All the defaults (&faction./&member.) can be altered for a faction.
 
 Parented items (may be changed per-faction):
 	member.active, member.power, member.rank, member.title, faction.active, 
-	faction.category, faction.permission.<type>
+	faction.category, faction.permission.<type> (???)
 
 --
 
@@ -237,8 +240,6 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 &prefix.cross_platform Faction Groups=.
 &prefix.user_function_actions Faction Groups=action.
 
-&d.one-day Faction Groups=86400
-
 --
 
 @create Faction Parent=10
@@ -270,6 +271,8 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 
 &.isstaff Faction Groups=isstaff(%0)
 
+&.iswiz Faction Groups=hasflag(%0, WIZARD)
+
 &.isapproved Faction Groups=isapproved(%0)
 
 &.crumple Faction Groups=trim(squish(%0))
@@ -280,6 +283,8 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 --------------------------------------------------------------------------------
 -- DATA: Important Set-Up Data -------------------------------------------------
 
+&d.one-day Faction Groups=86400
+
 &d.powers Faction Parent=member|view|admin
 
 &d.settable_defaults Faction Groups=
@@ -289,6 +294,7 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 	member.title 
 	faction.category 
 	faction.active 
+	description
 
 
 ================================================================================
@@ -443,12 +449,42 @@ think u(fg/action.gget, u(fg/action.gget))
 think u(fg/action.gget, u(fg/action.gget)|tester)
 
 
+--------------------------------------------------------------------------------
+-- ACTION: Global Info: Set (system) -------------------------------------------
+
+	faction(gset, <item>, <value>|NULL)
+
+For the sake of security at this level, may only be invoked by a wizard.
+
+if <item> is empty, show valid <item|>s. (consistent with &action.mset)
+If <value> is empty, clear.
+
+--
+
+&action.gset Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.iswiz, %@), 
+		#-1 Wizard only, 
+		
+		u(f.global_set, v(d.faction_parent), %0, %1)
+	)
+)
+
+--
+
+think u(fg/action.gset)
+think u(fg/action.gset, u(fg/action.gget))
+
+think u(fg/action.gset, u(fg/action.gget)|tester)
+
+
+--------------------------------------------------------------------------------
 -- ACTION: Faction Info: Get (system) ------------------------------------------
 
 	faction(fget, <faction>, <item|list>)
 
-0: <faction>
-1: <item|list>
 f: faction(s) dbref match
 
 If <item|list> is null, display valid <items|>
@@ -480,8 +516,60 @@ localize(
 think u(fg/action.fget)
 think u(fg/action.fget, test, u(fg/action.fget))
 
-think u(fg/action.fget, oogle, u(fg/action.gget)|tester)
+think u(fg/action.fget, oogle, random|stuff)
 think u(fg/action.fget, test, u(fg/action.gget)|tester)
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Faction Info: Set (system) ------------------------------------------
+
+	faction(fset, <faction>, <item>, <value>)
+
+f: faction(s) dbref match
+
+If <item|list> is null, display valid <items|>
+
+--
+
+&action.fset Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+@@ .. faction check
+@@ .. (ok if %1 is blank - order of operations is important!)
+		cor(t(setr(f, u(action.factions, %0))), not(comp(%1, ))), 
+		#-1 Faction '%0' not found, 
+
+		cor(lte(words(%qf), 1), not(comp(%1, ))), 
+		#-1 Multiple faction matches, 
+
+@@ ok to get
+		u(f.global_set, %qf, %1, %2)
+	)
+)
+
+--
+
+think u(fg/action.fset, test, description, Oook ook!)
+ex u(fg/action.factions, test)/desc
+
+think u(fg/action.fset, test, description, This is a faction! For testing!)
+ex u(fg/action.factions, test)/desc
+
+think u(fg/action.fset, test, faction.active, 0)
+ex u(fg/action.factions, test)/faction.active
+
+think u(fg/action.fset, test, faction.active, 1)
+think u(fg/action.fset, test, faction.active, )
+ex u(fg/action.factions, test)/faction.active
+
+think u(fg/action.fset, test, faction.active, 1)
+think u(fg/action.fset, test, faction.active, yes)
+think u(fg/action.fset, test, faction.active, no)
+ex u(fg/action.factions, test)/faction.active
 
 
 --------------------------------------------------------------------------------
@@ -674,6 +762,7 @@ think u(fg/action.add, *thenomain, test)
 
 p: dbref of player to add
 f: faction dbref
+a: attribute to set
 
 If <entry> is null, use faction default in display.
 
@@ -1242,7 +1331,7 @@ Both gget() and fget() will use this function.
 
 --
 
-&f.global_get.generic Faction Groups=
+&f.global_get Faction Groups=
 
 	case(0, 
 
@@ -1262,6 +1351,140 @@ Both gget() and fget() will use this function.
 			|, |
 		)
 	)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Global Set: Generic -----------------------------------------------
+
+Both gset() and fset() will use this function.
+
+0: drebf to get from (either d.faction_parent or function) - validated
+1: <item|list> - unvalidated
+2: <value> - unvalidated
+
+p: dbref of player to add
+f: faction dbref
+d: valid defaults, |-delimited
+
+If <item> is null, display names.
+
+--
+
+&f.global_set Faction Groups=
+localize(
+	case(0
+		[setq(d, u(action.gget))], 
+
+@@ .. no <item|list>
+		gt(strlen(trim(%1)), 0), 
+		%qd, 
+
+		eq(words(%1, |), 1), 
+		#-1 Cannot set multiple defaults, 
+
+		words(setr(g, graball(|%qd, %1*, |, |)), |), 
+		#-1 Global default '%1' not found, 
+
+		lte(words(%qg, |), 1), 
+		#-1 Multiple default item matches, 
+
+@@ .. ok: try to call proper 'f.gset.xxx' command!
+		udefault(f.gset.%qg, 
+			#-1 F.GLOBAL.SET CANNOT SET '[ucstr(%qg)]'!!!, 
+			%0, %2
+		)
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Global Set: Description -------------------------------------------
+
+0: target dbref - validated
+1: new value - unvalidated
+
+Description of the Faction (cannot change global default)
+
+--
+
+&f.gset.description Faction Groups=
+	case(0, 
+
+		comp(%0, v(d.faction_parent)), 
+		#-1 Cannot change the global default description, 
+
+		lte(strlen(%1), 120), 
+		#-1 Description may be at most 120 characters, 
+
+		eq(strlen(setr(e, set(%0, desc:[escape(%1)]))), 0), 
+		#-1 Set Description: %qe, 
+
+		1
+	)
+
+--
+
+think u(fg/f.gset.description, #6067, Oogle Boogle!)
+think u(fg/f.gset.description, #7673, Oogle Boogle!)
+
+think u(fg/f.gset.description, #7673, This is a faction! For testing!)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Global Set: Member.Active -----------------------------------------
+
+0: target dbref - validated
+1: new value - unvalidated
+
+How many days until a member is no longer active?
+
+--
+
+&f.gset.member.active Faction Groups=
+	case(0, 
+
+		cand(isint(%1), gt(%1, 0)), 
+		#-1 Member.Active must be a positive non-zero integer, 
+
+		eq(strlen(setr(e, set(%0, member.active:[escape(%1)]))), 0), 
+		#-1 Set Member.Active: %qe, 
+
+		1
+	)
+
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Global Set: Faction.Active ----------------------------------------
+
+0: target dbref - validated
+1: new value - unvalidated
+
+Is this faction active (to be listed)? 1 for yes, 0 for no (default for null)
+
+--
+
+&f.gset.faction.active Faction Groups=
+	case(0, 
+
+		cor(strmatch(%1, ), strmatch(%1, 1), strmatch(%1, 0)), 
+		#-1 Faction.Active must be 0%, null%, or 1, 
+
+		eq(strlen(setr(e, set(%0, faction.active:[if(strlen(%1), %1, 0)]))), 0), 
+		#-1 Set Faction.Active: %qe, 
+
+		1
+	)
+
+--
+
+think u(fg/action.gset, faction.active, 0)
+
+think u(fg/action.gset, faction.active, 1)
+think u(fg/action.gset, faction.active, )
+
+think u(fg/action.gset, faction.active, yes)
+think u(fg/action.gset, faction.active, no)
 
 
 
