@@ -58,7 +58,7 @@ Lists return dbrefs unless mentioned otherwise.
 Items in (parenthesis) are the defaults for that command.
 
 System Actions/Queries - 
-	factions: [<faction name>]
+√	factions: [<faction name>]
 		Returns the dbref(s) of all factions or matching factions
 	gget: <item|list>
 		Return the value of a global default setting(s).
@@ -256,8 +256,6 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 &faction.permission.view Faction Parent=
 &faction.active Faction Parent=1
 
-&d.powers Faction Parent=member|view|admin
-
 @tel Faction Parent=Faction Groups
 
 
@@ -277,6 +275,20 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 &.crumple Faction Groups=trim(squish(%0))
 
 &.active Faction Groups=active(%0)
+
+
+--------------------------------------------------------------------------------
+-- DATA: Important Set-Up Data -------------------------------------------------
+
+&d.powers Faction Parent=member|view|admin
+
+&d.settable_defaults Faction Groups=
+	member.active 
+	member.power 
+	member.rank 
+	member.title 
+	faction.category 
+	faction.active 
 
 
 ================================================================================
@@ -396,10 +408,39 @@ Show information about a particular faction
 &c.factions/faction Faction Groups=Factions/faction
 
 
+
 ================================================================================
 == ACTIONS =====================================================================
 
 <see planning, above, for the actions/queries list>
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Global Info: Get (system) -------------------------------------------
+
+	faction(gget, <item|list>)
+
+If <item|list> is null, display valid <items|>
+
+--
+
+&action.gget Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+		u(f.global_get, v(d.faction_parent), %0)
+	)
+)
+
+--
+
+think u(fg/action.gget)
+think u(fg/action.gget, u(fg/action.gget))
+
+think u(fg/action.gget, u(fg/action.gget)|tester)
 
 
 --------------------------------------------------------------------------------
@@ -425,6 +466,7 @@ List factions as appropriate for a certain player, which means throwing it throu
 --
 
 think u(fg/action.factions)
+think u(fg/action.factions, *est*)
 
 
 --------------------------------------------------------------------------------
@@ -698,8 +740,6 @@ localize(
 
 --
 
-think 
-
 think u(fg/action.mget, *thenomain, test, title)
 think u(fg/action.mget, *thenomain, test, rank)
 think u(fg/action.mget, *thenomain, test, power)
@@ -817,7 +857,7 @@ localize(
 			#-1 No factions found, 
 	
 			eq( setr( w, words( %qf )), 1 ), 
-			#-1 '%qw' factions found, 
+			#-1 %qw factions found, 
 
 			strcat( 
 				setq( l, u( f.members.list, %qf )), 
@@ -873,7 +913,7 @@ localize(
 
 --
 
-think u(action.who, test)
+think u(fg/action.who, test)
 
 
 
@@ -1148,6 +1188,38 @@ Read default if null
 --
 
 &f.mget.power Faction Groups=u(%1/member.power.%0)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Global Get: Generic -----------------------------------------------
+
+Both gget() and fget() will use this function.
+
+0: drebf to get from (either d.faction_parent or function) - validated
+1: <item|list> - unvalidated
+
+--
+
+&f.global_get.generic Faction Groups=
+
+	case(0, 
+
+@@ .. no <item|list>
+		gt(trim(strlen(%1)), 0), 
+		lcstr(sort(get(%!/d.settable_defaults), , , |)), 
+
+@@ .. check each element against the default settable list & return
+		iter(%1, 
+			case(0, 
+				match(v(d.settable_defaults), %i0*), #-1 %i0, 
+				get(
+					%0/[first(sort(lattr(v(d.faction_parent)/%i0*)))]
+				)
+			), 
+
+			|, |
+		)
+	)
 
 
 
