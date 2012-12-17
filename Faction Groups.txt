@@ -64,7 +64,7 @@ System Actions/Queries -
 		Return the value of a global default setting(s).
 		- in these 'get' cases, return |-delim list of values. e.g.:
 		- faction(globals, active title) -> 64|<null>
-	gset: <item>, <value>
+√	gset: <item>, <value>
 		Set a global default setting.  If null, erase.
 		** Wizard Only **
 		- active: Days until a player is considered inactive (default: 30)
@@ -81,7 +81,7 @@ Faction Actions/Queries -
 	destroy: <faction>[, YES]
 		Remove the faction.
 √	fget: <faction>, <item|list>
-	fset: <faction>, <item>, <value>
+√	fset: <faction>, <item>, <value>
 		Change the default for this faction. See 'gget/gset', above.
 		- description: A decription of the faction
 		- permission.view (???): A permission on who's allowed to see the 
@@ -278,6 +278,11 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 &.crumple Faction Groups=trim(squish(%0))
 
 &.active Faction Groups=active(%0)
+
+@@ how does your game determine that someone is valid to RP?
+@@ (we use 'is approved')
+
+&.rp_ok Faction Groups=u(.isapproved, %0)
 
 
 --------------------------------------------------------------------------------
@@ -1485,6 +1490,18 @@ think u(fg/action.gset, faction.active, )
 
 think u(fg/action.gset, faction.active, yes)
 think u(fg/action.gset, faction.active, no)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Global Set: ************** ----------------------------------------
+
+CONTINUE FROM HERE!
+
+To Do List:
+	member.power 
+	member.rank 
+	member.title 
+	faction.category 
 
 
 
