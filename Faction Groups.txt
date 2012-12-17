@@ -443,6 +443,47 @@ think u(fg/action.gget, u(fg/action.gget))
 think u(fg/action.gget, u(fg/action.gget)|tester)
 
 
+-- ACTION: Faction Info: Get (system) ------------------------------------------
+
+	faction(fget, <faction>, <item|list>)
+
+0: <faction>
+1: <item|list>
+f: faction(s) dbref match
+
+If <item|list> is null, display valid <items|>
+
+--
+
+&action.fget Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+@@ .. faction check
+@@ .. (ok if %1 is blank - order of operations is important!)
+		cor(t(setr(f, u(action.factions, %0))), not(comp(%1, ))), 
+		#-1 Faction '%0' not found, 
+
+		cor(lte(words(%qf), 1), not(comp(%1, ))), 
+		#-1 Multiple faction matches, 
+
+@@ ok to get
+		u(f.global_get, %qf, %1)
+	)
+)
+
+--
+
+think u(fg/action.fget)
+think u(fg/action.fget, test, u(fg/action.fget))
+
+think u(fg/action.fget, oogle, u(fg/action.gget)|tester)
+think u(fg/action.fget, test, u(fg/action.gget)|tester)
+
+
 --------------------------------------------------------------------------------
 -- ACTION: Factions List (system) ----------------------------------------------
 
@@ -714,6 +755,7 @@ localize(
 		gt(strlen(%1), 0), 
 		lcstr(edit(sort(lattr(%!/f.mget.*), , , |), F.MGET., , _, %b)), 
 
+@@ .. faction check
 		t(setr(f, u(action.factions, %1))), 
 		#-1 Faction '%1' not found, 
 
