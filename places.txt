@@ -735,6 +735,36 @@ These are commands that are aliased from the old places system to the new, or a 
 
 
 ================================================================================
+== FUNCTION: Room Owner Permission =============================================
+
+This function is used to detemine if someone has permission to configure, set, or delete places in a particular room.
+
+It's separated out for the ease of adding other types of rooms and locations, e.g. for setting places on a temproom someone has themselves created.
+
+--
+
+0: dbref of enactor
+1: dbref of room
+
+--
+
+&f.permission.room_owner Places Global Object=
+	cor(strmatch(%0, owner(%1)), u(f.isstaff, %0))
+
+--
+
+For +temprooms permission (temprooms dbref hardcoded in for The Reach):
+
+&f.permission.room_owner Places Global Object=
+	cor(
+		strmatch(%0, owner(%1)), 
+		u(f.isstaff, %0), 
+		strmatch(%0, elements(get(#1224/room.%1), 5, .))
+	)
+
+
+
+================================================================================
 == FUNCTION: Get XXX ===========================================================
 
 A bunch of functions to get specific information.  An easy way to get information for current and future coding.
@@ -1352,7 +1382,7 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 
 &action.configure Places Global Object=
 	case(0, 
-		cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), 
+		u(f.permission.room_owner, %#, %0), 
 		#-1 CONFIGURE MAY BE USED BY ROOM OWNER ONLY, 
 
 		not(hasflag(%0, HALT)), 
@@ -1382,7 +1412,7 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 
 --
 
-&action.configure Places Global Object=case(0, cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), #-1 CONFIGURE MAY BE USED BY ROOM OWNER ONLY, not(hasflag(%0, HALT)), #-1 CONFIGURE CANNOT BE USED IF ROOM IS SET HALT, cor(not(strlen(%2)), and(isint(%2), lte(%2, 10), gte(%2, 1))), #-1 CONFIGURE BETWEEN 1 AND 10 PLACES, comp(%1, YES), [trigger(%!/tr.configure, %0)][null(iter(lnum(1, if(strlen(%2), %2, 1)), if(not(hasattr(%0, places.%i0.details)), trigger(%!/tr.newplace, %0, %i0))))]1, #-1 CONFIGURE REQUIRES CONFIRMATION)
+&action.configure Places Global Object=case(0, u(f.permission.room_owner, %#, %0), #-1 CONFIGURE MAY BE USED BY ROOM OWNER ONLY, not(hasflag(%0, HALT)), #-1 CONFIGURE CANNOT BE USED IF ROOM IS SET HALT, cor(not(strlen(%2)), and(isint(%2), lte(%2, 10), gte(%2, 1))), #-1 CONFIGURE BETWEEN 1 AND 10 PLACES, comp(%1, YES), [trigger(%!/tr.configure, %0)][null(iter(lnum(1, if(strlen(%2), %2, 1)), if(not(hasattr(%0, places.%i0.details)), trigger(%!/tr.newplace, %0, %i0))))]1, #-1 CONFIGURE REQUIRES CONFIRMATION)
 
 
 --------------------------------------------------------------------------------
@@ -1400,7 +1430,7 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 
 &action.breakdown Places Global Object=
 	case(0, 
-		cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), 
+		u(f.permission.room_owner, %#, %0), 
 		#-1 BREAKDOWN MAY BE USED BY ROOM OWNER ONLY, 
 
 @@ >> 'YES' was passed, do it
@@ -1414,7 +1444,7 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 
 --
 
-&action.breakdown Places Global Object=case(0, cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), #-1 BREAKDOWN MAY BE USED BY ROOM OWNER ONLY, comp(%1, YES), [trigger(%!/tr.breakdown, %0)]1, #-1 BREAKDOWN REQUIRES CONFIRMATION)
+&action.breakdown Places Global Object=case(0, u(f.permission.room_owner, %#, %0), #-1 BREAKDOWN MAY BE USED BY ROOM OWNER ONLY, comp(%1, YES), [trigger(%!/tr.breakdown, %0)]1, #-1 BREAKDOWN REQUIRES CONFIRMATION)
 
 
 --------------------------------------------------------------------------------
@@ -1433,7 +1463,7 @@ qn: place number, for return & trigger
 &action.newplace Places Global Object=
 localize(
 	case(0, 
-		cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), 
+		u(f.permission.room_owner, %#, %0), 
 		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
 
 		hasattr(%0, places.1.details), 
@@ -1459,7 +1489,7 @@ localize(
 
 --
 
-&action.newplace Places Global Object=localize(case(0, cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, cor(not(strlen(%1)), and(gte(%1, 1), isint(%1))), #-1 PLACE NUMBER NOT VALID, not(hasattr(%0, places.%1.details)), #-1 PLACE ALREADY EXISTS, [setr(n, if(strlen(%1), %1, u(f.lowest-available-number, iter(lattr(%0/places.*.details), elements(%i0, 2, .)))))][trigger(%!/tr.newplace, %0, %qn)]))
+&action.newplace Places Global Object=localize(case(0, u(f.permission.room_owner, %#, %0), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, cor(not(strlen(%1)), and(gte(%1, 1), isint(%1))), #-1 PLACE NUMBER NOT VALID, not(hasattr(%0, places.%1.details)), #-1 PLACE ALREADY EXISTS, [setr(n, if(strlen(%1), %1, u(f.lowest-available-number, iter(lattr(%0/places.*.details), elements(%i0, 2, .)))))][trigger(%!/tr.newplace, %0, %qn)]))
 
 
 --------------------------------------------------------------------------------
@@ -1475,7 +1505,7 @@ Returns: #-1 ERROR or ex-place #, if successful.
 
 &action.delplace Places Global Object=
 	case(0, 
-		cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), 
+		u(f.permission.room_owner, %#, %0), 
 		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
 
 		hasattr(%0, places.1.details), 
@@ -1497,7 +1527,7 @@ Returns: #-1 ERROR or ex-place #, if successful.
 
 --
 
-&action.delplace Places Global Object=case(0, cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 PLACE NUMBER NOT VALID, dec(%1), #-1 CANNOT DELETE PLACE #1, [null(u(action.cleanup, %0))][not(hasattr(%0, places.%1.occupancy))], #-1 PLACE IS OCCUPIED, %1[trigger(%!/tr.delplace, %0, %1)])
+&action.delplace Places Global Object=case(0, u(f.permission.room_owner, %#, %0), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 PLACE NUMBER NOT VALID, dec(%1), #-1 CANNOT DELETE PLACE #1, [null(u(action.cleanup, %0))][not(hasattr(%0, places.%1.occupancy))], #-1 PLACE IS OCCUPIED, %1[trigger(%!/tr.delplace, %0, %1)])
 
 
 --------------------------------------------------------------------------------
@@ -1517,7 +1547,7 @@ qe: possible error during set
 &action.set Places Global Object=
 localize(
 	case(0, 
-		cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), 
+		u(f.permission.room_owner, %#, %0), 
 		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
 
 @@ >> check that it's set up
@@ -1559,7 +1589,7 @@ localize(
 
 --
 
-&action.set Places Global Object=localize(case(0, cor(strmatch(%#, owner(%0)), u(f.isstaff, %#)), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, comp(%3, ), #-1 ELEMENT MAY NOT BE NULL, t(setr(n, grab(|[iter(lattr(%!/f.set.*), last(%i0, .), , |)], %2*, |))), #-1 ELEMENT NOT FOUND, comp(%qn, ), #-1 ELEMENT NOT FOUND, not(strlen(setr(e, u(f.validate.%qn, %3)))), #-1 [ucstr(%qe)], comp(setr(e, u(f.set.%qn, %0, %1, %3)), ), 1, #-1 [ucstr(%qe)]))
+&action.set Places Global Object=localize(case(0, u(f.permission.room_owner, %#, %0), #-1 SET MAY BE USED BY ROOM OWNER ONLY, hasattr(%0, places.1.details), #-1 PLACES NOT CONFIGURED, hasattr(%0, places.%1.details), #-1 NO SUCH PLACE, comp(%3, ), #-1 ELEMENT MAY NOT BE NULL, t(setr(n, grab(|[iter(lattr(%!/f.set.*), last(%i0, .), , |)], %2*, |))), #-1 ELEMENT NOT FOUND, comp(%qn, ), #-1 ELEMENT NOT FOUND, not(strlen(setr(e, u(f.validate.%qn, %3)))), #-1 [ucstr(%qe)], comp(setr(e, u(f.set.%qn, %0, %1, %3)), ), 1, #-1 [ucstr(%qe)]))
 
 
 --------------------------------------------------------------------------------
