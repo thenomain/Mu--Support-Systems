@@ -69,11 +69,11 @@ System Actions/Queries -
 		** Wizard Only **
 		- active: Days until a player is considered inactive (default: 30)
 		- power: The default member power level (default: member)
-		- rank: The default member numeric rank (default: null)
+		- rank: The default member numeric rank (default: 0)
 		- title: The default member title (default: null)
 		- category: The default faction category (default: null)
-	powers: [<name filter>]
-		List (all) possible access level powers
+	access: [<name filter>]
+		List (all) possible access powers
 
 Faction Actions/Queries - 
 √	create: <faction>
@@ -84,8 +84,7 @@ Faction Actions/Queries -
 √	fset: <faction>, <item>, <value>
 		Change the default for this faction. See 'gget/gset', above.
 		- description: A decription of the faction
-		- permission.view (???): A permission on who's allowed to see the 
-		  faction.
+		- access.view (???): View-level access for the faction.
 √	roster: <faction>[, active|inactive|all]
 		List all (default: active) faction members.
 √	who: <faction>[, active|inactive|all]
@@ -681,9 +680,10 @@ localize(
 		#-1 Too many matching factions found, 
 
 @@ >> faction details (no player dbref passed): 
-@@ .. <dbref>|<member dbrefs>|<permissions>|<desc>
+@@ .. <dbref>|<category>|<member dbrefs>|<permissions>|<desc>
 		strlen(%1), 
 		%qf|
+		[get(%qf/faction.category)]|
 		[iter(lattr(%qf/member.power.*), last(%i0, .))]|
 		[get(%qf/permissions.view)]|
 		[get(%qf/desc)]|, 
@@ -1524,6 +1524,9 @@ Default member power/access level.
 		1
 	)
 
+--
+
+
 
 --------------------------------------------------------------------------------
 -- FUNCTION: Global Set: Member.Rank -------------------------------------------
@@ -1606,12 +1609,25 @@ think u(fg/action.details, test fac, #3177)
 --------------------------------------------------------------------------------
 -- FUNCTION: Global Set: Faction.Category --------------------------------------
 
+Non-Latin letters should be allowed, but there's no simple way for it that I know of, yet.
+
+0: faction/global dbref - validated
+1: new value - unvalidated
+
+What's the category of a faction? (default <null>)
+
+--
+
 &f.gset.faction.category Faction Groups=
 localize(
 	case(0, 
 
 		lte(strlen(%1), 30), 
 		#-1 Faction.Category may be at most 30 characters, 
+
+@@ .. damn mu* parser
+		regmatch(%1, ^(\\\\[a-zA-Z\\\\]|).*), 
+		#-1 Faction.Category must start with a letter, 
 
 		eq(strlen(setr(e, set(%0, faction.category:[escape(%1)]))), 0), 
 		#-1 Set Faction.Category: %qe, 
@@ -1621,19 +1637,17 @@ localize(
 )
 
 
+--
 
+think u(fg/f.gset.faction.category, #7673, Test Faction's Category)
+think u(fg/action.details, test fac)
+think u(fg/f.gset.faction.category, #7673, )
+think u(fg/action.details, test fac)
 
-
-
-
-
-
-
-CONTINUE FROM HERE!
-
-To Do List:
-	faction.category 
-
+think u(fg/f.gset.faction.category, #6067, Faction Parent's Category)
+think u(fg/action.details, test fac)
+think u(fg/f.gset.faction.category, #6067, )
+think u(fg/action.details, test fac)
 
 
 ================================================================================
