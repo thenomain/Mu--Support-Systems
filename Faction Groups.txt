@@ -58,6 +58,8 @@ Lists return dbrefs unless mentioned otherwise.
 Items in (parenthesis) are the defaults for that command.
 
 System Actions/Queries - 
+√	actions: [<action name>]
+		Returns all actions the system knows
 √	factions: [<faction name>]
 		Returns the dbref(s) of all factions or matching factions
 √	gget: <item|list>
@@ -74,12 +76,14 @@ System Actions/Queries -
 		- category: The default faction category (default: null)
 	access: [<name filter>]
 		List (all) possible access powers
+		** Note to self: What did I mean by this? **
 
 Faction Actions/Queries - 
 √	create: <faction>
 		Creates a faction.
 	destroy: <faction>[, YES]
 		Remove the faction.
+		Mail those who can see the faction. (???)
 √	fget: <faction>, <item|list>
 √	fset: <faction>, <item>, <value>
 		Change the default for this faction. See 'gget/gset', above.
@@ -89,8 +93,8 @@ Faction Actions/Queries -
 		List all (default: active) faction members.
 √	who: <faction>[, active|inactive|all]
 		List connected (default: active) faction members.
-	mail: <faction>, <title>[, active|inactive|all]
-		Starts a @mail to all (active) faction members.
+√	mail: <faction>, <title>[, active|inactive|all]
+		Starts a @mail to all (active) faction members (who can see the faction)
 	clean: <faction>
 		Force an "allowed to RP" check for members of the faction.
 
@@ -298,7 +302,8 @@ Faction defaults will happen naturally, as the @parenting will read higher up.
 	member.title 
 	faction.category 
 	faction.active 
-	description
+@@ tinymux: you can set() 'description' but you can't get() it - huh
+	desc
 
 
 ================================================================================
@@ -423,6 +428,18 @@ Show information about a particular faction
 == ACTIONS =====================================================================
 
 <see planning, above, for the actions/queries list>
+
+--------------------------------------------------------------------------------
+-- ACTION: List Actions (system) -----------------------------------------------
+
+A meta-action to list everything the system can do.
+
+0: Filter for actions starting with this - assumes filter from start
+
+--
+
+&action.actions Faction Groups=
+	sort(edit(lcstr(lattr(%!/action.%0*)), action., ))
 
 
 --------------------------------------------------------------------------------
@@ -1046,11 +1063,49 @@ localize(
 			filter( fil.connected, %qr )
 		)
 	)
-)
+)	
 
 --
 
 think u(fg/action.who, test)
+
+
+--------------------------------------------------------------------------------
+-- ACTION: Faction Mail (faction) ----------------------------------------------
+
+	faction(mail, <faction name>[, active|inactive|all])
+
+	Starts a mail to all people in the faction, defaults to 'active'.
+
+r: roster
+
+--
+
+&action.mail Faction Groups=
+localize( 
+	strcat( 
+		setq( r, u( action.roster, %0, %1 )), 
+		case( 1, 
+			strmatch( %qr, #-1* ), %qr, 
+
+			strcat( 
+				pemit( %#, 
+					u( .msg, 
+						faction/mail, 
+						You should now get a message asking you to write your 
+						@mail. If not%, please make sure you're not already 
+						writing one.
+					)
+				), 
+	 			trigger( %!/trig.mail.force, %#, %qr, FACTION MAIL )
+	 		)
+		)
+	)
+)
+
+--
+
+think u(fg/action.mail, test)
 
 
 
@@ -1655,19 +1710,21 @@ think u(fg/action.details, test fac)
 
 
 --------------------------------------------------------------------------------
--- TRIGGER: Mail ---------------------------------------------------------------
+-- TRIGGER: Force Mail ---------------------------------------------------------
 
-0: player-list
-1: topic
-2: message
+Start a message for the player, normally to the faction list.
 
---
-
-&trig.mail Faction Groups=@mail/quick %0/%1=%2
+0: player
+1: player-list
+2: topic
 
 --
 
-think trigger(fg/trig.mail, %#, Test, Success!)
+&trig.mail.force Faction Groups=@force %0={ @mail %1=%2; }
+
+--
+
+think trigger(fg/trig.mail.force, %#, %#, Test)
 
 
 
