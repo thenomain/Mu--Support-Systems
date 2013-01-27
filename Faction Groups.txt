@@ -87,8 +87,6 @@ Faction Actions/Queries -
 √	fget: <faction>, <item|list>
 √	fset: <faction>, <item>, <value>
 		Change the default for this faction. See 'gget/gset', above.
-		- description: A decription of the faction
-		- access.view (???): View-level access for the faction.
 √	roster: <faction>[, active|inactive|all]
 		List all (default: active) faction members.
 √	who: <faction>[, active|inactive|all]
@@ -1108,6 +1106,35 @@ localize(
 think u(fg/action.mail, test)
 
 
+--------------------------------------------------------------------------------
+-- ACTION: Clean Faction (faction) ---------------------------------------------
+
+	faction(clean, <faction name>)
+
+Removes anyone from the faction who doesn't pass a coded "allowed to RP" check.
+
+Returns: list of dbrefs cleared, or #-1 
+
+f: faction dbref
+r: initial roster
+l: list of dbrefs to remove
+
+--
+
+&action.clean Faction Groups=
+localize(
+	case(0, 
+		t(setr(f, u(action.factions, %0))), 
+		#-1 Faction not found,
+
+		cor(<is faction admin>, u(.isstaff, %@)), 
+		#-1 Staff or Faction Admin only, 
+
+		
+		... list of cleaned dbrefs
+	)
+)
+
 
 ================================================================================
 == FILTERS =====================================================================
@@ -1703,6 +1730,20 @@ think u(fg/f.gset.faction.category, #6067, Faction Parent's Category)
 think u(fg/action.details, test fac)
 think u(fg/f.gset.faction.category, #6067, )
 think u(fg/action.details, test fac)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Does this player have this access to this faction? ----------------
+
+Use an or-list and return 1 if true and 0 if not. Do not validate.
+Staff always has access.
+
+--
+
+&f.hasaccess Faction Groups=
+
+
+
 
 
 ================================================================================
