@@ -1,0 +1,521 @@
+################################################################################
+## FACTION GROUPS ##############################################################
+
+
+================================================================================
+== INTERNAL FUNCTIONS ==========================================================
+
+--------------------------------------------------------------------------------
+-- List Members of Faction -----------------------------------------------------
+
+List all player dbrefs of a particular faction
+
+0: Faction dbref - assumed valid
+
+--
+
+&f.members.list Faction Groups=
+	sort(
+		edit(
+			lattr( %0/MEMBER.POWER.* ), 
+			MEMBER.POWER., 
+			@@( null )
+		)
+	)
+
+--
+
+think u(fg/f.members.list, u(fg/action.factions, test))
+
+
+--------------------------------------------------------------------------------
+-- List Categories -------------------------------------------------------------
+
+List the categories from all (passed) faction dbrefs - not validated
+
+0: Faction dbref list (optional)
+
+--
+
+&f.categories.list Faction Groups=
+	setunion(
+		iter(
+			if(strlen(%0), 
+				filter(fil.valid_factions, %0), 
+				filter(fil.valid_factions, lcon(%!))
+			), get(%i0/faction.category), 
+			@@(null), 
+			|
+		), 
+		@@(null), 
+		|
+	)
+
+--
+
+think u(fg/f.categories.list)
+think u(fg/f.categories.list, #7673)
+
+
+--------------------------------------------------------------------------------
+-- Member Set: Title -----------------------------------------------------------
+
+0: member dbref
+1: faction dbref
+2: title value
+
+&f.mset.title Faction Groups=
+localize(
+	case(0, 
+
+		lte(strlen(%2), 30), 
+		#-1 Title may be at most 30 characters, 
+
+		eq(strlen(setr(e, set(%1, member.title.%0:[escape(%2)]))), 0), 
+		#-1 %qe, 
+
+@@ OK
+		1
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- Member Set: Rank ------------------------------------------------------------
+
+0: member dbref
+1: faction dbref
+2: rank value
+
+--
+
+&f.mset.rank Faction Groups=
+localize(
+	case(0, 
+
+		cor(isint(%2), not(comp(, %2))), 
+		#-1 Rank must be numeric or blank to clear, 
+
+		cor(cand(gte(%2, -999), lte(%2, 999)), not(comp(, %2))), 
+		#-1 Rank must be between -999 and 999, 
+
+		eq(strlen(setr(e, set(%1, member.rank.%0:%2))), 0), 
+		#-1 %qe, 
+
+@@ OK
+		1
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- Member Set: Power -----------------------------------------------------------
+
+0: member dbref
+1: faction dbref
+2: power value ('power' must always be set!)
+
+--
+
+&f.mset.power Faction Groups=
+localize(
+	case(0, 
+
+@@ if <power value> is null, explicitly set to group's default
+		comp(, %2), 
+		if(
+			neq(strlen(setr(e, set(%1, 
+				member.power.%0:[get(%1/member.power)]
+			))), 0), 
+			#-1 %qe, 
+			1
+		), 
+
+		t(setr(p, grab(|[get(v(d.faction_parent)/d.powers)], %2*, |))), 
+		#-1 Power type not found, 
+
+		eq(strlen(setr(e, set(%1, member.power.%0:%qp))), 0), 
+		#-1 %qe, 
+
+@@ OK
+		1
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- Member Get: Title -----------------------------------------------------------
+
+Read default if null
+
+0: member dbref
+1: faction dbref
+
+--
+
+&f.mget.title Faction Groups=ulocal(%1/member.title.%0, u(%1/member.title, %0))
+
+
+--------------------------------------------------------------------------------
+-- Member Get: Rank ------------------------------------------------------------
+
+0: member dbref
+1: faction dbref
+
+--
+
+&f.mget.rank Faction Groups=udefault(%1/member.rank.%0, u(%1/member.rank, %0))
+
+
+--------------------------------------------------------------------------------
+-- Member Get: Power -----------------------------------------------------------
+
+0: member dbref
+1: faction dbref
+
+--
+
+&f.mget.power Faction Groups=u(%1/member.power.%0)
+
+
+--------------------------------------------------------------------------------
+-- Global Get: Generic ---------------------------------------------------------
+
+Both gget() and fget() will use this function.
+
+0: drebf to get from (either d.faction_parent or function) - validated
+1: <item|list> - unvalidated
+
+--
+
+&f.global_get Faction Groups=
+
+	case(0, 
+
+@@ .. no <item|list>
+		gt(trim(strlen(%1)), 0), 
+		lcstr(sort(get(%!/d.settable_defaults), , , |)), 
+
+@@ .. check each element against the default settable list & return
+		iter(%1, 
+			case(0, 
+				match(v(d.settable_defaults), %i0*), #-1 %i0, 
+				get(
+					%0/[first(sort(lattr(v(d.faction_parent)/%i0*)))]
+				)
+			), 
+
+			|, |
+		)
+	)
+
+
+--------------------------------------------------------------------------------
+-- Global Set: Generic ---------------------------------------------------------
+
+Both gset() and fset() will use this function.
+
+0: drebf to get from (either d.faction_parent or function) - validated
+1: <item|list> - unvalidated
+2: <value> - unvalidated
+
+p: dbref of player to add
+f: faction dbref
+d: valid defaults, |-delimited
+
+If <item> is null, display names.
+
+--
+
+&f.global_set Faction Groups=
+localize(
+	case(0
+		[setq(d, u(action.gget))], 
+
+@@ .. no <item|list>
+		gt(strlen(trim(%1)), 0), 
+		%qd, 
+
+		eq(words(%1, |), 1), 
+		#-1 Cannot set multiple defaults, 
+
+		words(setr(g, graball(|%qd, %1*, |, |)), |), 
+		#-1 Global default '%1' not found, 
+
+		lte(words(%qg, |), 1), 
+		#-1 Multiple default item matches, 
+
+@@ .. ok: try to call proper 'f.gset.xxx' command!
+		udefault(f.gset.%qg, 
+			#-1 F.GLOBAL.SET CANNOT SET '[ucstr(%qg)]'!!!, 
+			%0, %2
+		)
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- Global Set: Description -----------------------------------------------------
+
+0: faction/global dbref - validated
+1: new value - unvalidated
+
+Description of the Faction (cannot change global default)
+
+--
+
+&f.gset.description Faction Groups=
+	case(0, 
+
+		comp(%0, v(d.faction_parent)), 
+		#-1 Cannot change the global default description, 
+
+		lte(strlen(%1), 120), 
+		#-1 Description may be at most 120 characters, 
+
+		eq(strlen(setr(e, set(%0, desc:[escape(%1)]))), 0), 
+		#-1 Set Description: %qe, 
+
+		1
+	)
+
+--
+
+think u(fg/f.gset.description, #6067, Oogle Boogle!)
+think u(fg/f.gset.description, #7673, Oogle Boogle!)
+
+think u(fg/f.gset.description, #7673, This is a faction! For testing!)
+
+
+--------------------------------------------------------------------------------
+-- Global Set: Faction.Active --------------------------------------------------
+
+0: faction/global dbref - validated
+1: new value - unvalidated
+
+Is this faction active (to be listed)? 1 for yes, 0 for no (default for null)
+
+--
+
+&f.gset.faction.active Faction Groups=
+	case(0, 
+
+		cor(strmatch(%1, ), strmatch(%1, 1), strmatch(%1, 0)), 
+		#-1 Faction.Active must be 0%, null%, or 1, 
+
+		eq(strlen(setr(e, set(%0, faction.active:[if(strlen(%1), %1, 0)]))), 0), 
+		#-1 Set Faction.Active: %qe, 
+
+		1
+	)
+
+--
+
+think u(fg/action.gset, faction.active, 0)
+
+think u(fg/action.gset, faction.active, 1)
+think u(fg/action.gset, faction.active, )
+
+think u(fg/action.gset, faction.active, yes)
+think u(fg/action.gset, faction.active, no)
+
+think u(fg/f.gset.faction.active, #7673, This is a faction! For testing!)
+think u(fg/f.gset.faction.active, #7673, 0)
+think u(fg/f.gset.faction.active, #7673, 1)
+
+
+--------------------------------------------------------------------------------
+-- Global Set: Member.Active ---------------------------------------------------
+
+0: faction/global dbref - validated
+1: new value - unvalidated
+
+How many days until a member is no longer active?
+(Null won't work here? Should it?)
+
+--
+
+&f.gset.member.active Faction Groups=
+	case(0, 
+
+		cand(isint(%1), gt(%1, 0)), 
+		#-1 Member.Active must be a positive non-zero integer, 
+
+		lte(%1, 200), 
+		#-1 Member.Active must be no more than 200, 
+
+		eq(strlen(setr(e, set(%0, member.active:[escape(%1)]))), 0), 
+		#-1 Set Member.Active: %qe, 
+
+		1
+	)
+
+
+--------------------------------------------------------------------------------
+-- Global Set: Member.Power ----------------------------------------------------
+
+0: faction/global dbref - validated
+1: new value - unvalidated
+
+p: power grabbed from &d.powers (on Faction Parent)
+
+Default member power/access level.
+
+--
+
+&f.gset.member.power Faction Groups=
+	case(0, 
+
+		t(setr(p, grab(|[get(v(d.faction_parent)/d.powers)], %2*, |))), 
+		#-1 Member.Power type not found, 
+
+		eq(strlen(setr(e, set(%0, member.power:[escape(%1)]))), 0), 
+		#-1 Set Member.Power: %qe, 
+
+		1
+	)
+
+--
+
+
+
+--------------------------------------------------------------------------------
+-- Global Set: Member.Rank -----------------------------------------------------
+
+0: faction/global dbref - validated
+1: new value - unvalidated - null ok only on faction, else default 0
+
+v: value or default, depending if it's blank & being set on the parent
+
+What's the rank of a new member? (default 0)
+
+--
+
+&f.gset.member.rank Faction Groups=
+localize(
+	strcat(
+		setq(v, 
+			if(
+				comp(%1, ), %1, 
+				if(strmatch(%0, v(d.faction_parent)), 30, )
+			)
+		), 
+
+		case(0, 
+			isint(%qv), 
+			#-1 Member.Rank must be integer or blank to reset, 
+
+			cor(cand(gte(%qv, -999), lte(%qv, 999)), comp(%qv, )), 
+			#-1 Member.Rank must be between -999 and 999, 
+
+			eq(strlen(setr(e, set(%0, member.rank:%qv))), 0), 
+			#-1 Set Member.Rank: %qe, 
+
+			1
+		)
+	)
+)
+
+
+--
+
+
+--------------------------------------------------------------------------------
+-- Global Set: Member.Title ----------------------------------------------------
+
+0: faction/global dbref - validated
+1: new value - unvalidated
+
+What's the title of a new member? (default <null>)
+
+--
+
+&f.gset.member.title Faction Groups=
+localize(
+	case(0, 
+
+		lte(strlen(%1), 30), 
+		#-1 Member.Title may be at most 30 characters, 
+
+		eq(strlen(setr(e, set(%0, member.title:[escape(%1)]))), 0), 
+		#-1 Set Member.Rank: %qe, 
+
+		1
+	)
+)
+
+--
+
+think u(fg/f.gset.member.title, #7673, Tester)
+think u(fg/action.details, test fac, #3177)
+think u(fg/f.gset.member.title, #7673, )
+think u(fg/action.details, test fac, #3177)
+
+think u(fg/f.gset.member.title, #6067, Tester)
+think u(fg/action.details, test fac, #3177)
+think u(fg/f.gset.member.title, #6067, )
+think u(fg/action.details, test fac, #3177)
+
+
+--------------------------------------------------------------------------------
+-- Global Set: Faction.Category ------------------------------------------------
+
+Non-Latin letters should be allowed, but there's no simple way for it that I know of, yet.
+
+0: faction/global dbref - validated
+1: new value - unvalidated
+
+What's the category of a faction? (default <null>)
+
+--
+
+&f.gset.faction.category Faction Groups=
+localize(
+	case(0, 
+
+		lte(strlen(%1), 30), 
+		#-1 Faction.Category may be at most 30 characters, 
+
+@@ .. damn mu* parser
+		regmatch(%1, ^(\\\\[a-zA-Z\\\\]|).*), 
+		#-1 Faction.Category must start with a letter, 
+
+		eq(strlen(setr(e, set(%0, faction.category:[escape(%1)]))), 0), 
+		#-1 Set Faction.Category: %qe, 
+
+		1
+	)
+)
+
+
+--
+
+think u(fg/f.gset.faction.category, #7673, Test Faction's Category)
+think u(fg/action.details, test fac)
+think u(fg/f.gset.faction.category, #7673, )
+think u(fg/action.details, test fac)
+
+think u(fg/f.gset.faction.category, #6067, Faction Parent's Category)
+think u(fg/action.details, test fac)
+think u(fg/f.gset.faction.category, #6067, )
+think u(fg/action.details, test fac)
+
+
+--------------------------------------------------------------------------------
+-- Does this player have this access to this faction? --------------------------
+
+Use an or-list and return 1 if true and 0 if not. Do not validate.
+Staff always has access.
+
+0: source/player dbref
+1: faction dbref
+2: authority/power level to test against
+
+--
+
+&f.hasaccess Faction Groups=
+	cor(strmatch( <<< xxx >>>, %2), u(.isstaff, %0))
+
+
+
+

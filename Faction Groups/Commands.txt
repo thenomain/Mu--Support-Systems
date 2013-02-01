@@ -1,0 +1,122 @@
+################################################################################
+## FACTION GROUPS ##############################################################
+
+
+================================================================================
+== COMMAND SETUP ===============================================================
+
+The "Mistress System" funnels everything through a single command.  For this command, like many others, an optional 's' on it is valid.  e.g., faction/factions.
+
+	+command(s) -> &c.<command>.default
+	+command(s) <stuff> -> &c.<command>.specific
+	+command(s)/switches [<stuff>] -> &c.<command>/<switch>
+
+To each of these (including the first), the following are passed:
+	%0: <stuff>
+	%1: </other/switches>
+
+In the case of the switches, the first valid switch has their command called, if all switches are invalid we call &c.<name>.default or &c.<name>.specific, depending on the above rules.
+
+--
+
+&c.factions Faction Groups=$faction*:@pemit %#=
+	[setq(n, factions)]
+	[switch(%0, 
+@@ Without 's' ending
+		, u(c.%qn.default), 
+		/*, u(c.%qn.switch, first(%0), rest(%0)), 
+		%b*, u(c.%qn.specific, trim(%0)), 
+
+@@ With 's' ending
+		s, u(c.%qn.default), 
+		s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), 
+		s%b*, u(c.%qn.specific, trim(rest(%0))), 
+
+@@ No match
+		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
+	)]
+
+
+--------------------------------------------------------------------------------
+-- factions/<switch> -----------------------------------------------------------
+
+Handles all /switches, which is to say it makes sure they exist and passes them on.
+
+Also handles pseudo-switches, passing them on as elements to any switched item.
+
+Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if %1 is empty.
+
+--
+
+0: /<switch>[/<switch>/<switch>, etc.]
+1: [<more>], stuff to pass to c.<name>/<switch>, if any
+qn: Name of the command, global register set in &c.<name> (above)
+
+qa: all c.<name>/* on this object
+qs: /valid/command/switches/found
+qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
+
+--
+
+&c.factions.switch Faction Groups=
+	[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))]
+	[iter(rest(%0, /), 
+		if(
+			t(grab(%qa, c.%qn/%i0*)), 
+			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
+			setq(p, %qp/%i0)
+		), 
+		/, @@
+	)]
+	[if(t(%qs), 
+		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+		if(t(%1), 
+			ulocal(c.%qn.specific, %1, %qp), 
+			ulocal(c.%qn.default, %1, %qp)
+		)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- factions (default) ----------------------------------------------------------
+
+Show default factions setup: List factions
+
+--
+
+0: passed by fake /switches, ignored
+1: fake /switches, error
+
+--
+
+&c.factions.default Faction Groups=if(strlen(%1), u(.msg, factions, Factions doesn't take that switch. See +help factions), u(c.factions/default))
+
+
+--------------------------------------------------------------------------------
+-- factions <stuff> (specific) -------------------------------------------------
+
+Show information about a particular faction
+
+--
+
+0: faction name or dbref
+1: fake /switches, errored
+
+--
+
+&c.factions.specific Faction Groups=if(strlen(%1), u(.msg, factions, Factions doesn't take that switch. See +help factions), u(c.factions/faction))
+
+
+--------------------------------------------------------------------------------
+-- factions/list ---------------------------------------------------------------
+
+&c.factions/list Faction Groups=Factions/List
+
+
+--------------------------------------------------------------------------------
+-- factions/faction ------------------------------------------------------------
+
+&c.factions/faction Faction Groups=Factions/faction
+
+
+

@@ -1,0 +1,80 @@
+################################################################################
+## FACTION GROUPS ##############################################################
+
+
+================================================================================
+== SETUP =======================================================================
+
+@create Faction Groups <fg>=10
+@desc Faction Groups=A system to list people by their affiliation(s)
+
+@set Faction Groups=inherit
+@set Faction Groups=safe
+
+@parent Faction Groups=codp
+&prefix.cross_platform Faction Groups=.
+&prefix.user_function_actions Faction Groups=action.
+
+--
+
+@create Faction Parent=10
+@desc Faction Parent=Please replace this with basic information about the faction!
+@fo me=&d.faction_parent Faction Groups=[num(Faction Parent)]
+
+@parent Faction Parent=codp
+
+@@ >> global functions -- null defaults are reminders that they exist
+
+&member.active Faction Parent=30
+&member.power Faction Parent=member
+&member.rank Faction Parent=
+&member.title Faction Parent=
+&faction.permission.view Faction Parent=
+&faction.active Faction Parent=1
+
+@tel Faction Parent=Faction Groups
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Cross-Platform Functions ------------------------------------------
+
+&.header Faction Groups=wheader(%0)
+&.footer Faction Groups=wfooter(%0)
+&.divider Faction Groups=wdivider(%0)
+
+&.msg Faction Groups=msg(h, %0, %1)
+
+&.isstaff Faction Groups=isstaff(%0)
+
+&.iswiz Faction Groups=hasflag(%0, WIZARD)
+
+&.isapproved Faction Groups=isapproved(%0)
+
+&.crumple Faction Groups=trim(squish(%0))
+
+&.active Faction Groups=active(%0)
+
+@@ how does your game determine that someone is valid to RP?
+@@ (we use 'is approved')
+
+&.rp_ok Faction Groups=u(.isapproved, %0)
+
+
+--------------------------------------------------------------------------------
+-- DATA: Important Set-Up Data -------------------------------------------------
+
+&d.one-day Faction Groups=86400
+
+&d.powers Faction Parent=member|view|admin
+
+&d.settable_defaults Faction Groups=
+	member.active 
+	member.power 
+	member.rank 
+	member.title 
+	faction.category 
+	faction.active 
+@@ tinymux: you can set() 'description' but you can't get() it - huh
+	desc
+
+

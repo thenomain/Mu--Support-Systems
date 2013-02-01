@@ -1,0 +1,230 @@
+================================================================================
+== PLANNING ====================================================================
+
+
+--------------------------------------------------------------------------------
+-- PLANNING: Outline -----------------------------------------------------------
+
+FACTIONS REWRITE FROM COMPLETE AND TOTAL SCRATCH
+
+The purpose of this project is to replace the tried-and-true, but much-aged Aether Factions system (originally written for TinyMUSH 3.2).
+
+This may be a mid-step between an all-Mu* setup and an SQL system.
+
+Actions apply <faction> to <player>
+	+faction/add <player>=<faction>
+	+faction/title <player>/<faction>=<title>
+
+
+--------------------------------------------------------------------------------
+-- PLANNING: API ---------------------------------------------------------------
+
+A usable function-based API is a must.  I'll be doing my favorite method:
+	faction(<action>, <input>)
+
+e.g.: faction(factions[, <partial faction name>])
+      faction(list, <faction name>)
+      faction(details, <faction name>[, <player name>])
+      faction(add, <player name>, <faction name>)
+
+
+--------------------------------------------------------------------------------
+-- PLANNING: Cross-Platform ----------------------------------------------------
+
+All user-defined or cross-platform function issues should (should, mind you) go in their own function class.
+
+	&.<function name>
+
+
+-- TEMPORARY NOTES -------------------------------------------------------------
+
+Coventry says:
+	trim( squish( iter( %0, if( strmatch( %i0, %1 ), %i0 ), %2, %2 ), %2 ), %2 )
+
+... as a filter for matching dbref to name.  
+(will need: strmatch( name( %i0 ), %1)
+
+Use with list/who
+
+
+--------------------------------------------------------------------------------
+-- PLANNING: Actions & Queries -------------------------------------------------
+
+NOTE TO SELF: Can add factions to another faction
+	- Loop-check
+	- Permissions inherit?  Override?
+
+Lists return dbrefs unless mentioned otherwise.
+Items in (parenthesis) are the defaults for that command.
+
+System Actions/Queries - 
+√	actions: [<action name>]
+		Returns all actions the system knows
+√	factions: [<faction name>]
+		Returns the dbref(s) of all factions or matching factions
+√	gget: <item|list>
+		Return the value of a global default setting(s).
+		- in these 'get' cases, return |-delim list of values. e.g.:
+		- faction(globals, active title) -> 64|<null>
+√	gset: <item>, <value>
+		Set a global default setting.  If null, erase.
+		** Wizard Only **
+		- active: Days until a player is considered inactive (default: 30)
+		- power: The default member power level (default: member)
+		- rank: The default member numeric rank (default: 0)
+		- title: The default member title (default: null)
+		- category: The default faction category (default: null)
+	access: [<name filter>]
+		List (all) possible access powers
+		** Note to self: What did I mean by this? **
+
+Faction Actions/Queries - 
+√	create: <faction>
+		Creates a faction.
+	destroy: <faction>[, YES]
+		Remove the faction.
+		Mail those who can see the faction. (???)
+√	fget: <faction>, <item|list>
+√	fset: <faction>, <item>, <value>
+		Change the default for this faction. See 'gget/gset', above.
+√	roster: <faction>[, active|inactive|all]
+		List all (default: active) faction members.
+√	who: <faction>[, active|inactive|all]
+		List connected (default: active) faction members.
+√	mail: <faction>, <title>[, active|inactive|all]
+		Starts a @mail to all (active) faction members (who can see the faction)
+	clean: <faction>
+		Force an "allowed to RP" check for members of the faction.
+
+Member Actions/Queries - 
+√	add: <member>, <faction>
+		Add member to a faction. (Faction may be inactive.)
+		@mail player if they can see the faction (e.g., not double-blind).
+√	remove: <member>, <faction>[, YES]
+		Completely remove a member from a faction. (Faction may be inactive.)
+√	mget: <member>, <faction>, <item|list>
+		Return the value(s) of a faction member's setting
+√	mset: <member>, <faction>, <item>[, <value>]
+		Set a faction member's setting.  If null, set to null/default
+		- power: Numeric power level of a member: Null -> default
+		- rank: The numeric rank
+		- title: The title
+√	memberof: <member>[, <faction name>]
+		List all factions (filtered by <faction name> a member is a part of.
+		(add 'isfaction()' -> action.memberof, <member>, <faction name> 
+		for backwards compatability)
+
+
+--------------------------------------------------------------------------------
+-- PLANNING: Access Privs ------------------------------------------------------
+
+Options:
+	faction:<faction> - is in
+	attribute:<attr> - has
+	attribute:<attr>:<value> - has at value
+	stat:<stat> - has
+	stat:<stat>:<value> - stat is >= <value>
+	stat:<stat>::<string> - has stat (substat)
+	flag:<flag> - has
+	template:<template> - is
+	sphere:<sphere> - is in
+	location:<location> - is in
+
+Usage:
+	<access>|<access>|<access>
+
+e.g.:
+	attribute:sees_spirits|faction:spirit
+
+Uses the Access System Fob (#3233 on The Reach).  General usage is applying the player to the access rules.  Multiple rules are 'or', returns true if any are true.
+
+	
+--------------------------------------------------------------------------------
+-- PLANNING: Data Dictionary ---------------------------------------------------
+
+* Faction Parent
+(global defaults)
+
+&member.active
+	Days until a player is considered 'inactive'.  This is different than a 
+	frozen player, who is always inactive.  A frozen player is determined by the 
+	game.  The default default is '30'.
+
+&member.power
+	The default power level for new members.  The default is 'member'.
+
+&member.rank
+	The default numeric rank for new members.  The default is <null>.
+
+&member.title
+	The default title for new members.  The default is <null>.
+
+&faction.category
+	The faction's main category (for listing)
+
+&faction.permission.<type>
+	Permission of type <type>
+	- view: Who can see this faction. If 'faction:!<faction name>', nobody can
+	- ??? (don't know how this will work)
+
+&d.powers
+	A list of valid member power levels
+	- member: Nothing special, normal member
+	- view: Member who can view faction even with double-blind
+	- admin: View rights plus can edit, add & remove members, staff are admin
+	- (may not be changable from within the system)
+
+--
+
+* Faction Object
+
+All the defaults (&faction./&member.) can be altered for a faction.
+
+@name
+	Name of the faction
+
+@description
+	Base information about the faction
+
+Parented items (may be changed per-faction):
+	member.active, member.power, member.rank, member.title, faction.active, 
+	faction.category, faction.permission.<type> (???)
+
+--
+
+* Member Info (on Faction Object)
+
+&member.power.<dbref>
+	Power/responsibility level (admin/member)
+	Must not be null; its existence says <dbref> is faction member
+
+&member.title.<dbref>
+	Faction title for <dbref>. Max length: 30 characters. If title is null, use faction default in display.
+
+&member.rank.<dbref>
+	Faction rank of <dbref>. Numeric, -999 to 999, determines faction's primary sort order. If rank is null, use faction default in display.
+
+&member.title.default
+	Allows a default (formula) for title
+
+&member.rank.default
+	Allows a default (formula) for rank
+
+--
+
+The system will determine if to use title/rank defaults thus:
+
+	udefault(<faction>/member.<element>.<dbref>, 
+		u(<faction>/member.<element>, <dbref>)
+	)
+
+e.g.
+	udefault(#xxx/member.title.#yyy, u(#xxx/member.title, #yyy))
+
+This will allow formulae in the title and rank to grab player information, if necessary.
+
+--
+
+Faction defaults will happen naturally, as the @parenting will read higher up.
+
+

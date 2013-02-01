@@ -1,0 +1,101 @@
+################################################################################
+## FACTION GROUPS ##############################################################
+
+
+================================================================================
+== FILTERS =====================================================================
+
+
+--------------------------------------------------------------------------------
+-- Valid Factions --------------------------------------------------------------
+
+Filters a list of dbrefs and returns those that meet the 'valid faction' criteria, for a bit of security.
+
+Sample Usage: filter( fil.valid_factions, lcon( %! ))
+
+--
+
+&fil.valid_factions Faction Groups=and(strmatch(loc(%0), %!), strmatch(parent(%0), v(d.faction_parent)))
+
+
+--------------------------------------------------------------------------------
+-- Cansee Factions -------------------------------------------------------------
+
+Filters a list of dbrefs (should be checked as 'valid factions') to only the ones that a player can see.
+
+Sample Usage: 
+	filter(fil.cansee_factions, filter(fil.valid_factions, lcon(%!)), , , %#)
+
+(Basic Initial Code: Belongs to group or is staff)
+
+--
+
+&fil.cansee_factions Faction Groups=
+	cor(
+		u(.isstaff, %1), 
+		hasattr(%0, member.power.%1)
+	)
+
+
+--------------------------------------------------------------------------------
+-- Faction Name Filter ---------------------------------------------------------
+
+Filters a list of dbrefs (should be checked as 'valid factions') to only the ones matching a particular name.
+
+Sample Usage: 
+	filter(fil.factions_byname, filter(fil.valid_factions, lcon(%!)), , , *est*)
+
+--
+
+&fil.factions_byname Faction Groups=strmatch(name(%0), %1*)
+
+
+--------------------------------------------------------------------------------
+-- List of factions someone is a member of -------------------------------------
+
+Sample Usage:
+	filter(fil.member.of, filter(fil.valid_factions, lcon(%!)), , , pmatch(thenomain))
+
+
+--
+
+&fil.member.of Faction Groups=hasattr(%0, member.power.%1)
+
+
+--------------------------------------------------------------------------------
+-- Active Players in Faction ---------------------------------------------------
+
+	u(fil.active_players, <player dbref>, <faction dbref>)
+	filter(fil.active_players, <player list>, , , <faction dbref>)
+
+0: list of player dbrefs
+1: faction dbref (for pulling its 'active' default)
+
+--
+
+&fil.active_players Faction Groups=
+	lte( 
+		u( .active, %0 ), 
+		mul( get( %1/member.active ), v( d.one-day ))
+	)
+
+--
+
+think u(fg/fil.active_players, pmatch(thenomain), u(fg/action.factions, test))
+
+think filter(fg/fil.active_players, <roster>, , , u(fg/action.factions, test))
+
+think setdiff(<roster>, filter(fg/fil.active_players, <roster>, , , u(fg/action.factions, test)))
+
+--------------------------------------------------------------------------------
+-- Active Players in Faction ---------------------------------------------------
+
+	filter( fil.connected, <player list> )
+
+Pretty straightforward.
+
+--
+
+&fil.connected Faction Groups=hasflag( %0, connect )
+
+

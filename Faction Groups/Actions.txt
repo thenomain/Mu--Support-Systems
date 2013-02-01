@@ -1,0 +1,719 @@
+################################################################################
+## FACTION GROUPS ##############################################################
+
+
+================================================================================
+== ACTIONS =====================================================================
+
+<see "planning" for the actions/queries list>
+
+
+--------------------------------------------------------------------------------
+-- List Actions (system) -------------------------------------------------------
+
+A meta-action to list everything the system can do.
+
+0: Filter for actions starting with this - assumes filter from start
+
+--
+
+&action.actions Faction Groups=
+	sort(edit(lcstr(lattr(%!/action.%0*)), action., ))
+
+
+--------------------------------------------------------------------------------
+-- Global Info: Get (system) ---------------------------------------------------
+
+	faction(gget, <item|list>)
+
+If <item|list> is null, display valid <items|>
+
+--
+
+&action.gget Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+		u(f.global_get, v(d.faction_parent), %0)
+	)
+)
+
+--
+
+think u(fg/action.gget)
+think u(fg/action.gget, u(fg/action.gget))
+
+think u(fg/action.gget, u(fg/action.gget)|tester)
+
+
+--------------------------------------------------------------------------------
+-- Global Info: Set (system) ---------------------------------------------------
+
+	faction(gset, <item>, <value>|NULL)
+
+For the sake of security at this level, may only be invoked by a wizard.
+
+if <item> is empty, show valid <item|>s. (consistent with &action.mset)
+If <value> is empty, clear.
+
+--
+
+&action.gset Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.iswiz, %@), 
+		#-1 Wizard only, 
+		
+		u(f.global_set, v(d.faction_parent), %0, %1)
+	)
+)
+
+--
+
+think u(fg/action.gset)
+think u(fg/action.gset, u(fg/action.gget))
+
+think u(fg/action.gset, u(fg/action.gget)|tester)
+
+
+--------------------------------------------------------------------------------
+-- Faction Info: Get (system) --------------------------------------------------
+
+	faction(fget, <faction>, <item|list>)
+
+f: faction(s) dbref match
+
+If <item|list> is null, display valid <items|>
+
+--
+
+&action.fget Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+@@ .. faction check
+@@ .. (ok if %1 is blank - order of operations is important!)
+		cor(t(setr(f, u(action.factions, %0))), not(comp(%1, ))), 
+		#-1 Faction '%0' not found, 
+
+		cor(lte(words(%qf), 1), not(comp(%1, ))), 
+		#-1 Multiple faction matches, 
+
+@@ ok to get
+		u(f.global_get, %qf, %1)
+	)
+)
+
+--
+
+think u(fg/action.fget)
+think u(fg/action.fget, test, u(fg/action.fget))
+
+think u(fg/action.fget, oogle, random|stuff)
+think u(fg/action.fget, test, u(fg/action.gget)|tester)
+
+
+--------------------------------------------------------------------------------
+-- Faction Info: Set (system) --------------------------------------------------
+
+	faction(fset, <faction>, <item>, <value>)
+
+f: faction(s) dbref match
+
+If <item|list> is null, display valid <items|>
+
+--
+
+&action.fset Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+@@ .. faction check
+@@ .. (ok if %1 is blank - order of operations is important!)
+		cor(t(setr(f, u(action.factions, %0))), not(comp(%1, ))), 
+		#-1 Faction '%0' not found, 
+
+		cor(lte(words(%qf), 1), not(comp(%1, ))), 
+		#-1 Multiple faction matches, 
+
+@@ ok to get
+		u(f.global_set, %qf, %1, %2)
+	)
+)
+
+--
+
+think u(fg/action.fset, test, description, Oook ook!)
+ex u(fg/action.factions, test)/desc
+
+think u(fg/action.fset, test, description, This is a faction! For testing!)
+ex u(fg/action.factions, test)/desc
+
+think u(fg/action.fset, test, faction.active, 0)
+ex u(fg/action.factions, test)/faction.active
+
+think u(fg/action.fset, test, faction.active, 1)
+think u(fg/action.fset, test, faction.active, )
+ex u(fg/action.factions, test)/faction.active
+
+think u(fg/action.fset, test, faction.active, 1)
+think u(fg/action.fset, test, faction.active, yes)
+think u(fg/action.fset, test, faction.active, no)
+ex u(fg/action.factions, test)/faction.active
+
+
+--------------------------------------------------------------------------------
+-- Factions List (system) ------------------------------------------------------
+
+List factions as appropriate for a certain player, which means throwing it through one or more filters.
+
+	faction(factions[, <faction name>])
+
+--
+
+&action.factions Faction Groups=
+	filter(fil.factions_byname, 
+		filter(fil.cansee_factions, 
+			filter(fil.valid_factions, lcon(%!)), 
+			@@(idelim), @@(odelim), 
+			%#
+		), 
+		@@(idelim), @@(odelim), 
+		%0
+	)
+
+--
+
+think u(fg/action.factions)
+think u(fg/action.factions, *est*)
+
+
+--------------------------------------------------------------------------------
+-- Create Faction (system) -----------------------------------------------------
+
+	faction(create, <faction name>)
+
+f: faction dbref
+m: exsting faction that matches on first 5 characters as %0
+
+Returns: #-1 <error> or dbref.
+
+--
+
+&action.create Faction Groups=
+localize(
+	case(0, 
+
+@@ .. staff only
+		t(u(.isstaff, %@)), 
+		#-1 Staff only, 
+
+@@ .. check for valid faction object name
+		valid(name, %0), 
+		#-1 That's a bad name for a faction, 
+
+@@ .. check for existing close-enough faction name (first 5 character match)
+		not(setr(m, 
+			grab(
+				iter(filter(fil.valid_factions, lcon(%!)), name(%i0), , |), 
+				[strtrunc(%0, 5)]*, 
+				|
+			)
+		)), 
+		#-1 A similar faction name already exists as '%qm', 
+
+@@ .. check created alright
+		t(setr(f, create(%0, ))), 
+		#-1 Error when creating faction '%0', 
+
+@@ .. check parented alright
+		strcat(parent(%qf, v(d.faction_parent)), strmatch(parent(%qf), v(d.faction_parent))), 
+		#-1 Error when setting faction parent. 
+		Please type: @parent %qf=[v(d.faction_parent)], 
+
+@@ .. ok: return object dbref
+		%qf
+	)
+)
+
+--
+
+think u(fg/action.create, Test Fallacy)
+
+
+--------------------------------------------------------------------------------
+-- Details About a Faction (faction) -------------------------------------------
+
+	faction(details, <faction>[, <player dbref>])
+
+f: faction dbref
+p: player dbref, if passed
+
+note: | is a protected symbol here, but we'll keep things that could use it
+	  at the end of the returned information
+
+--
+
+&action.details Faction Groups=
+localize(
+	case(0, 
+
+@@ .. faction checks
+		t(setr(f, u(action.factions, %0))), 
+		#-1 Faction '%0' not found, 
+
+		eq(words(%qf), 1), 
+		#-1 Too many matching factions found, 
+
+@@ >> faction details (no player dbref passed): 
+@@ .. <dbref>|<category>|<member dbrefs>|<permissions>|<desc>
+		strlen(%1), 
+		%qf|
+		[get(%qf/faction.category)]|
+		[iter(lattr(%qf/member.power.*), last(%i0, .))]|
+		[get(%qf/permissions.view)]|
+		[get(%qf/desc)]|, 
+
+@@ .. player checks 
+		t(setr(p, pmatch(%1))), 
+		#-1 Player '%1' has too many matches or not found, 
+
+		t(get(%qf/member.power.%qp)), 
+		#-1 Player '[name(%qp)]' not a member of faction '[name(%qf)]', 
+
+@@ >> player details
+@@ .. <dbref>|<power>|<rank>|<title>
+@@ .. (<rank> and <title> may be determined via code on faction or parent)
+		%qp|
+		[get(%qf/member.power.%qp)]|
+		[udefault(%qf/member.rank.%qp, u(%qf/member.rank, %qp))]|
+		[udefault(%qf/member.title.%qp, u(%qf/member.title, %qp))]
+	)
+)
+
+--
+
+think u(fg/action.details, test fac)
+think u(fg/action.details, test fac, thenomain)
+think u(fg/action.details, test fac, #3177)
+
+
+--------------------------------------------------------------------------------
+-- Add Player to Faction (individual) ------------------------------------------
+
+	faction(add, <player>, <faction>)
+
+p: dbref of player to add
+f: faction dbref
+
+e: possible error from functions: set()
+
+--
+
+&action.add Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+@@ >> staff or Power:Admin, not staff-only
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+		t(setr(p, pmatch(%0))), 
+		#-1 Player '%0' not found, 
+
+		t(u(.isapproved, %qp)), 
+		#-1 Player is not approved for RP, 
+
+		t(setr(f, u(action.factions, %1))), 
+		#-1 Faction '%1' not found, 
+
+		eq(words(%qf), 1), 
+		#-1 Multiple faction matches, 
+
+		not(hasattr(%qf, member.power.%qp)), 
+		#-1 '[name(%qp)]' is already member of faction '[name(%qf)]', 
+
+@@ .. generic error
+		eq(strlen(setr(e, set(%qf, member.power.%qp:[u(%qf/member.power)]))), 0), 
+		#-1 %qe, 
+
+@@ OK
+		1
+	)
+)
+
+--
+
+think u(fg/action.add, *thenomain, test)
+
+
+--------------------------------------------------------------------------------
+-- Member Info: Set (individual) -----------------------------------------------
+
+	faction(mset, <player>, <faction>, <element>[, <entry>])
+
+p: dbref of player to add
+f: faction dbref
+a: attribute to set
+
+If <entry> is null, use faction default in display.
+
+--
+
+&action.mset Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+@@ .. (if <player> is empty, show valid <elements|>)
+		gt(strlen(%1), 0), 
+		lcstr(edit(sort(lattr(%!/f.mset.*), , , |), F.MSET., , _, %b)), 
+
+		t(setr(f, u(action.factions, %1))), 
+		#-1 Faction '%1' not found, 
+
+		eq(words(%qf), 1), 
+		#-1 Multiple faction matches, 
+		
+		t(setr(p, pmatch(%0))), 
+		#-1 '%0' is not a valid player name, 
+
+		hasattr(%qf, member.power.%qp), 
+		#-1 '[name(%qp)]' is not a member of faction '[name(%qf)]', 
+
+		t(setr(a, lattr(%!/f.mset.%2*))), 
+		#-1 Mset for '%2' not found, 
+
+		eq(words(%qa), 1), 
+		#-1 Multiple set-item matches, 
+
+@@ .. ok to set
+		u(%qa, %qp, %qf, %3)
+	)
+)
+
+--
+
+think u(fg/action.mset, *thenomain, test, title, \[title\])
+think u([first(u(fg/action.details, test), |)]/member.title.[pmatch(thenomain)])
+
+think u(fg/action.mset, *thenomain, test, rank, \[title\])
+think u(fg/action.mset, *thenomain, test, rank, 1500)
+
+think u(fg/action.mset, *thenomain, test, rank, 15)
+think u([first(u(fg/action.details, test), |)]/member.rank.[pmatch(thenomain)])
+
+think u(fg/action.mset, *thenomain, test, power, 15)
+
+think u(fg/action.mset, *thenomain, test, power, ad)
+think u([first(u(fg/action.details, test), |)]/member.power.[pmatch(thenomain)])
+
+
+--------------------------------------------------------------------------------
+-- Member Info: Get (individual) -----------------------------------------------
+
+	faction(mset, <player>, <faction>, <item|list>)
+
+p: player dbref
+f: faction dbref
+
+If <entry> is null, use faction default in display.
+
+If <player> is null, display valid <items|>
+
+--
+
+&action.mget Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+@@ .. (if <player> is empty, show valid <elements|>)
+		gt(strlen(%1), 0), 
+		lcstr(edit(sort(lattr(%!/f.mget.*), , , |), F.MGET., , _, %b)), 
+
+@@ .. faction check
+		t(setr(f, u(action.factions, %1))), 
+		#-1 Faction '%1' not found, 
+
+		eq(words(%qf), 1), 
+		#-1 Multiple faction matches, 
+		
+		t(setr(p, pmatch(%0))), 
+		#-1 '%0' is not a valid player name, 
+
+		hasattr(%qf, member.power.%qp), 
+		#-1 '[name(%qp)]' is not a member of faction '[name(%qf)]', 
+
+@@ .. ok to get
+		iter(%2, 
+			udefault(
+				first(sort(lattr(%!/f.mget.%i0*))), 
+				#-1 %i0, 
+				%qp, %qf, 
+			), 
+			|, |
+		)
+	)
+)
+
+--
+
+think u(fg/action.mget, *thenomain, test, title)
+think u(fg/action.mget, *thenomain, test, rank)
+think u(fg/action.mget, *thenomain, test, power)
+
+think u(fg/action.mget, *thenomain, test, u(fg/action.mget))
+
+think u(fg/action.mget, *thenomain, test, title|flange|power)
+
+
+--------------------------------------------------------------------------------
+-- Remove Player from Faction (individual) -------------------------------------
+
+	faction(remove, <player>, <faction>[, YES])
+
+p: player dbref
+f: faction dbref
+
+--
+
+&action.remove Faction Groups=
+localize(
+	case(0, 
+@@ .. basic checks
+		u(.isstaff, %@), 
+		#-1 Staff only, 
+
+@@ .. player checks 
+		t(setr(p, pmatch(%0))), 
+		#-1 Player '%0' has too many matches or not found, 
+
+		hasattr(%qf, member.power.%qp), 
+		#-1 Player '[name(%qp)]' not a member of faction '[name(%qf)]', 
+
+@@ .. faction checks
+		t(setr(f, u(action.factions, %1))), 
+		#-1 Faction '%1' not found, 
+
+		eq(words(%qf), 1), 
+		#-1 Too many matching factions found, 
+
+@@ .. "YES" double-check
+		not(comp(%2, YES)), 
+		#-1 Verify removing this member with 'YES',
+
+@@ .. ok: wipe attributes and return '1'
+		null(iter(lattr(%qf/member.*.%qp), set(%qf, %i0:)))
+		1
+	)
+)
+
+--
+
+think u(fg/action.remove, *thenomain, testfd)
+
+
+--------------------------------------------------------------------------------
+-- List Factions Player is Member Of (individual) ------------------------------
+
+	faction(memberof, <player>[, <faction name>])
+
+Nested filters:
+	valid factions -> name filter (optional) -> can-see filter -> member filter
+
+--
+
+&action.memberof Faction Groups=
+
+filter(fil.member.of, 
+	filter(fil.cansee_factions, 
+		filter(fil.factions_byname, 
+			filter(fil.valid_factions, 
+			lcon(%!)
+		), 
+			, , %1*
+		), 
+		, , %@
+	), 
+	, , pmatch(%0)
+)
+
+--
+
+think u(fg/action.memberof, anderson)
+think u(fg/action.memberof, thenomain)
+think u(fg/action.memberof, thenomain, *est*)
+
+
+--------------------------------------------------------------------------------
+-- Roster of Faction (faction) -------------------------------------------------
+
+	faction(roster, <faction name>[, active|inactive|all])
+
+f: faction dbref
+w: words(<faction dbref(s)>)
+a: activity
+r: roster dbrefs
+l: roster's player list
+
+--
+
+&action.roster Faction Groups=
+localize( 
+	strcat( 
+		setq( a, 
+			switch( %1, 
+				ac*, active, 
+				i*, inactive, 
+				al*, all, 
+				active
+			)
+		), 
+		case( 0, 
+
+			strlen( setr( f, u( action.factions, %0 ))), 
+			#-1 No factions found, 
+	
+			eq( setr( w, words( %qf )), 1 ), 
+			#-1 %qw factions found, 
+
+			strcat( 
+				setq( l, u( f.members.list, %qf )), 
+				case( 0, 
+@@ .. active
+					comp( %qa, active ), 
+					filter( fil.active_players, %ql, , , %qf ), 
+
+@@ .. inactive
+					comp( %qa, inactive ), 
+					setdiff( 
+						%ql, 
+						filter( fil.active_players, %ql, , , %qf )
+					), 
+
+@@ .. all
+					comp( %qa, all ), 
+					%ql 
+				)
+			)
+		)
+	)
+)
+
+--
+
+think u(fg/action.roster, test)
+
+think u(fg/action.roster, fd)
+
+think u(fg/action.roster)
+
+
+--------------------------------------------------------------------------------
+-- Faction Who (faction) -------------------------------------------------------
+
+	faction(who, <faction name>[, active|inactive|all])
+
+Mainly calls 'roster', above.
+
+--
+
+&action.who Faction Groups=
+localize( 
+	strcat( 
+		setq( r, u( action.roster, %0, %1 )), 
+		case( 1, 
+			strmatch( %qr, #-1* ), %qr, 
+			filter( fil.connected, %qr )
+		)
+	)
+)	
+
+--
+
+think u(fg/action.who, test)
+
+
+--------------------------------------------------------------------------------
+-- Faction Mail (faction) ------------------------------------------------------
+
+	faction(mail, <faction name>[, active|inactive|all])
+
+	Starts a mail to all people in the faction, defaults to 'active'.
+
+r: roster
+
+--
+
+&action.mail Faction Groups=
+localize( 
+	strcat( 
+		setq( r, u( action.roster, %0, %1 )), 
+		case( 1, 
+			strmatch( %qr, #-1* ), %qr, 
+
+			strcat( 
+				pemit( %#, 
+					u( .msg, 
+						faction/mail, 
+						You should now get a message asking you to write your 
+						@mail. If not%, please make sure you're not already 
+						writing one.
+					)
+				), 
+	 			trigger( %!/trig.mail.force, %#, %qr, FACTION MAIL )
+	 		)
+		)
+	)
+)
+
+--
+
+think u(fg/action.mail, test)
+
+
+--------------------------------------------------------------------------------
+-- Clean Faction (faction) -----------------------------------------------------
+
+	faction(clean, <faction name>)
+
+Removes anyone from the faction who doesn't pass a coded "allowed to RP" check.
+
+Returns: list of dbrefs cleared, or #-1 
+
+f: faction dbref
+r: initial roster
+l: list of dbrefs to remove
+
+--
+
+&action.clean Faction Groups=
+localize(
+	case(0, 
+		t(setr(f, u(action.factions, %0))), 
+		#-1 Faction not found,
+
+		u(f.hasaccess, %@, %qf, admin), 
+		#-1 Staff or Faction Admin only, 
+
+		
+		... list of cleaned dbrefs
+	)
+)
+
+
