@@ -58,7 +58,12 @@
 @@ (we use 'is approved')
 
 &.rp_ok Faction Groups=u(.isapproved, %0)
+&.rp_not-ok Faction Groups=not(u(.isapproved, %0))
 
+@@ Rhost and some others don't like @@ as the null-delim
+@@ Replace with @@() there instead.
+
+&.@@ Faction Groups=@@
 
 --------------------------------------------------------------------------------
 -- DATA: Important Set-Up Data -------------------------------------------------
@@ -67,6 +72,8 @@
 
 &d.powers Faction Parent=member|view|admin
 
+@@ Tinymux: you can set() 'description' but you can't get() it - huh
+
 &d.settable_defaults Faction Groups=
 	member.active 
 	member.power 
@@ -74,7 +81,6 @@
 	member.title 
 	faction.category 
 	faction.active 
-@@ tinymux: you can set() 'description' but you can't get() it - huh
 	desc
 
 
