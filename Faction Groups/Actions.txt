@@ -173,29 +173,36 @@ ex u(fg/action.factions, test)/faction.active
 
 
 --------------------------------------------------------------------------------
--- Factions List (system) ------------------------------------------------------
+-- List Factions (system) ------------------------------------------------------
 
 List factions as appropriate for a certain player, which means throwing it through one or more filters.
 
-	faction(factions[, <faction name>])
+	faction(factions[, <faction name or dbref>])
 
 --
 
 &action.factions Faction Groups=
-	filter(fil.factions_byname, 
-		filter(fil.cansee_factions, 
-			filter(fil.valid_factions, lcon(%!)), 
-			@@(idelim), @@(odelim), 
-			%#
+localize(
+	strcat(
+		setq(v, 
+			filter(fil.cansee_factions, 
+				filter(fil.valid_factions, lcon(%!)), 
+				%b, %b, 
+				%#
+			)
 		), 
-		@@(idelim), @@(odelim), 
-		%0
+		if(strmatch(%0, #*), 
+			setinter(%qv, %0), 
+			filter(fil.factions_byname, %qv, %b, %b, %0)
+		)
 	)
+)
 
 --
 
 think u(fg/action.factions)
 think u(fg/action.factions, *est*)
+think u(fg/action.factions, #7673)
 
 
 --------------------------------------------------------------------------------
@@ -324,21 +331,22 @@ e: possible error from functions: set()
 localize(
 	case(0, 
 @@ .. basic checks
-@@ >> staff or Power:Admin, not staff-only
-		u(.isstaff, %@), 
-		#-1 Staff only, 
+
+		cand(t(setr(f, u(action.factions, %1))), u(f.cansee, %qf, %@)), 
+		#-1 Faction '%1' not found, 
+
+@@ Finding the faction will trip before this
+@@		eq(words(%qf), 1), 
+@@		#-1 Multiple faction matches, 
+
+		u(f.hasaccess, %@, %qf, admin), 
+		#-1 Staff or Admin only, 
 
 		t(setr(p, pmatch(%0))), 
 		#-1 Player '%0' not found, 
 
 		t(u(.isapproved, %qp)), 
 		#-1 Player is not approved for RP, 
-
-		t(setr(f, u(action.factions, %1))), 
-		#-1 Faction '%1' not found, 
-
-		eq(words(%qf), 1), 
-		#-1 Multiple faction matches, 
 
 		not(hasattr(%qf, member.power.%qp)), 
 		#-1 '[name(%qp)]' is already member of faction '[name(%qf)]', 
@@ -526,6 +534,7 @@ localize(
 --
 
 think u(fg/action.remove, *thenomain, testfd)
+think u(fg/action.remove, *thenomain, #7673)
 
 
 --------------------------------------------------------------------------------
@@ -711,9 +720,35 @@ localize(
 		u(f.hasaccess, %@, %qf, admin), 
 		#-1 Staff or Faction Admin only, 
 
-		
-		... list of cleaned dbrefs
+@@ list of people who are 'rp not-okay' - opposite of 'rp ok'
+		t(setr(l, filter(.rp_not-ok, u(f.members.list, %qf)))), 
+		#-1 Nobody to clean, 
+
+@@ clean and return list
+		[null(iter(%ql, u(action.remove, %i0, %qf, YES)))]
+		%ql
 	)
 )
 
+--
 
+think u(fg/action.clean, test)
+
+&member.power.#3333 #7673=member
+think u(fg/action.clean, test)
+
+--
+
+@create #7673=10
+@Desc #7673=\This is a faction! For testing!
+
+&MEMBER.POWER.#1003 #7673=admin
+&MEMBER.POWER.#3177 #7673=member
+&MEMBER.TITLE.#1003 #7673=\[title\]
+&MEMBER.RANK.#1003 #7673=15
+&FACTION.ACTIVE #7673=1
+
+@set Test Faction=DARK
+@rxlevel Test Faction= Real
+@txlevel Test Faction= Real
+@parent Test Faction=#6067
