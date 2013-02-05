@@ -1,5 +1,19 @@
-
+# Local Files (not ready for prime-time) #
+##########################################
 Freeze.txt
 Audit - Players.txt
-.DS_Store
+
+# Sublime Text 2 Project Files #
+################################
 *.sublime*
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
