@@ -505,17 +505,42 @@ think u(fg/action.details, test fac)
 -- Does this player have this access to this faction? --------------------------
 
 Use an or-list and return 1 if true and 0 if not. Do not validate.
-Staff always has access.
+Staff always has access. One part 'cansee' (filter) one part 'power validation'.
 
 0: source/player dbref
 1: faction dbref
-2: authority/power level to test against
+2: authority/power level(s) to test against - space-delimited
 
 --
 
 &f.hasaccess Faction Groups=
-	cor(strmatch( <<< xxx >>>, %2), u(.isstaff, %0))
+	cor(
+		u(.isstaff, %0), 
+		cand(
+			u(f.cansee, %0, %1), 
+			t(setinter(u(f.mget.power, %0, %1), %2))
+		)
+
+	)
+
+--
+
+think u(fg/f.hasaccess, pmatch(*thenomain), #7673, admin)
+think u(fg/f.hasaccess, pmatch(*anderson), #7673, admin)
+think u(fg/f.hasaccess, pmatch(*anderson), #7673, view member admin)
 
 
+--------------------------------------------------------------------------------
+-- Can this player see this faction? -------------------------------------------
 
+0: source/player dbref
+1: faction dbref
 
+&f.cansee Faction Groups=
+	u(fil.cansee_factions, %1, %0)
+
+--
+
+think u(fg/f.cansee, pmatch(*thenomain), #7673)
+think u(fg/f.cansee, pmatch(*anderson), #7673)
+think u(fg/f.cansee, pmatch(*belle), #7673)
