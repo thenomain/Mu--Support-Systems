@@ -9,19 +9,28 @@
 --------------------------------------------------------------------------------
 -- Valid Factions --------------------------------------------------------------
 
-Filters a list of dbrefs and returns those that meet the 'valid faction' criteria, for a bit of security.
+Filters a list of dbrefs and returns those that meet the 'valid faction' 
+criteria, for a bit of security.
 
 Sample Usage: filter( fil.valid_factions, lcon( %! ))
 
 --
 
-&fil.valid_factions Faction Groups=and(strmatch(loc(%0), %!), strmatch(parent(%0), v(d.faction_parent)))
+&fil.valid_factions Faction Groups=
+	and(strmatch(loc(%0), %!), strmatch(parent(%0), v(d.faction_parent)))
 
 
 --------------------------------------------------------------------------------
 -- Cansee Factions -------------------------------------------------------------
 
-Filters a list of dbrefs (should be checked as 'valid factions') to only the ones that a player can see.
+Filters a list of dbrefs (should be checked as 'valid factions') to only the ones 
+that a player can see.
+
+A player can see:
+	Undark objects
+	Things they're a member of
+	Dark objects if they pass the 'test' <<< not yet added >>>
+	Anything if staff
 
 Sample Usage: 
 	filter(fil.cansee_factions, filter(fil.valid_factions, lcon(%!)), , , %#)
@@ -32,6 +41,7 @@ Sample Usage:
 
 &fil.cansee_factions Faction Groups=
 	cor(
+		orflags(%0, !D), 
 		u(.isstaff, %1), 
 		hasattr(%0, member.power.%1)
 	)
@@ -40,7 +50,8 @@ Sample Usage:
 --------------------------------------------------------------------------------
 -- Faction Name Filter ---------------------------------------------------------
 
-Filters a list of dbrefs (should be checked as 'valid factions') to only the ones matching a particular name.
+Filters a list of dbrefs (should be checked as 'valid factions') to only the ones 
+matching a particular name.
 
 Sample Usage: 
 	filter(fil.factions_byname, filter(fil.valid_factions, lcon(%!)), , , *est*)
@@ -87,8 +98,9 @@ think filter(fg/fil.active_players, <roster>, , , u(fg/action.factions, test))
 
 think setdiff(<roster>, filter(fg/fil.active_players, <roster>, , , u(fg/action.factions, test)))
 
+
 --------------------------------------------------------------------------------
--- Active Players in Faction ---------------------------------------------------
+-- Connected Players -----------------------------------------------------------
 
 	filter( fil.connected, <player list> )
 
@@ -97,5 +109,7 @@ Pretty straightforward.
 --
 
 &fil.connected Faction Groups=hasflag( %0, connect )
+
+
 
 
