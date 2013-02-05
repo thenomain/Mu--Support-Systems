@@ -7,7 +7,8 @@
 
 FACTIONS REWRITE FROM COMPLETE AND TOTAL SCRATCH
 
-The purpose of this project is to replace the tried-and-true, but much-aged Aether Factions system (originally written for TinyMUSH 3.2).
+The purpose of this project is to replace the tried-and-true, but much-aged 
+Aether Factions system (originally written for TinyMUSH 3.2).
 
 This may be a mid-step between an all-Mu* setup and an SQL system.
 
@@ -31,7 +32,8 @@ e.g.: faction(factions[, <partial faction name>])
 --------------------------------------------------------------------------------
 -- PLANNING: Cross-Platform ----------------------------------------------------
 
-All user-defined or cross-platform function issues should (should, mind you) go in their own function class.
+All user-defined or cross-platform function issues should (should, mind you) go 
+in their own function class.
 
 	&.<function name>
 
@@ -93,7 +95,7 @@ Faction Actions/Queries -
 		List connected (default: active) faction members.
 √	mail: <faction>, <title>[, active|inactive|all]
 		Starts a @mail to all (active) faction members (who can see the faction)
-	clean: <faction>
+√	clean: <faction>
 		Force an "allowed to RP" check for members of the faction.
 
 Member Actions/Queries - 
@@ -136,7 +138,8 @@ Usage:
 e.g.:
 	attribute:sees_spirits|faction:spirit
 
-Uses the Access System Fob (#3233 on The Reach).  General usage is applying the player to the access rules.  Multiple rules are 'or', returns true if any are true.
+Uses the Access System Fob (#3233 on The Reach).  General usage is applying the 
+player to the access rules.  Multiple rules are 'or', returns true if any are true.
 
 	
 --------------------------------------------------------------------------------
@@ -199,10 +202,12 @@ Parented items (may be changed per-faction):
 	Must not be null; its existence says <dbref> is faction member
 
 &member.title.<dbref>
-	Faction title for <dbref>. Max length: 30 characters. If title is null, use faction default in display.
+	Faction title for <dbref>. Max length: 30 characters. If title is null, use 
+	faction default in display.
 
 &member.rank.<dbref>
-	Faction rank of <dbref>. Numeric, -999 to 999, determines faction's primary sort order. If rank is null, use faction default in display.
+	Faction rank of <dbref>. Numeric, -999 to 999, determines faction's primary 
+	sort order. If rank is null, use faction default in display.
 
 &member.title.default
 	Allows a default (formula) for title
