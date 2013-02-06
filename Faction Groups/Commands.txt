@@ -5,7 +5,8 @@
 ================================================================================
 == COMMAND SETUP ===============================================================
 
-The "Mistress System" funnels everything through a single command.  For this command, like many others, an optional 's' on it is valid.  e.g., faction/factions.
+The "Mistress System" funnels everything through a single command.  For this 
+command, like many others, an optional 's' on it is valid.  e.g., faction/factions.
 
 	+command(s) -> &c.<command>.default
 	+command(s) <stuff> -> &c.<command>.specific
@@ -15,7 +16,9 @@ To each of these (including the first), the following are passed:
 	%0: <stuff>
 	%1: </other/switches>
 
-In the case of the switches, the first valid switch has their command called, if all switches are invalid we call &c.<name>.default or &c.<name>.specific, depending on the above rules.
+In the case of the switches, the first valid switch has their command called, 
+if all switches are invalid we call &c.<name>.default or &c.<name>.specific, 
+depending on the above rules.
 
 --
 
@@ -89,7 +92,11 @@ Show default factions setup: List factions
 
 --
 
-&c.factions.default Faction Groups=if(strlen(%1), u(.msg, factions, Factions doesn't take that switch. See +help factions), u(c.factions/default))
+&c.factions.default Faction Groups=
+	if(strlen(%1), 
+		u(.msg, factions, Factions doesn't take that switch. See +help factions), 
+		u(c.factions/default)
+	)
 
 
 --------------------------------------------------------------------------------
@@ -104,7 +111,11 @@ Show information about a particular faction
 
 --
 
-&c.factions.specific Faction Groups=if(strlen(%1), u(.msg, factions, Factions doesn't take that switch. See +help factions), u(c.factions/faction))
+&c.factions.specific Faction Groups=
+	if(strlen(%1), 
+		u(.msg, factions, Factions doesn't take that switch. See +help factions), 
+		u(c.factions/faction)
+	)
 
 
 --------------------------------------------------------------------------------
