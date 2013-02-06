@@ -76,14 +76,14 @@ System Actions/Queries -
 		- rank: The default member numeric rank (default: 0)
 		- title: The default member title (default: null)
 		- category: The default faction category (default: null)
-	access: [<name filter>]
+?	access: [<name filter>]
 		List (all) possible access powers
 		** Note to self: What did I mean by this? **
 
 Faction Actions/Queries - 
 √	create: <faction>
 		Creates a faction.
-	destroy: <faction>[, YES]
+√	destroy: <faction>[, YES]
 		Remove the faction.
 		Mail those who can see the faction. (???)
 √	fget: <faction>, <item|list>
@@ -141,7 +141,17 @@ e.g.:
 Uses the Access System Fob (#3233 on The Reach).  General usage is applying the 
 player to the access rules.  Multiple rules are 'or', returns true if any are true.
 
-	
+
+--------------------------------------------------------------------------------
+-- PLANNING: Commands ----------------------------------------------------------
+
+	+faction(s) - List all visible factions, grouped by category.
+		Like my other code, the 's' will always be optional.
+	+faction <(partial) faction name|dbref> - List the faction roster.
+	+faction/create <faction name>
+	+faction/destroy <(partial) faction name>[=YES]
+
+
 --------------------------------------------------------------------------------
 -- PLANNING: Data Dictionary ---------------------------------------------------
 
