@@ -179,6 +179,10 @@ List factions as appropriate for a certain player, which means throwing it throu
 
 	faction(factions[, <faction name or dbref>])
 
+v: factions valid/visible to invoker (%#)
+
+Returns: dbref(s) or null list if no matches found.
+
 --
 
 &action.factions Faction Groups=
@@ -256,6 +260,57 @@ localize(
 --
 
 think u(fg/action.create, Test Fallacy)
+think u(fg/action.create, Blather)
+
+--------------------------------------------------------------------------------
+-- Destroy Faction (system) ----------------------------------------------------
+
+When destroying a faction, be sure to email any (active + rp-valid) people on it.
+
+	faction(destroy, <faction name>[, YES])
+
+f: faction dbref
+r: faction roster
+
+Returns: #-1 <error> or 1.
+
+--
+
+&action.destroy Faction Groups=
+localize(
+	case(0, 
+
+@@ .. error conditions
+		t(u(.isstaff, %@)), 
+		#-1 Staff only, 
+
+		t(setr(f, u(action.factions, %0))), 
+		#-1 Faction '%0' not found, 
+
+		eq(words(%qf), 1), 
+		#-1 Too many factions found, 
+
+		not(comp(%1, YES)), 
+		#-1 Verify removing this faction with 'YES',
+
+@@ .. ok: get current roster, destroy object, @mail active rpers, return 1.
+		strcat(
+			setq(r, u(action.roster, %qf, active)),
+			null(<<< mail active rp roster >>>), 
+			null(destroy(%qf)), 
+			if(hasflag(%qf, going), 
+				1, 
+				#-1 ERROR DESTROYING FACTION OBJECT '%qf'
+			)
+		)
+	)
+)
+
+--
+
+think u(fg/action.destroy, blither)
+think u(fg/action.destroy, blather)
+think u(fg/action.destroy, blather, YES)
 
 
 --------------------------------------------------------------------------------
@@ -739,16 +794,3 @@ think u(fg/action.clean, test)
 
 --
 
-@create #7673=10
-@Desc #7673=\This is a faction! For testing!
-
-&MEMBER.POWER.#1003 #7673=admin
-&MEMBER.POWER.#3177 #7673=member
-&MEMBER.TITLE.#1003 #7673=\[title\]
-&MEMBER.RANK.#1003 #7673=15
-&FACTION.ACTIVE #7673=1
-
-@set Test Faction=DARK
-@rxlevel Test Faction= Real
-@txlevel Test Faction= Real
-@parent Test Faction=#6067
