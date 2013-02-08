@@ -87,15 +87,15 @@ Show default factions setup: List factions
 
 --
 
-0: passed by fake /switches, ignored
-1: fake /switches, error
+0: passed by fake /switches --> ignored
+1: fake /switches --> error (for now)
 
 --
 
 &c.factions.default Faction Groups=
 	if(strlen(%1), 
 		u(.msg, factions, Factions doesn't take that switch. See +help factions), 
-		u(c.factions/default)
+		u(c.factions/factions)
 	)
 
 
@@ -121,7 +121,24 @@ Show information about a particular faction
 --------------------------------------------------------------------------------
 -- factions/list ---------------------------------------------------------------
 
-&c.factions/list Faction Groups=Factions/List
+f: list of factions
+c: categorized list of factions
+   <category name>:<list of factions>|...
+
+--
+
+&c.factions/list Faction Groups=
+		strcat(
+			setq(f, u(action.factions)), 
+			setq(c, u(f.categorize-factions)), 
+			list(1, u(.header, List of Factions)), 
+			list(%qc, 
+				u(.divider, first(%i0, :))%r
+				u(.columns, u(<format faction name>, rest(%i0, :)), |), 
+				|
+			), 
+			list(1, u(.footer, words(%qf)))
+		)
 
 
 --------------------------------------------------------------------------------
