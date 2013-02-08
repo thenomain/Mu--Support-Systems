@@ -62,6 +62,19 @@ Sample Usage:
 
 
 --------------------------------------------------------------------------------
+-- Faction Category Filter -----------------------------------------------------
+
+Filters all factions by a certain category.
+
+Sample usage:
+	filter(fil.factions_category, u(action.factions), , , test category)
+
+--
+
+&fil.factions_category Faction Groups=
+	strmatch(get(%0/faction.category), %1)
+
+--------------------------------------------------------------------------------
 -- List of factions someone is a member of -------------------------------------
 
 Sample Usage:
