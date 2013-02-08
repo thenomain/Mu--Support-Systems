@@ -792,5 +792,4 @@ think u(fg/action.clean, test)
 &member.power.#3333 #7673=member
 think u(fg/action.clean, test)
 
---
 
