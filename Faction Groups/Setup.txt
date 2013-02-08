@@ -42,12 +42,11 @@
 &.footer Faction Groups=wfooter(%0)
 &.divider Faction Groups=wdivider(%0)
 
+@@ Format game output message, called: u(.msg, <title>, <message>)
 &.msg Faction Groups=msg(h, %0, %1)
 
 &.isstaff Faction Groups=isstaff(%0)
-
 &.iswiz Faction Groups=hasflag(%0, WIZARD)
-
 &.isapproved Faction Groups=isapproved(%0)
 
 &.crumple Faction Groups=trim(squish(%0))
@@ -60,17 +59,23 @@
 &.rp_ok Faction Groups=u(.isapproved, %0)
 &.rp_not-ok Faction Groups=not(u(.isapproved, %0))
 
-@@ Rhost and some others don't like @@ as the null-delim
+@@ Rhost and some other platforms don't like @@ as a null-delim
+@@ (for iter, list, etc)
 @@ Replace with @@() there instead.
 
 &.@@ Faction Groups=@@
+
+@@ Portability of columns() between TinyMUX and RhostMUSH
+@@ has not yet been reconciled here.
+@@ This is called: u(.columns, <list>, <idelim>, <width>, <separator>, <pad>)
+
+&.columns Faction Groups=vtables(%0, 0, %1, %3, %4)
+
 
 --------------------------------------------------------------------------------
 -- DATA: Important Set-Up Data -------------------------------------------------
 
 &d.one-day Faction Groups=86400
-
-&d.powers Faction Parent=member|view|admin
 
 @@ Tinymux: you can set() 'description' but you can't get() it - huh
 
@@ -83,4 +88,21 @@
 	faction.active 
 	desc
 
+&d.powers Faction Parent=member|view|admin
 
+
+--------------------------------------------------------------------------------
+-- USER-DEFINED FUNCTION: Set up the global function ---------------------------
+
+Different games set up user-defined functions differently. This one needs to be 
+set up with privileges; access control is handled in each specific action.
+
+--
+
+&ufunc.factions Faction Groups=
+	udefault(action.%0, #-1 Faction action not found, %1, %2, %3)
+
+--
+
+think u(fg/ufunc.faction, factions, te)
+think factions(factions, te)
