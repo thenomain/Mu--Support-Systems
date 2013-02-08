@@ -183,31 +183,39 @@ Read default if null
 
 Both gget() and fget() will use this function.
 
-0: drebf to get from (either d.faction_parent or function) - validated
-1: <item|list> - unvalidated
+0: drebf to get from (either d.faction_parent or function)
+1: <item|list> - unvalidated when passed
+
+d: default closest matching %1
 
 --
 
 &f.global_get Faction Groups=
-
+localize(
 	case(0, 
 
-@@ .. no <item|list>
+@@ .. no <item|list>: Return setable defaults
 		gt(trim(strlen(%1)), 0), 
-		lcstr(sort(get(%!/d.settable_defaults), , , |)), 
+		lcstr(sort(v(d.settable_defaults), , , |)), 
 
 @@ .. check each element against the default settable list & return
 		iter(%1, 
 			case(0, 
-				match(v(d.settable_defaults), %i0*), #-1 %i0, 
-				get(
-					%0/[first(sort(lattr(v(d.faction_parent)/%i0*)))]
-				)
+				t(setr(d, 
+					grab(
+						sort(v(d.settable_defaults)), 
+						%i0*
+					)
+				)), 
+				#-1 %i0, 
+
+				get(%0/%qd)
 			), 
 
 			|, |
 		)
 	)
+)
 
 
 --------------------------------------------------------------------------------
@@ -215,13 +223,14 @@ Both gget() and fget() will use this function.
 
 Both gset() and fset() will use this function.
 
-0: drebf to get from (either d.faction_parent or function) - validated
-1: <item|list> - unvalidated
-2: <value> - unvalidated
+0: drebf to get from (either d.faction_parent or function)
+1: <item|list> - unvalidated when passed
+2: <value> - unvalidated when passed
 
 p: dbref of player to add
 f: faction dbref
 d: valid defaults, |-delimited
+g: gloabl item to set
 
 If <item> is null, display names.
 
@@ -480,7 +489,8 @@ localize(
 		regmatch(%1, ^(\\\\[a-zA-Z\\\\]|).*), 
 		#-1 Faction.Category must start with a letter, 
 
-		eq(strlen(setr(e, set(%0, faction.category:[escape(%1)]))), 0), 
+@@		eq(strlen(setr(e, set(%0, faction.category:[escape(%1)]))), 0), 
+		eq(strlen(setr(e, set(%0, faction.category:%1))), 0), 
 		#-1 Set Faction.Category: %qe, 
 
 		1
@@ -536,6 +546,10 @@ think u(fg/f.hasaccess, pmatch(*anderson), #7673, view member admin)
 0: source/player dbref
 1: faction dbref
 
+Returns: 1 or 0
+
+--
+
 &f.cansee Faction Groups=
 	u(fil.cansee_factions, %1, %0)
 
@@ -544,3 +558,38 @@ think u(fg/f.hasaccess, pmatch(*anderson), #7673, view member admin)
 think u(fg/f.cansee, pmatch(*thenomain), #7673)
 think u(fg/f.cansee, pmatch(*anderson), #7673)
 think u(fg/f.cansee, pmatch(*belle), #7673)
+
+
+--------------------------------------------------------------------------------
+-- Categorize Factions ---------------------------------------------------------
+
+0: list of faction dbrefs
+
+c: categories across all dbrefs
+
+Returns: <category>:<list of dbrefs>|...
+
+--
+
+&f.categorize-factions Faction Groups=
+localize(
+	strcat(
+		setq(c, 
+			setunion(
+				iter(%0, u(action.fget, %i0, faction.category), , |), 
+				, |
+			)
+		), 
+		iter(%qc, 
+			strcat(
+				%i0:, 
+				filter(fil.factions_category, %0, %b, %b, %i0)
+			), 
+			|, |
+		)
+	)
+)
+
+--
+
+think u(fg/f.categorize-factions, u(fg/action.factions))
