@@ -42,7 +42,7 @@
 &.footer Faction Groups=wfooter(%0)
 &.divider Faction Groups=wdivider(%0)
 
-@@ Format game output message, called: u(.msg, <title>, <message>)
+@@ u(.msg, <title>, <message>)
 &.msg Faction Groups=msg(h, %0, %1)
 
 &.isstaff Faction Groups=isstaff(%0)
@@ -70,6 +70,8 @@
 @@ This is called: u(.columns, <list>, <idelim>, <width>, <separator>, <pad>)
 
 &.columns Faction Groups=vtable(%0, 0, %1, %3, %4)
+
+&.who Faction Groups=objeval(%#, lwho())
 
 
 --------------------------------------------------------------------------------

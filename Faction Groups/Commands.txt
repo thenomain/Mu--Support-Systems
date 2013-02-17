@@ -125,7 +125,7 @@ Show information about a particular faction
 0: faction name or dbref
 1: fake switches <ignored>
 
-f: list of factions
+f: matching factions list
 c: categorized list of factions
    <category name>:<list of factions>|...
 
@@ -135,19 +135,32 @@ c: categorized list of factions
 	strcat(
 		setq(f, u(action.factions, %0)), 
 		setq(c, u(f.categorize-factions, %qf)), 
+
 		list(1, 
 			u(.header, 
 				strcat(
 					List of Factions, 
-					if(t(%0), %b(Matching '%0'))
+					if(t(%0), %b(matching '%0'))
 				)
 			)
 		), 
+
 		list(%qc, 
-			u(.divider, first(%i0, :))%r
-			[u(.columns, u(display.faction.name.short, rest(%i0, :)), |)], 
+			strcat(
+@@ .. (category header)
+				u(.divider, first(%i0, :)), %r, 
+@@ .. (category contents)
+				u(.columns, 
+					iter(rest(%i0, :), 
+						u(display.faction.name.short, %i0), 
+						, |
+					), 
+					|
+				), 
+			), 
 			|
 		), 
+
 		list(1, u(.footer, words(%qf)))
 	)
 
@@ -155,8 +168,41 @@ c: categorized list of factions
 --------------------------------------------------------------------------------
 -- factions/who ----------------------------------------------------------------
 
-&c.factions/who Faction Groups=
+0: faction name
 
+f: matching factions list
+w: who list for faction, as seen by enactor (%#)
+
+--
+
+&c.factions/who Faction Groups=
+	strcat(
+		setq(f, u(action.factions, %0)), 
+		setq(w, u(action.who, %qf, all)), 
+		case(0, 
+			strlen(%qf), u(.msg, factions/who, No such faction), 
+			t(%qf), u(.msg, factions/who, rest(%qf)), 
+
+			strlen(%qw), u(.msg, factions/who, '[name(%qf)]' has no members), 
+			t(%qw), u(.msg, factions/who, rest(%qw)), 
+
+			strcat(
+				list(1, 
+					strcat(
+						u(.header, faction/who: [name(%qf)]), %r, 
+						u(.divider, <<< 'who' header >>>)
+					)
+				), 
+				list(%qw, 
+					strcat(
+						name(%i0), %b, 
+						<<< etc. should be in 'display.*' attr >>>
+					)
+				), 
+				list(1, u(.footer, [words(%qw)] connected))
+			)
+		)
+	)
 
 
 

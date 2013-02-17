@@ -120,11 +120,11 @@ think setdiff(<roster>, filter(fg/fil.active_players, <roster>, , , u(fg/action.
 
 	filter( fil.connected, <player list> )
 
-Pretty straightforward.
+Pretty straightforward. Respect enactor's permissions.
 
 --
 
-&fil.connected Faction Groups=hasflag( %0, connect )
+&fil.connected Faction Groups=objeval(%#, hasflag( %0, connect ))
 
 
 
