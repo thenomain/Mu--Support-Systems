@@ -37,6 +37,9 @@ Sample Usage:
 
 (Basic Initial Code: Belongs to group or is staff)
 
+	0: faction dbref (list)
+	1: dbref to check against
+
 --
 
 &fil.cansee_factions Faction Groups=

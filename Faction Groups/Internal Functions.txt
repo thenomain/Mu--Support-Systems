@@ -560,6 +560,21 @@ think u(fg/f.cansee, pmatch(*anderson), #7673)
 think u(fg/f.cansee, pmatch(*belle), #7673)
 
 
+-- Restricted Faction? ----
+
+Is this faction somehow "restricted"? For now, this means the object is set "dark".
+Later there may be more.
+See also: fil.cansee_factions
+
+0: faction dbref
+
+returns: 1 or 0
+
+--
+
+&f.faction.restricted? Faction Groups=hasflag(%0, dark)
+
+
 --------------------------------------------------------------------------------
 -- Categorize Factions ---------------------------------------------------------
 

@@ -15,6 +15,7 @@ command, like many others, an optional 's' on it is valid.  e.g., faction/factio
 To each of these (including the first), the following are passed:
 	%0: <stuff>
 	%1: </other/switches>
+	%qn: <command name, e.g. 'factions'>
 
 In the case of the switches, the first valid switch has their command called, 
 if all switches are invalid we call &c.<name>.default or &c.<name>.specific, 
@@ -87,15 +88,15 @@ Show default factions setup: List factions
 
 --
 
-0: passed by fake /switches --> ignored
-1: fake /switches --> error (for now)
+0: passed by fake /switches (ignored)
+1: fake /switches (error, for now)
 
 --
 
 &c.factions.default Faction Groups=
 	if(strlen(%1), 
 		u(.msg, factions, Factions doesn't take that switch. See +help factions), 
-		u(c.factions/factions)
+		u(c.factions/list)
 	)
 
 
@@ -107,19 +108,22 @@ Show information about a particular faction
 --
 
 0: faction name or dbref
-1: fake /switches, errored
+1: fake /switches (error, for now)
 
 --
 
 &c.factions.specific Faction Groups=
 	if(strlen(%1), 
 		u(.msg, factions, Factions doesn't take that switch. See +help factions), 
-		u(c.factions/faction)
+		u(c.factions/list, %0)
 	)
 
 
 --------------------------------------------------------------------------------
 -- factions/list ---------------------------------------------------------------
+
+0: faction name or dbref
+1: fake switches <ignored>
 
 f: list of factions
 c: categorized list of factions
@@ -128,23 +132,31 @@ c: categorized list of factions
 --
 
 &c.factions/list Faction Groups=
-		strcat(
-			setq(f, u(action.factions)), 
-			setq(c, u(f.categorize-factions)), 
-			list(1, u(.header, List of Factions)), 
-			list(%qc, 
-				u(.divider, first(%i0, :))%r
-				u(.columns, u(<format faction name>, rest(%i0, :)), |), 
-				|
-			), 
-			list(1, u(.footer, words(%qf)))
-		)
+	strcat(
+		setq(f, u(action.factions, %0)), 
+		setq(c, u(f.categorize-factions, %qf)), 
+		list(1, 
+			u(.header, 
+				strcat(
+					List of Factions, 
+					if(t(%0), %b(Matching '%0'))
+				)
+			)
+		), 
+		list(%qc, 
+			u(.divider, first(%i0, :))%r
+			[u(.columns, u(display.faction.name.short, rest(%i0, :)), |)], 
+			|
+		), 
+		list(1, u(.footer, words(%qf)))
+	)
 
 
 --------------------------------------------------------------------------------
--- factions/faction ------------------------------------------------------------
+-- factions/who ----------------------------------------------------------------
 
-&c.factions/faction Faction Groups=Factions/faction
+&c.factions/who Faction Groups=
+
 
 
 

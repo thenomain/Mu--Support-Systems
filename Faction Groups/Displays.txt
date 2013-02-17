@@ -5,4 +5,22 @@
 ================================================================================
 == DISPLAYS ====================================================================
 
-<<< None yet! >>>
+
+--------------------------------------------------------------------------------
+-- Short Faction Name ----------------------------------------------------------
+
+0: faction dbref
+return: faction name, [<dark name>] if view rights are restricted
+
+&display.faction.name.short Faction Groups=
+	if(u(f.faction.restricted?, %0),
+		ansi(xh, 
+			strcat( \\[, name(%0), \\] )
+		), 
+		name(%0)
+	)
+
+--
+
+think u(fg/display.faction.name.short, u(fg/action.factions, test))
+think u(fg/display.faction.name.short, u(fg/action.factions, seekrit))

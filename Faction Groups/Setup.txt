@@ -69,7 +69,7 @@
 @@ has not yet been reconciled here.
 @@ This is called: u(.columns, <list>, <idelim>, <width>, <separator>, <pad>)
 
-&.columns Faction Groups=vtables(%0, 0, %1, %3, %4)
+&.columns Faction Groups=vtable(%0, 0, %1, %3, %4)
 
 
 --------------------------------------------------------------------------------
