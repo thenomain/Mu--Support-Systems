@@ -1,0 +1,128 @@
+================================================================================
+== DISPLAY HANGOUTS ============================================================
+
+List one hangout at a time in a list.
+
+         1111111111          3333333333          5555555555          7777777777 
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+  >> Name                                    Map Loc  Details?  People
+  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)  xxxxx      Y       999
+  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)  xxxxx              999 <Night>
+  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx            xxxxx      Y       999 <Day>
+  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx            xxxxx              999
+
+0: f.rank-hangouts
+1: 1 if 'all'
+q0: dbref of main hangout
+q1: complete attribute of hangout
+
+--
+
+&display.hangouts hangouts command=
+
+@@ .. header
+	[u( .header, +hangouts[if( %1, /all )] )] %r
+	%xc%b >> Name [space( 35 )] Map Loc %b Details? %bPeople%xn %r
+@@ for each hangout ...
+	[iter( 
+		%0, 
+		[setq( 0, rest( %i0, : ))]
+		[setq( 1, get( v( d.data )/hangout-%q0 ))]
+@@ .. name
+		%b [ljust( left( first( %q1, ~ ), 32 ), 32 )]
+@@ .. dbref - if jump_ok or viewer is staff
+		[ljust( 
+			ifelse( 
+				or( hasflag( %q0, jump_ok ), orflags( %#, WZw )), 
+				%(%q0%), 
+			), 
+			13 
+		)]
+@@ .. map location
+		[ljust( center( elements( %q1, 3, ~ ), 5 ), 8 )]
+@@ .. details?
+		[center( 
+			ifelse( 
+				last( %q1, ~ ), 
+				Y, 
+			), 
+			7 
+		)]
+@@ .. population
+		%b %b [center( first( %i0, : ), 3 )]
+@@ .. night/day zone?
+		%b[u( f.day-night-zone, %q0 )]
+		, , %r 
+	)]
+
+@@ footer
+	[if( not( %1 ), 
+		%r[center( For a complete list%, use '+hangouts/all', 78 )] 
+	)]
+	%r[u( .footer )]
+
+
+================================================================================
+== DISPLAY DETAIL ==============================================================
+
+Display the detail of a specific hangout
+
+                               Hangout: XXXXX
+ Map Location: xxxx
+ Info: xxxxxxxxxxxxxxxxxxxxxxxxxx <Night>
+ -----------------------------------------------------------------------------
+  Room Name                                                    People
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)     999
+
+0: Full name of hangout
+1: Dbref of hangout
+Returns: Prettified display of hangout
+
+q0: Attrib contents for hangout
+q1: Info part
+
+--
+
+&display.detail hangouts parent=
+	[setq( 0, u( v( d.data )/hangout-%1 ))]
+@@ >> header
+	[u( .header, +hangout %0 )] %r
+@@ .. map loc
+	%b [ansi( %vc, Map Location: )] [extract( %q0, 3, 1, ~) ] %r
+@@ .. info (if applicable)
+	[ifelse( 
+		setr( 1, last( %q0, ~ )), 
+		[wrap( [ansi( %vc, Info: )] %q1, 74, left, %b%b )]%r, 
+	)]
+@@ .. end header
+	%b [u( .divider )] %r
+@@ >> rooms listing
+@@ .. header
+	[ansi( %vc, %b Room Name [space( 53 )] People %r
+	[u( .divider )]%r
+@@ .. list rooms and populations
+	[iter( 
+		extract( %q0, 2, 1, ~ ), 
+@@ .. .. room name
+		%b [ljust( name( %i0 ), 50 )] 
+@@ .. .. room dbref, where applicable
+		[ljust( 
+			ifelse( 
+				cor( hasflag( %i0, jump_ok ), u( .isstaff, %# )), 
+				%(%i0%), 
+			), 
+			13 
+		)] 
+@@ .. .. population
+		[center( 
+			words( filter( filter.people-in-room, lcon( %i0 ))), 
+			3 
+		)] 
+@@ .. .. night/day
+		[u( f.day-night-zone, %i0 )], 
+		, %r
+	)] %r
+@@ >> footer
+	[u( .footer )]
+

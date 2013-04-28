@@ -1,0 +1,43 @@
+================================================================================
+== INFO ========================================================================
+
+Originally set up for TinyMUX 2.4, sometime 1996.
+Updated for TinyMUX 2.10, 2013.
+
+Hangouts Command: Where all the commands are stored
+Hangouts Data: Where all the hangouts are stored
+
+Core data structure: 
+	&hangout-<main dbref>: 
+		<name>~<dbrefs of rooms, main first>~<map loc>~<description>
+
+
+================================================================================
+== SETUP =======================================================================
+
+@create Hangouts Command=10
+@set Hangouts Command=inherit safe
+
+@create Hangouts Data=10
+@set Hangouts Data=safe
+
+
+--------------------------------------------------------------------------------
+-- Data ------------------------------------------------------------------------
+
+@force me=&d.data hangouts command=[num(hangouts data)]
+
+@@ >> ansi color for accents & titles
+@vc hangouts command=c
+
+
+--------------------------------------------------------------------------------
+-- Support Functions -----------------------------------------------------------
+
+&.header hangouts command=header( %0 )
+&.fooder hangouts command=footer( %0 )
+&.divider hangouts command=divider( %0 )
+
+&.isstaff hangouts command=isstaff( %0 )
+
+
