@@ -161,7 +161,7 @@ c: categorized list of factions
 			|
 		), 
 
-		list(1, u(.footer, words(%qf)))
+		list(1, u(.footer, [words(%qf)] factions))
 	)
 
 
@@ -203,6 +203,5 @@ w: who list for faction, as seen by enactor (%#)
 			)
 		)
 	)
-
 
 
