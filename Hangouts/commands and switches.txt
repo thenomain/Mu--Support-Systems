@@ -211,7 +211,7 @@ q3: Boolean: 1 if ! is used (delete room), 0 otherwise.
 )]
 [ifelse( 
 	isstaff( %# ), 
-	ifelse( 
+	ifelse(
 		isdbref( %q0 ), 
 @@ Dbref Stuff
 		ifelse( 
