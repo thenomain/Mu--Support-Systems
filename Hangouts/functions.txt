@@ -9,7 +9,7 @@ Returns: Sorted list in following format:
 
 --
 
-&f.rank-hangouts hangouts parent=
+&f.rank-hangouts hangouts command=
 revwords( sort( 
 	ifelse( 
 		%0, 
@@ -50,7 +50,7 @@ returns: population across all rooms
 
 --
 
-&f.people-in-one-hangout hangouts parent=
+&f.people-in-one-hangout hangouts command=
 	words( 
 		iter( 
 @@ .. get list of rooms in this hangout
@@ -70,7 +70,7 @@ Subsystem to list information about a specific hangout. Mainly the front end to 
 
 --
 
-&f.hangout-specific hangouts parent=
+&f.hangout-specific hangouts command=
 	[setq( 0, u(f.find-named-hangout, %0 ))]
 	[ifelse( 
 		%q0, 
@@ -88,7 +88,7 @@ returns: full name~dbref of first sorted match
 
 --
 
-&f.find-named-hangout hangouts parent=
+&f.find-named-hangout hangouts command=
 grab( 
 	sort( 
 		iter( 
@@ -119,7 +119,7 @@ q1: Current room list
 
 --
 
-&f_addroom-0 hangouts parent=
+&f_addroom-0 hangouts command=
 
 [setq( 0, get( v( d.data )/hangout-%1 ))]
 [setq( 1, elements( %q0, 2, ~ ))]
@@ -155,7 +155,7 @@ q2: Position of %2 in room list
 
 --
 
-&f_addroom-1 hangouts parent=
+&f_addroom-1 hangouts command=
 
 [setq( 0, get( v( d.data )/hangout-%1 ))]
 [setq( 1, extract( %q0, 2, 1, ~ ))]
@@ -198,7 +198,7 @@ returns: <night> for night zone and <day> for day zone
 
 --
 
-&f.day-night-zone hangouts parent=
+&f.day-night-zone hangouts command=
 	switch( 
 		flags( %0 ), 
 		*-*, %xb<Night>%xn, 

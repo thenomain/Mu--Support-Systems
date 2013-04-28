@@ -161,10 +161,10 @@ q0: Hangout~attribute
 
 --
 
-&f_hangout/delete hangouts parent=
+&f_hangout/delete hangouts command=
 
 ifelse(
-	orflags( %#, WZw ), 
+	u( .isstaff, %# ), 
 	ifelse( 
 		setr( 0, u( v( d.data )/hangout-%0 )), 
 @@ .. dbref okay
@@ -197,7 +197,7 @@ q3: Boolean: 1 if ! is used (delete room), 0 otherwise.
 
 --
 
-&f_hangout/room hangouts parent=
+&f_hangout/room hangouts command=
 
 [setq( 0, before( %0, = ))]
 [setq( 2, after( %0, = ))]

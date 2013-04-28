@@ -33,7 +33,7 @@ q1: complete attribute of hangout
 @@ .. dbref - if jump_ok or viewer is staff
 		[ljust( 
 			ifelse( 
-				or( hasflag( %q0, jump_ok ), orflags( %#, WZw )), 
+				or( hasflag( %q0, jump_ok ), u( .isstaff, %# )), 
 				%(%q0%), 
 			), 
 			13 
@@ -84,7 +84,7 @@ q1: Info part
 
 --
 
-&display.detail hangouts parent=
+&display.detail hangouts command=
 	[setq( 0, u( v( d.data )/hangout-%1 ))]
 @@ >> header
 	[u( .header, +hangout %0 )] %r
