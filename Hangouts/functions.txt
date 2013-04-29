@@ -14,15 +14,16 @@ revwords( sort(
 	ifelse( 
 		%0, 
 @@ 1: Give me all of it
-		u( f.calculate-hangouts ), 
+		u( f.calculate-hangouts-pop ), 
 @@ 0: Give me only hangouts with people in them
 		filter( 
 			filter.hangouts-with-people, 
-			u( f.calculate-hangout-pop )
+			u( f.calculate-hangouts-pop )
 		)
 	), 
-	n
+	n 
 ))
+
 
 --------------------------------------------------------------------------------
 -- Calculate Hangout Population ------------------------------------------------
@@ -33,10 +34,10 @@ List all hangouts in the rank-hangouts format:
 
 --
 
-&f.calculate-hangouts hangouts command=
+&f.calculate-hangouts-pop hangouts command=
 	iter( 
-		lattr(v(d.data)/hangout-*), 
-		[u(f.people-in-one-hangout, ##)]:[rest(##, -)] 
+		lattr( v( d.data )/hangout-*), 
+		[u( f.people-in-one-hangout, ## )]:[rest( ##, - )] 
 	)
 
 
@@ -45,7 +46,7 @@ List all hangouts in the rank-hangouts format:
 
 Returns the total population of a single hangout
 
-0: hangout~attribute~contents
+0: hangout-attribute
 returns: population across all rooms
 
 --
@@ -54,9 +55,9 @@ returns: population across all rooms
 	words( 
 		iter( 
 @@ .. get list of rooms in this hangout
-			extract( u( v(d.data)/%0 ), 2, 1, ~ ), 
+			elements( u( v(d.data)/%0 ), 2, ~ ), 
 @@ .. get list of countable people in a room
-			filter( filter.people-in-room, lcon( %i0 ))
+			filter( filter.people-in-room, lcon( %i0, connect ))
 		)
 	)
 
@@ -89,20 +90,25 @@ returns: full name~dbref of first sorted match
 --
 
 &f.find-named-hangout hangouts command=
-grab( 
-	sort( 
-		iter( 
-			lattr( v(d.data )/hangout-* ), 
-			[first( u( v(d.data )/%i0 ), ~)]~[rest( %i0, - )], , | 
+if( 
+	hasattr( v(d.data), hangout-%0 ), 
+	[first( u( v(d.data)/hangout-%0 ), ~)]~%0, 
+
+	grab( 
+		sort( 
+			iter( 
+				lattr( v(d.data )/hangout-* ), 
+				[first( u( v(d.data)/%i0 ), ~)]~[rest( %i0, - )], , | 
+			), 
+			|, | 
 		), 
-		|, | 
-	), 
-	%0*~*, | 
+		%0*~*, | 
+	)
 )
 
 
-
-== ADDROOM ===
+================================================================================
+== ADDROOM =====================================================================
 
 Add a room or delete a room
 
@@ -119,7 +125,7 @@ q1: Current room list
 
 --
 
-&f_addroom-0 hangouts command=
+&f.addroom-0 hangouts command=
 
 [setq( 0, get( v( d.data )/hangout-%1 ))]
 [setq( 1, elements( %q0, 2, ~ ))]
@@ -155,7 +161,7 @@ q2: Position of %2 in room list
 
 --
 
-&f_addroom-1 hangouts command=
+&f.addroom-1 hangouts command=
 
 [setq( 0, get( v( d.data )/hangout-%1 ))]
 [setq( 1, extract( %q0, 2, 1, ~ ))]
@@ -201,12 +207,37 @@ returns: <night> for night zone and <day> for day zone
 &f.day-night-zone hangouts command=
 	switch( 
 		flags( %0 ), 
-		*-*, %xb<Night>%xn, 
-		*~*, %xy<Day>%xn
+		*-*, [ansi( b, <Night> )], 
+		*~*, [ansi( y, <Day> )] 
 	)
 
 
+--------------------------------------------------------------------------------
+-- Personal Hangouts Okay ------------------------------------------------------
 
+Return '1' if room is okay to set or show as a personal hangout.
+That is, both 'jump_ok' and not 'unfindable'.
+
+0: room dbref
+
+--
+
+&f.personal-hangouts-ok hangouts command=
+	andflags( %0, J!U )
+
+
+--------------------------------------------------------------------------------
+-- Map Loc ---------------------------------------------------------------------
+
+How to get the map location from the room dbref.
+Each game will probably have to change this.
+
+0: room dbref
+
+--
+
+&f.map-loc hangouts command=
+	get( %0/coord )
 
 
 

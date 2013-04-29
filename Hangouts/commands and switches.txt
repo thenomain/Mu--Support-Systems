@@ -1,27 +1,25 @@
 ================================================================================
 == INITIAL COMMAND =============================================================
 
-q0: Secured %0, can be safely clobbered after this
+q0: Secured %1, can be safely clobbered after this
 
 --
 
 &c.hangouts hangouts command=
-$+hangout*:@pemit %#=
-	switch(
-		setr( 0, trim( secure( %0 ))), 
+$^hangouts?(.*)$:@pemit %#=
+	switch( 
+		setr( 0, trim( secure( %1 ))), 
 @@ .. no entry (+hangout)
 		, u( c.hangouts.default ), 
 @@ .. a switch with/without argument (+hangout/<switch> [<arg>])
 		/*, u( c.hangouts.switch, after( first( %q0 ), / ), rest( %q0 )), 
-@@ .. specific (+hangout <person>)
-		%b*, u( c.hangouts.specific, trim( %q0 )), 
-@@ .. same, but for '+hangouts', with the 's'
-		s, u( c.hangouts.default ), 
-		s/*, u( c.hangouts.switch, after( first( %q0 ), / ), rest( %q0 )), 
-		s%b*, u( c.hangouts.specific, trim( after( %q0, s ))), 
-@@ .. else, it's garbage
-		Error: Command is '+hangout%[s%]%[/<switch>%] %[<data>%]'
+@@ .. else: specific (+hangout <name>)
+		u( c.hangouts.specific, trim( %q0 ))
 	)
+
+--
+
+@set hangouts command/c.hangouts=regex
 
 
 ================================================================================
@@ -38,15 +36,15 @@ q0: Partial-name-match the switch
 @@ .. no switch passed
 		strmatch( %0, @@( null )), 
 		Null switches not allowed. Valid switches are: 
-		[itemize( iter( sort( lattr( me/f_hangout/* )), lcstr( after( %i0, / ))))], 
+		[itemize( iter( sort( lattr( me/c.hangouts/* )), lcstr( after( %i0, / ))))], 
 @@ .. yes, I know it, hit it
 		t( 
-			setr( 0, grab( sort( lattr( me/f_hangout/* )), f_hangout/%0* ))
+			setr( 0, grab( sort( lattr( me/c.hangouts/* )), c.hangouts/%0* ))
 		), 
 		u( %q0, %1 ), 
 @@ .. else, no, I don't know it
 		No such switch for +hangouts.  Valid switches are: 
-		[itemize( iter( sort( lattr( me/f_hangout/* )), lcstr( after( %i0, / ))))]
+		[itemize( iter( sort( lattr( me/c.hangouts/* )), lcstr( after( %i0, / ))))]
 	)
 
 
@@ -62,7 +60,7 @@ q0: <people>:<main dbref> <people>:<main dbref>, ranked, filtered
 		t( setr( 0, u( f.rank-hangouts, 0 ))), 
 		u( display.hangouts, %q0 ), 
 		There are currently no people at any hangout locations. %r
-		For a complete list of hangouts%, please use '+hangouts/all'.
+		For a complete list of hangouts%, please use '+hangouts/all'. 
 	)
 
 
@@ -78,8 +76,8 @@ q0: First match of sorted name~dbref
 &c.hangouts.specific hangouts command=
 	ifelse( 
 		setr( 0, u( f.find-named-hangout, %0 )), 
-		u( display.detailed, first( %q0, ~ ), rest( %q0, ~ )), 
-		Error: Couldn't find hangout '%0'.
+		u( display.detail, first( %q0, ~ ), rest( %q0, ~ )), 
+		Error: Couldn't find hangout '%0'. 
 	)
 
 
@@ -92,7 +90,7 @@ Just like 'default', but lists all hangouts.
 
 --
 
-&f_hangout/all hangouts command=
+&c.hangouts/all hangouts command=
 	u( display.hangouts, u( f.rank-hangouts, 1 ), 1 )
 
 
@@ -132,8 +130,8 @@ qz: temp register
 @@	isnum( %q2 ), 
 @@	Error: Map locations must be numbers., 
 @@ 
-	lte( strlen( %q2 ), 5 ), 
-	Error: Map locations are at most five characters long., 
+	lte( strlen( %q2 ), v( d.maploc-len ) ), 
+	Error: Map locations are at most [v( d.maploc-len )] characters long., 
 @@ Else, must be okay!  (Re-)Add all entries
 	[ifelse( 
 		%qa, 
@@ -161,7 +159,7 @@ q0: Hangout~attribute
 
 --
 
-&f_hangout/delete hangouts command=
+&c.hangouts/delete hangouts command=
 
 ifelse(
 	u( .isstaff, %# ), 
@@ -183,7 +181,7 @@ ifelse(
 
 
 ================================================================================
-== SWITCH /OOM =============================================================
+== SWITCH /ROOM ================================================================
 
 	+hangouts/room <dbref|hangout name>=[!]<room dbref>
 
@@ -197,7 +195,7 @@ q3: Boolean: 1 if ! is used (delete room), 0 otherwise.
 
 --
 
-&f_hangout/room hangouts command=
+&c.hangouts/room hangouts command=
 
 [setq( 0, before( %0, = ))]
 [setq( 2, after( %0, = ))]
@@ -239,4 +237,47 @@ q3: Boolean: 1 if ! is used (delete room), 0 otherwise.
 		)]
 	), 
 	Error: Only game staff can add or remove rooms from a hangout. 
+)]
+
+
+================================================================================
+== SWITCH /PERSONAL ============================================================
+
+	+hangouts/personal
+	+hangouts/personal [!]<room dbref>
+
+Add or remove a hangout from your private list. Made to be backwards-compatable 
+with some hangouts system we had on The Reach at the time.
+
+Alternatively, list all personal hangouts.
+
+q0: room dbref to add/remove
+q2: will contain '!' if we're deleting the personal hangout
+
+--
+
+&c.hangouts/personal hangouts command=
+
+[setq( 0, before( %0, = ))]
+[setq( 0, if( strmatch( %q0, here ), loc( %# ), %q0 ))]
+[if( t( rest( %q0, ! )), strcat( setq( 2, ! ), setq( 0, rest( %q0, ! ))))]
+
+[case( 0, 
+	comp( %0, ), 
+	u( display.personal-hangouts, get( %#/_hangouts.list ), 1 )
+
+	hastype( %q0, room ), 
+	Error: You must enter a valid main room dbref., 
+
+	cor( t( %q2 ), u( f.personal-hangouts-ok, %q0 )), 
+	Error: Personal hangouts must be both jump_ok and not unfindable., 
+
+@@ .. add
+	t( %q2 ), 
+	[set( %#, _hangouts.list:[setunion( get( %#/_hangouts.list ), %q0 )] )]
+	'[name( %q0 )]' (%q0) was added to your personal hangouts., 
+
+@@ .. remove
+	[set( %#, _hangouts.list:[setdiff( get( %#/_hangouts.list ), %q0 )] )]
+	'[name( %q0 )]' (%q0) was removed from your personal hangouts. 
 )]

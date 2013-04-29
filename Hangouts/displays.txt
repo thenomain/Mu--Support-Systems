@@ -5,61 +5,73 @@ List one hangout at a time in a list.
 
          1111111111          3333333333          5555555555          7777777777 
 12345678901234567890123456789012345678901234567890123456789012345678901234567890
-  >> Name                                    Map Loc  Details?  People
-  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)  xxxxx      Y       999
-  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)  xxxxx              999 <Night>
-  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx            xxxxx      Y       999 <Day>
-  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx            xxxxx              999
+       Name                                                 Info?  Pop.
+(xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)   Y    999 
+(xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)        999  <Night>
+(xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx             Y    999  <Day>
+(xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                  999 
 
-0: f.rank-hangouts
+
+0: u( f.rank-hangouts )
 1: 1 if 'all'
 q0: dbref of main hangout
 q1: complete attribute of hangout
+ql: maploc length
 
 --
 
 &display.hangouts hangouts command=
+	[setq( l, v( d.maploc-len ))]
 
 @@ .. header
 	[u( .header, +hangouts[if( %1, /all )] )] %r
-	%xc%b >> Name [space( 35 )] Map Loc %b Details? %bPeople%xn %r
-@@ for each hangout ...
+	[ansi( 
+		n, space( add( 3, %ql )), 
+		%vc, Name, 
+		n, space( sub( 53, %ql )), 
+		%vc, Info?, 
+		n, %b%b, 
+		%vc, Pop. 
+	)]%r
+
+@@ .. for each hangout ..
 	[iter( 
 		%0, 
 		[setq( 0, rest( %i0, : ))]
 		[setq( 1, get( v( d.data )/hangout-%q0 ))]
+@@ .. map loc
+		[ljust( 
+			u( display.map-loc, elements( %q1, 3, ~ )), 
+			add( %ql, 2 )
+		)] 
 @@ .. name
-		%b [ljust( left( first( %q1, ~ ), 32 ), 32 )]
+		[ljust( first( %q1, ~ ), sub( 46, %ql ) )] 
 @@ .. dbref - if jump_ok or viewer is staff
 		[ljust( 
 			ifelse( 
 				or( hasflag( %q0, jump_ok ), u( .isstaff, %# )), 
 				%(%q0%), 
 			), 
-			13 
-		)]
-@@ .. map location
-		[ljust( center( elements( %q1, 3, ~ ), 5 ), 8 )]
+			11 
+		)] 
 @@ .. details?
-		[center( 
+		[ljust( 
 			ifelse( 
 				last( %q1, ~ ), 
 				Y, 
 			), 
-			7 
+			6 
 		)]
 @@ .. population
-		%b %b [center( first( %i0, : ), 3 )]
-@@ .. night/day zone?
-		%b[u( f.day-night-zone, %q0 )]
-		, , %r 
-	)]
+		[center( first( %i0, : ), 3 )] 
 
-@@ footer
-	[if( not( %1 ), 
-		%r[center( For a complete list%, use '+hangouts/all', 78 )] 
-	)]
-	%r[u( .footer )]
+@@ .. night/day zone?
+		[u( f.day-night-zone, %q0 )], 
+
+		%b, 
+		%r 
+	)]%r
+	[u( .footer, [words( %0 )] hangouts listed )]
 
 
 ================================================================================
@@ -68,12 +80,12 @@ q1: complete attribute of hangout
 Display the detail of a specific hangout
 
                                Hangout: XXXXX
- Map Location: xxxx
- Info: xxxxxxxxxxxxxxxxxxxxxxxxxx <Night>
+   Map Location: xxxx
+   Info: xxxxxxxxxxxxxxxxxxxxxxxxxx <Day/Night>
  -----------------------------------------------------------------------------
-  Room Name                                                    People
- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)     999
+   Room Name                                                            Pop.
+   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)      999
+
 
 0: Full name of hangout
 1: Dbref of hangout
@@ -89,30 +101,29 @@ q1: Info part
 @@ >> header
 	[u( .header, +hangout %0 )] %r
 @@ .. map loc
-	%b [ansi( %vc, Map Location: )] [extract( %q0, 3, 1, ~) ] %r
+	%b [ansi( %vc, Map Loc: )] [extract( %q0, 3, 1, ~) ] %r
 @@ .. info (if applicable)
 	[ifelse( 
 		setr( 1, last( %q0, ~ )), 
 		[wrap( [ansi( %vc, Info: )] %q1, 74, left, %b%b )]%r, 
 	)]
 @@ .. end header
-	%b [u( .divider )] %r
+	[u( .divider )] %r
 @@ >> rooms listing
 @@ .. header
-	[ansi( %vc, %b Room Name [space( 53 )] People %r
-	[u( .divider )]%r
+	[ansi( u%vc, %b Room Name, n, space( 61 ), u%vc, Pop.)]%r
 @@ .. list rooms and populations
 	[iter( 
 		extract( %q0, 2, 1, ~ ), 
 @@ .. .. room name
-		%b [ljust( name( %i0 ), 50 )] 
+		%b [ljust( name( %i0 ), 53 )] 
 @@ .. .. room dbref, where applicable
 		[ljust( 
 			ifelse( 
 				cor( hasflag( %i0, jump_ok ), u( .isstaff, %# )), 
 				%(%i0%), 
 			), 
-			13 
+			16 
 		)] 
 @@ .. .. population
 		[center( 
@@ -126,3 +137,109 @@ q1: Info part
 @@ >> footer
 	[u( .footer )]
 
+
+================================================================================
+== DISPLAY PERSONAL HANGOUTS ===================================================
+
+The only time we'll get this is a list of dbrefs from someone's &hangouts_list attribute. Otherwise works exactly like 'display.hangouts', above.
+
+
+         1111111111          3333333333          5555555555          7777777777 
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+       Name                                                        Pop.
+(xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx) 999 
+(xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx) 999  <Night>
+(xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx) 999  <Day>
+
+
+0: personal hangouts to show, from get( %#/_hangouts.personal )
+
+--
+
+&display.hangouts.personal hangouts command=
+
+@@ .. header
+	[u( .header, +hangouts/personal )] %r
+	[ansi( 
+		n, space( add( 3, %ql )), 
+		%vc, Name, 
+		n, space( sub( 60, %ql )), 
+		%vc, Pop. 
+	)]%r
+
+	[u( display.hangouts.personal.guts, %0)]%r
+	
+	[u( .footer, [words( %0 )] personal hangouts listed )]
+
+
+--------------------------------------------------------------------------------
+-- Guts of the 'Display Personal Hangouts' -------------------------------------
+
+Because 'display.hangouts' will also be calling this, we separate out the 
+header/footer (above) with the line-by-line.
+
+0: list of dbrefs
+
+ql: maploc length
+qo: okay to show - room must be both jump_ok and !unfindable
+
+--
+
+&display.hangouts.personal.guts hangouts command=
+	[setq( l, v( d.maploc-len ))]
+
+@@ .. for each hangout ..
+	[iter( 
+		%0, 
+
+		[setq( o, u( f.personal-hangouts-ok, %i0 ))]
+@@ .. map loc
+		[ljust( 
+			u( display.map-loc, u( f.map-loc, %i0 )), 
+			add( %ql, 2 )
+		)] 
+@@ .. name, unless the personal hangout conditions are not met
+		[ljust( 
+			if( 
+				%qo, 
+				first( %q1, ~ ), 
+				<< cannot view this personal hangout >>
+			), 
+			sub( 53, %ql )
+		)] 
+
+@@ .. always show dbref
+		[ljust( 
+			%(%q0%), 
+			11
+		)]
+
+@@ .. population, unless the personal hangout conditions are not met
+		[center( 
+			if( 
+				%qo, 
+				first( %i0, : ), 
+				@@(null)
+			), 
+			3 
+		)] 
+
+@@ .. night/day zone, unless the personal hangout conditions are not met
+		[if( 
+			%qo, 
+			u( f.day-night-zone, %q0 ), 
+			@@(null)
+		)],  
+
+		%b, 
+		%r 
+	)]
+
+-=-=-=-=-=
+
+&display.map-loc hangouts command=
+	strcat( 
+		%(, 
+		trim( center( %0, v( d.maploc-len ))), 
+		%) 
+	)
