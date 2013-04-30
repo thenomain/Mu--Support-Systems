@@ -14,9 +14,11 @@ List one hangout at a time in a list.
 
 0: u( f.rank-hangouts )
 1: 1 if 'all'
+2: dbref of enactor (%#)
 q0: dbref of main hangout
 q1: complete attribute of hangout
 ql: maploc length
+qp: personal hangouts display, if any
 
 --
 
@@ -71,7 +73,20 @@ ql: maploc length
 		%b, 
 		%r 
 	)]%r
-	[u( .footer, [words( %0 )] hangouts listed )]
+	[if( 
+		t( setr( p, 
+			u( 
+				display.hangouts.personal.guts, 
+				setr( h, 
+					u( f.rank-hangouts.personal, %2, %1 )
+				)
+			)
+		)), 
+		[u( .divider )]%r
+		%qp%r
+	)]
+
+	[u( .footer, [words( %0 %qh )] hangouts listed )]
 
 
 ================================================================================
@@ -152,11 +167,15 @@ The only time we'll get this is a list of dbrefs from someone's &hangouts_list a
 (xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx) 999  <Day>
 
 
-0: personal hangouts to show, from get( %#/_hangouts.personal )
+0: personal hangouts to show, from 
+	u( f.rank-hangouts.personal, get( %#/_hangout.list ), 1 )
+	<pop>:<dbref> <pop>:<dbref>, etc.
 
 --
 
 &display.hangouts.personal hangouts command=
+
+	[setq( l, v( d.maploc-len ))]
 
 @@ .. header
 	[u( .header, +hangouts/personal )] %r
@@ -167,7 +186,7 @@ The only time we'll get this is a list of dbrefs from someone's &hangouts_list a
 		%vc, Pop. 
 	)]%r
 
-	[u( display.hangouts.personal.guts, %0)]%r
+	[u( display.hangouts.personal.guts, %0 )]%r
 	
 	[u( .footer, [words( %0 )] personal hangouts listed )]
 
@@ -178,10 +197,11 @@ The only time we'll get this is a list of dbrefs from someone's &hangouts_list a
 Because 'display.hangouts' will also be calling this, we separate out the 
 header/footer (above) with the line-by-line.
 
-0: list of dbrefs
+0: <pop>:<dbref> <pop>:<dbref>, etc.
 
 ql: maploc length
-qo: okay to show - room must be both jump_ok and !unfindable
+qp: room population
+qd: room dbref
 
 --
 
@@ -192,17 +212,18 @@ qo: okay to show - room must be both jump_ok and !unfindable
 	[iter( 
 		%0, 
 
-		[setq( o, u( f.personal-hangouts-ok, %i0 ))]
+		[setq( p, first( %i0, : ))]
+		[setq( d, rest( %i0, : ))]
 @@ .. map loc
 		[ljust( 
-			u( display.map-loc, u( f.map-loc, %i0 )), 
+			ucstr( u( display.map-loc, u( f.map-loc, %qd ))), 
 			add( %ql, 2 )
 		)] 
 @@ .. name, unless the personal hangout conditions are not met
 		[ljust( 
 			if( 
-				%qo, 
-				first( %q1, ~ ), 
+				isint( %qp ), 
+				name( %qd ), 
 				<< cannot view this personal hangout >>
 			), 
 			sub( 53, %ql )
@@ -210,15 +231,15 @@ qo: okay to show - room must be both jump_ok and !unfindable
 
 @@ .. always show dbref
 		[ljust( 
-			%(%q0%), 
+			%(%qd%), 
 			11
 		)]
 
 @@ .. population, unless the personal hangout conditions are not met
 		[center( 
 			if( 
-				%qo, 
-				first( %i0, : ), 
+				isint( %qp ), 
+				%qp, 
 				@@(null)
 			), 
 			3 
@@ -235,7 +256,15 @@ qo: okay to show - room must be both jump_ok and !unfindable
 		%r 
 	)]
 
--=-=-=-=-=
+
+--------------------------------------------------------------------------------
+-- Display Map Loc -------------------------------------------------------------
+
+A bit of fussing to make sure the (loc) comes out looking right.
+
+0: map loc
+
+--
 
 &display.map-loc hangouts command=
 	strcat( 

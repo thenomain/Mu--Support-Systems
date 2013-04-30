@@ -6,7 +6,7 @@ q0: Secured %1, can be safely clobbered after this
 --
 
 &c.hangouts hangouts command=
-$^hangouts?(.*)$:@pemit %#=
+$^\+hangouts?(.*)$:@pemit %#=
 	switch( 
 		setr( 0, trim( secure( %1 ))), 
 @@ .. no entry (+hangout)
@@ -58,7 +58,7 @@ q0: <people>:<main dbref> <people>:<main dbref>, ranked, filtered
 &c.hangouts.default hangouts command=
 	ifelse(
 		t( setr( 0, u( f.rank-hangouts, 0 ))), 
-		u( display.hangouts, %q0 ), 
+		u( display.hangouts, %q0, , %# ), 
 		There are currently no people at any hangout locations. %r
 		For a complete list of hangouts%, please use '+hangouts/all'. 
 	)
@@ -91,7 +91,7 @@ Just like 'default', but lists all hangouts.
 --
 
 &c.hangouts/all hangouts command=
-	u( display.hangouts, u( f.rank-hangouts, 1 ), 1 )
+	u( display.hangouts, u( f.rank-hangouts, 1 ), 1, %# )
 
 
 ================================================================================
@@ -264,9 +264,12 @@ q2: will contain '!' if we're deleting the personal hangout
 
 [case( 0, 
 	comp( %0, ), 
-	u( display.personal-hangouts, get( %#/_hangouts.list ), 1 )
+	u( display.hangouts.personal, 
+		u( f.rank-hangouts.personal, %#, 1 ), 
+		1 
+	), 
 
-	hastype( %q0, room ), 
+	t( hastype( %q0, room )), 
 	Error: You must enter a valid main room dbref., 
 
 	cor( t( %q2 ), u( f.personal-hangouts-ok, %q0 )), 

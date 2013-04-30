@@ -28,4 +28,3 @@ a.k.a. occupied hangouts - filters out the 0:xxx entries
 &filter.hangouts-with-people hangouts command=
 	gt( first( %0, : ), 0 )
 
-

@@ -32,12 +32,17 @@ List all hangouts in the rank-hangouts format:
 
 	<population>:<main dbref> <population>:<main dbref> 
 
+0: optional list of dbrefs, used to output in this format
+
 --
 
 &f.calculate-hangouts-pop hangouts command=
 	iter( 
-		lattr( v( d.data )/hangout-*), 
-		[u( f.people-in-one-hangout, ## )]:[rest( ##, - )] 
+		if( t( %0 ), 
+			%0, 
+			edit( lattr( v( d.data )/hangout-* ), HANGOUT-, )
+		), 
+		[u( f.people-in-one-hangout, %i0 )]:%i0 
 	)
 
 
@@ -46,7 +51,7 @@ List all hangouts in the rank-hangouts format:
 
 Returns the total population of a single hangout
 
-0: hangout-attribute
+0: hangout main room dbref - or room dbref if it's a personal hangout listing
 returns: population across all rooms
 
 --
@@ -54,9 +59,11 @@ returns: population across all rooms
 &f.people-in-one-hangout hangouts command=
 	words( 
 		iter( 
-@@ .. get list of rooms in this hangout
-			elements( u( v(d.data)/%0 ), 2, ~ ), 
-@@ .. get list of countable people in a room
+			if( hasattr( v(d.data)/hangout-%0 ), 
+				elements( u( v(d.data)/hangout-%0 ), 2, ~ ), 
+				%0
+			), 
+
 			filter( filter.people-in-room, lcon( %i0, connect ))
 		)
 	)
@@ -188,6 +195,60 @@ q2: Position of %2 in room list
 
 
 ================================================================================
+== RANK PERSONAL HANGOUTS ======================================================
+
+Subsystem that lists pop:hangout for player's &_hangout.list list
+
+It's possible that the hangout is no longer publically accessable (j_ok & !unfind), in which case the population will be 'xxx' and relegated to the end of the list for proper display later.
+
+0: player dbref
+1: '1' for 'all', '0' for 'only those with people in it'
+returns: Sorted list in the following format:
+	<population>:<main dbref>
+
+q0: private hangouts list (list of dbrefs)
+q1: viewable hangouts list (list of dbrefs)
+q2: unavailable hangouts list (list of dbrefs)
+
+--
+
+&f.rank-hangouts.personal hangouts command=
+	[setq( 0, get( %0/_hangouts.list ))]
+	[setq( 1, filter( f.personal-hangouts-ok, %q0 ))]
+	[setq( 2, setdiff( %q0, %q1 ))]
+
+	[trim( 
+		[revwords( sort( 
+			if( t( %1 ), 
+				if( t( %q1 ), u( f.calculate-hangouts-pop, %q1 )), 
+				filter( 
+					filter.hangouts-with-people, 
+					u( f.calculate-hangouts-pop, %q1 )
+				)
+			), 
+			n 
+		))]
+		[if( t( %1 ), 
+			%b[iter( %q2, xxx:%i0 )]
+		)] 
+	)]
+
+
+--------------------------------------------------------------------------------
+-- Personal Hangouts Okay ------------------------------------------------------
+
+Return '1' if room is okay to set or show as a personal hangout.
+That is, both 'jump_ok' and not 'unfindable'.
+
+0: room dbref
+
+--
+
+&f.personal-hangouts-ok hangouts command=
+	andflags( %0, J!U )
+
+
+================================================================================
 == OTHER FUNCTIONS =============================================================
 
 
@@ -210,20 +271,6 @@ returns: <night> for night zone and <day> for day zone
 		*-*, [ansi( b, <Night> )], 
 		*~*, [ansi( y, <Day> )] 
 	)
-
-
---------------------------------------------------------------------------------
--- Personal Hangouts Okay ------------------------------------------------------
-
-Return '1' if room is okay to set or show as a personal hangout.
-That is, both 'jump_ok' and not 'unfindable'.
-
-0: room dbref
-
---
-
-&f.personal-hangouts-ok hangouts command=
-	andflags( %0, J!U )
 
 
 --------------------------------------------------------------------------------
