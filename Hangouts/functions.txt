@@ -59,9 +59,9 @@ returns: population across all rooms
 &f.people-in-one-hangout hangouts command=
 	words( 
 		iter( 
-			if( hasattr( v(d.data)/hangout-%0 ), 
+			if( hasattr( v(d.data), hangout-%0 ), 
 				elements( u( v(d.data)/hangout-%0 ), 2, ~ ), 
-				%0
+				%0 
 			), 
 
 			filter( filter.people-in-room, lcon( %i0, connect ))
