@@ -259,8 +259,8 @@ q2: will contain '!' if we're deleting the personal hangout
 &c.hangouts/personal hangouts command=
 
 [setq( 0, before( %0, = ))]
-[setq( 0, if( strmatch( %q0, here ), loc( %# ), %q0 ))]
 [if( t( rest( %q0, ! )), strcat( setq( 2, ! ), setq( 0, rest( %q0, ! ))))]
+[setq( 0, if( strmatch( %q0, here ), loc( %# ), %q0 ))]
 
 [case( 0, 
 	comp( %0, ), 
