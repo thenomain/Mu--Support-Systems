@@ -423,6 +423,13 @@ All maps belong INSIDE the Map System.
 @fo me=&d.parent Map System=[num(Parent Map Object)]
 &d.default-map Map System=#xxx
 
+
+--------------------------------------------------------------------------------
+-- Map System: Cross-Platform Functions ----------------------------------------
+
+&.msg Map System=ansi(%0, < %1 >)%b
+
+
 --------------------------------------------------------------------------------
 -- Map System: Pseudo-Mistress Set-Up ------------------------------------------
 
@@ -609,7 +616,7 @@ qk: map's key (if any)
 -- Map System: +map/list -------------------------------------------------------
 
 &c.map/list Map system=
-	[msg(h, +map/list)]
+	[u(.msg, h, +map/list)]
 	[itemize(
 		iter(
 			iter(lcon(%!), if(u(%i0/fil.see-layer, default, %#), %i0)),
@@ -621,7 +628,7 @@ qk: map's key (if any)
 
 --
 
-&c.map/list Map system=[msg(h, +map/list)][itemize(iter(iter(lcon(%!), if(u(%i0/fil.see-layer, default, %#), %i0)), name(%i0), , |), |)]
+&c.map/list Map system=[u(.msg, h, +map/list)][itemize(iter(iter(lcon(%!), if(u(%i0/fil.see-layer, default, %#), %i0)), name(%i0), , |), |)]
 
 
 --------------------------------------------------------------------------------
