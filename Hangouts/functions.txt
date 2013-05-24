@@ -219,8 +219,11 @@ q2: unavailable hangouts list (list of dbrefs)
 
 	[trim( 
 		[revwords( sort( 
-			if( t( %1 ), 
-				if( t( %q1 ), u( f.calculate-hangouts-pop, %q1 )), 
+			case( 1, 
+				cand( t( %1 ), t( %q1 )), 
+				u( f.calculate-hangouts-pop, %q1 ), 
+
+				t( %0 ), 
 				filter( 
 					filter.hangouts-with-people, 
 					u( f.calculate-hangouts-pop, %q1 )
@@ -229,7 +232,7 @@ q2: unavailable hangouts list (list of dbrefs)
 			n 
 		))]
 		[if( t( %1 ), 
-			%b[iter( %q2, xxx:%i0 )]
+			%b[iter( %q2, xxx:%i0 )] 
 		)] 
 	)]
 
