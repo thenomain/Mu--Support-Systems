@@ -223,7 +223,7 @@ q2: unavailable hangouts list (list of dbrefs)
 				cand( t( %1 ), t( %q1 )), 
 				u( f.calculate-hangouts-pop, %q1 ), 
 
-				t( %0 ), 
+				t( %q1 ), 
 				filter( 
 					filter.hangouts-with-people, 
 					u( f.calculate-hangouts-pop, %q1 )
