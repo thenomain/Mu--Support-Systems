@@ -147,7 +147,7 @@ localize(
 &translate.template asf=rp template is [if(t(%0), not%b)]'%1'
 
 
-@@ --
+@@ ----------------------------------------
 @@ stat:<stat name>[:<value>]
 @@ if <value> is numeric, greater-than
 @@ !stat:<name>:<numeric value> will check less-than-or-equal-to
