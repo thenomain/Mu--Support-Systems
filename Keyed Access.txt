@@ -145,3 +145,49 @@ localize(
 &access.template asf=strmatch(get(%0/_template), %1)
 
 &translate.template asf=rp template is [if(t(%0), not%b)]'%1'
+
+
+@@ --
+@@ stat:<stat name>[:<value>]
+@@ if <value> is numeric, greater-than
+@@ !stat:<name>:<numeric value> will check less-than-or-equal-to
+
+&access.stat asf=
+	if( strlen( %2 ), 
+		if( isint( %2 ), 
+			gte( 
+				elements( stat( %0, %1:*[if( strlen( %3 ), :%3 )] ), 2, : ), 
+				%2 
+			), 
+			stat( %0, %1:%2[if( strlen( %3 ), :%3 )] )
+		), 
+		t( stat( %0, %1:*[if( strlen( %3 ), :%3 )] )
+		)
+	)
+
+
+&translate.stat asf=
+	if(
+		%0, 
+		stat '%1[if( strlen( %3 ), %b( %3 ))]' is 
+		[if( strlen(%2), 
+			if( isint( %2 ), 
+				less than '%2', 
+				not '%2'
+			), 
+			not set 
+		)], 
+
+		stat '%1[if( strlen( %3 ), %b( %3 ))]' is 
+		[if( strlen( %2 ), 
+			if( isint( %2 ), 
+				at least '%2', 
+				'%2' 
+			), 
+			set 
+		)]
+	)
+
+--
+
+think [setq( t, Gnosis )][setq( l, 2 )][setq( h, inc( 3 ))][ansi( y, %qt between %ql and [dec( %qh )])] :: [iter( search( eplayer=cand( isapproved( ## ), not( isstaff( ## )), u( asf/f.access, ##, stat:%qt:%ql ), u( asf/f.access, ##, !stat:%qt:%qh ))), name( %i0 ), , %b---%b )]
