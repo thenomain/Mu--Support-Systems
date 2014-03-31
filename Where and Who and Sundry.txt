@@ -1,0 +1,81 @@
+WHO wishlist:
+	Filter by name
+	Filter by watchlist
+	Filter out 'idle' people
+	Include 'comment' feature from watchlist
+
+WHERE wishlist:
+	Include all 'WHO' options
+	Sort by largest->smallest population, then least->most idle people
+	Sort alpha by location
+	Filter by hangout/directory	
+	'n' columns option
+
+&watchlist: As the current code.
+&idle: Idle time in seconds to filter people who are 'idle'. Default: 15m
+
+Function format:
+
+	who( ) -- lwho
+	who( <partial name> ) -- lwho filtered by partial name match
+	who( <target>/<list> ) -- lwho as by <target> filtered by <list>
+		/watchlist
+		/location
+	who( <target>/<list>, <partial name> ) -- as above, filtered by <name>	
+
+
+==================================> Vote 16 <==================================
+ ----------------------------< Theno's Next Code >----------------------------
+What should Thenomain recode next from the ground up? If you want to see a particular feature, include it in your: +vote 16=<option>/<reasons>.
+
+ ----------------------------------< VOTES >----------------------------------
+Faction         - The +factions code to be more automated and expand        31
+Invequip        - Easier to search, order, assign, prove, etc.              24
+Other           - Include your write-in vote                                17
+Where           - Give +where more options so I can sort it alphabet        41
+
+ ---------------------------------< REASONS >---------------------------------
+Where      - The +where kickback is incredibly spammy. For people who are dysgraphic, like me, it is nigh upon useless. I literally give myself headaches trying to find people on it. Sorting is helpful, as is setting it up so that it uses multiple columns (possibly two columns with truncated room names?). Thanks!
+Other      - Do a chargen. We need it. THat's why.
+Where      - Give +where more options so I can add a short comment to remind me where I know each person from/relationship/alts I know them as.
+INVEQUIP   - Because.
+Where      - Most frequently used command out of those listed
+where      - Because I want to be able to sort alphabetically and sort out people who've been idle more than 30 minutes.
+Other      - The process c-gen might be a lot easier and smoother for everyone if that was streamlined?
+Where      - Can individual locations have their own +where to indicate where people are at in the building/hangout?
+Other      - Abstain (this should have been an option, so alts can get rid of the +vote notification, I voted on Shayde, but if I don't vote, I'll keep seeing that there is a +vote, and might then miss a PC-specific one, will be abstaining on Eleanor, Kitty and Ottaway, too)
+INVEQUIP   - I'd like to be able to see at least my weapons on my +sheet.
+FACTION    - Faction code is clunky and hard to maintain.
+OTHER      - Make +posebreak on by default. Have it be opted out. SO FUCKING SICK OF EVERYONE INSERTING GARBAGE BEFORE THEIR POSE AND FUCKING UP MY LOOOOOOOOOOOOOOGS.
+WHERE      - I am tired of having to squint at a huge output.
+other      - A more streamlined character generation that includes supernatural.
+Faction    - There are a couple of requests sitting around about adjusting the faction rankings if I recall correctly. If it were automated in such a way as to make a better mousetrap? I'm gung ho for that!
+Other      - Abstain
+Where      - Much as I'd love to see faction code upgraded the +where is freaking MASSIVE. The ability to sort it in various ways would ease eyestrain and hunting. Yes please!
+FACTION    - Most used
+Other      - +kink! :P And an afinger attribute, so you can see when someone +fingers you. I include +kink for 2 reasons: One, the comment reminded my perverse mind of it, and two - it's just useful! For afinger - It's always nice to notice when someone takes an interest and is seeing what you're about. I've forged some incredible RP friendships after sending tells (or receiving them) from people using +finger.
+Where      - Give +where more options so I can add a short comment to remind me where I know each person from/relationship/alts I know them as.
+FACTION    - Because the current way it works leads to it being frequently out of date in various ways, some of which, at least, could be better automated.
+other      - Supernatural portion of chargen to avoid horrible app jobs.
+where      - Probably the item that would see the most use out of these four, though they all sound good.
+other      - I really dont have any input to add. Lump this vote in with the one that gets the most.
+FACTION    - There is literally no way that I can tell to see JUST a list of factions I have access to. This needs to be rectified!
+Other      - Abstain
+Invequip   - Important Stuff. Also quite frequented by some and the most useful.
+where      - The current where is very clunky and hard to read, it would be nicer if each person's entry was on a single line.
+Invequip   - Seems the most cumbersome that would benefit from being streamlined.
+Other      - Make it so +events can be sorted by a faction/group. I find it hard finding things that can be associated specifically to my character. So for instance I type +event/mage and it will list all of the mage events that my mage can join.
+Other      - I want that +kinks list, code monkey. Get to.
+WHERE      - While much more "quality of life" to some, I use +where to find not only my friends, but also see if there is anything interesting going on, so that I can then contact people about if I can join them for RP. Right now, I can barely find the people on my +watch list even with ansi highlighting, and locating a specific place in the list is a nightmare. Even seeing who is in a room is confusing because the names are out of order. I'll be the firt to admit that perhaps this aspect of the code is not as vital to others or that it may be fine for them, and that in that regard it may be of a lesser priority. However, my reason -- that it is an important tool for me to find RP, and one that I can not really make use of very efficiently -- is still the reason I submit for my vote. I can not speak for others, but I can speak for myself.
+other      - Provable +notes.
+Other      - Abstain
+other      - provable notes
+Faction    - Factions get hilariously out of date and jumbled so quickly, it'd be great if we could get a more accurate representation of what's up with a particular faction. I don't know about the others, but the Vampire factions are hilariously out of whack with the number of active people in the sphere carying wildly from faction to faction.
+OTHER      - A Pactkeeping code like Pledge to keep track of Pacts!
+Other      - I want Thenomain to code +cupcakes. Gluten free +cupcakes.
+INVEQUIP   - I still want the wiki to show equipment costs and the +inv to show when something was equipped on a player.
+faction    - Because it's so broke >.<
+WHERE      - I would actually like to see a +where that separates those who are IC (have been IC-posting recently) from those who have been OOC/Idle for a while. When I do +where now, it's rather intimidating to sort through the enormous list of single people in various rooms.
+faction    - Because it is the bit of code I actually use.
+
+===============================================================================
