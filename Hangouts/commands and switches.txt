@@ -284,3 +284,22 @@ q2: will contain '!' if we're deleting the personal hangout
 	[set( %#, _hangouts.list:[setdiff( get( %#/_hangouts.list ), %q0 )] )]
 	'[name( %q0 )]' (%q0) was removed from your personal hangouts. 
 )]
+
+
+================================================================================
+== SWITCH /WHO =================================================================
+
+(a good deal of this code is Alzie's, then tweaked for my code bugaboos) 
+
+--
+
+&c.hangouts/who hangouts command=
+	case( 0, 
+		words( %0 ), 
+		Error: You didn't put in a hangout name., 
+
+		t( setr( 0, u( f.find-named-hangout, %0 ))), 
+		Error: Couldn't find hangout '%0'., 
+
+		u( display.hangout.who, %q0 )
+	)

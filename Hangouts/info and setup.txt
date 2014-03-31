@@ -43,4 +43,4 @@ Core data structure:
 
 &.isstaff hangouts command=isstaff( %0 )
 
-
+&.plural hangouts command=plural( %0, %1, %2 )

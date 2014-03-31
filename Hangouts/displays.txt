@@ -272,3 +272,72 @@ A bit of fussing to make sure the (loc) comes out looking right.
 		trim( center( %0, v( d.maploc-len ))), 
 		%) 
 	)
+
+
+
+================================================================================
+== DISPLAY HANGOUT/WHO =========================================================
+
+The current drawback to this is that it doesn't work as a fully realized WHO.
+Staff who would normally be able to see unfindable people can't.
+Staff who would normally be able to see dark wizards can't.
+
+
+0: output from f.find-named-hangout: <name>~<main dbref>
+q1: attribute contents: <name>~<rooms list>~<map loc>~<notes>
+
+qc: per room: connected people, minus dark wizards
+qp: per room: findable people
+qn: per room: number of visible people
+qf: per room: number of findable people
+
+--
+
+&display.hangout.who hangouts command=
+	[setq( 1, 
+		get( [v( d.data )]/hangout-[after( %0, ~ )] )
+	)]
+
+	[u( .header, +hangout [before( %0, ~ )] )]%r
+
+	%b [ansi( %vc, Map Loc: )] [elements( %q1, 3, ~ )]%r
+	[u( .divider )]%r
+	[ansi(  %vc, %b Room Name )]%r%r
+
+@@ >> for each room ...
+	[iter( elements( %q1, 2, ~ ), 
+		[setq( c, filter( filter.people-in-room, lcon( %i0, CONNECT )))]
+		[setq( p, filter( filter.findable-only, %qc ))]
+		[setq( n, words( %qp ))]
+		[setq( f, sub( words( %qc ), %qn ))]
+
+		%b [ljust( name( %i0 ), 53 )]
+
+@@ ... show dbref for staff and any j_ok rooms
+		[if( 
+			cor( 
+				u( .isstaff, %# ), 
+				hasflag( %i0, jump_ok )
+			), 
+			ljust( %(%i0%), 16 )
+		)]%r
+		%b %b 
+		[ansi( hw, 
+			case( 1, 
+				hasflag( %i0, unfindable ), 
+				%qn [u( .plural, %qn, person, people )] here, 
+
+@@ ... list visible people and make note of unfindable people ...
+				strcat(
+					itemize( iter( %qp, name( %i0 ), , | ), | ), 
+					if( %qf, 
+						%,%bplus %qf [u( .plural, %qf, other, others )] 
+					)
+				)
+
+			)
+		)], 
+		, %r 
+	)]%r
+
+	[u( .footer )]
