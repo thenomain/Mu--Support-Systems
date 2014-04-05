@@ -19,9 +19,183 @@ Function format:
 	who( ) -- lwho
 	who( <partial name> ) -- lwho filtered by partial name match
 	who( <target>/<list> ) -- lwho as by <target> filtered by <list>
-		/watchlist
 		/location
-	who( <target>/<list>, <partial name> ) -- as above, filtered by <name>	
+		/watchlist
+		/hangout
+	who( <target>/<list>, <partial name> ) -- as above, filtered by <name>
+
+
+
+================================================================================
+== SETUP: Who ==================================================================
+
+@create New Who Object <nwo>
+@set nwo=Inherit
+@set nwo=Safe
+
+@parent nwo=Code Object Data Parent <codp>
+&prefix.user_function_actions nwo=action.
+
+--
+
+&global_functions me=##YOUR GLOBAL FUNCTIONS OBJECT##
+
+This is if you have @function/add locked to #1, like most games.
+Else:
+	@fo me=&global_functions me=[num( nwo )]
+
+
+================================================================================
+== USER DEFINED FUNCTIONS ======================================================
+
+REMEMBER TO HOOK THIS INTO WHATEVER YOUR USER-DEFINED FUNCTION SETUP IS!
+
+
+--------------------------------------------------------------------------------
+-- nwho() ----------------------------------------------------------------------
+
+New-Who()
+
+	nwho( ) -- lwho
+	nwho( <partial name(s)> ) -- lwho filtered by partial name match
+	nwho( <action> ) -- do a thing
+	nwho( <action>, <input> ) -- lwho filtered by partial name match
+
+If you need to run this as someone else:
+	objeval( *player, nwho( <action> ))
+
+
+Actions:
+	lwho (default)
+	location
+	watchlist
+	hangout
+
+--
+
+0: item of interest, player or players
+1: action (optional, defaults to 'lwho')
+
+--
+@@ on v( global_functions ), not nwo; needs %@ to be correct
+@@ I would normally set this as :: 
+@@ 		&ufunc.nwho nwo=
+
+&fp_nwho [v( global_functions )]=
+	strcat( 
+		setq( a, 
+			grab( 
+				edit( sort( lattr( ##NWO##/action.* )), ACTION., ), 
+				%1* 
+			)
+		), 
+
+		case( 0, 
+			strlen( %1 ), 
+			u( ##NWO##/action.lwho, %@, %0 ), 
+			
+			hasattr( ##NWO##, action.%qa ), 
+			#-1 ACTION NOT FOUND, 
+
+			u( ##NWO##/action.%qa, %@, %0 )
+		)
+	)
+
+--
+
+@fo me=@edit [v( global_functions )]/fp_nwho=##NWO##, [num( nwo )]
+
+--
+
+This is probably the last time this is used.
+
+
+--------------------------------------------------------------------------------
+-- who(): lwho -----------------------------------------------------------------
+
+0: enactor
+1: partial names (optional)
+
+returns: everyone online (matching 'partial name')
+
+--
+
+&action.lwho nwo=
+	strcat( 
+		setq( w, u( f.lwho, %0 )), 
+		if( strlen( %1 ), 
+			iter( %1, filter( filter.name-from-dbref, %qw, , , %i0 )), 
+			%qw 
+		)
+	)
+
+
+--------------------------------------------------------------------------------
+-- who(): location -------------------------------------------------------------
+
+0: enactor
+1: partial name (optional, defaults to %0)
+
+returns: everyone visible at %1's location
+
+--
+
+&action.location nwo=
+	strcat( 
+		setq( t, if( strlen( %1 ), u( .pmatch, %1 ), %0 )), 
+		setq( w, u( f.lwho, %0 )), 
+
+		case( 0, 
+			cand( t( %1 ), t( %qt )), 
+			#-1 TARGET NOT FOUND, 
+
+			t( u( f.findable, %qt, %0 )), 
+			#-1 TARGET UNFINDABLE, 
+
+			filter( 
+				f.findable, 
+				filter( filter.lattr-from-lwho, %qw, , , loc( %qt )), 
+				, , %0
+			)
+		)
+	)
+
+
+
+================================================================================
+== FUNCTIONS ===================================================================
+
+&f.lwho nwo=objeval( %0, lwho( ))
+
+&f.findable nwo=
+cor( 
+	isstaff( %1 ), 
+	not( cor( 
+		hasflag( %0, UNFINDABLE ), 
+		hasflag( loc( %0 ), UNFINDABLE )
+	))
+)
+
+
+
+================================================================================
+== OTHER FUNCTIONS =============================================================
+
+&.isstaff nwo=isstaff( %0 )
+&.pmatch nwo=pmatch++( %0 )
+
+
+
+================================================================================
+== FILTERS =====================================================================
+
+@@ (does not work with aliases like pmatch++ checks)
+&filter.name-from-dbref nwo=strmatch( name( %0 ), %1* )
+
+&filter.lattr-from-lwho nwo=strmatch( loc( %0 ), %1 )
+
+
+
 
 
 ==================================> Vote 16 <==================================
