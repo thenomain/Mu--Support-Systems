@@ -1,0 +1,344 @@
+********************************************************************************
+** NOTES ***********************************************************************
+********************************************************************************
+
+You say, “All staff votes, as many players as want to vote, if 100% of staff votes one way it's locked but 60% of voting players can overturn it.”
+
+
+
+********************************************************************************
+** VOTE DATABASE ***************************************************************
+********************************************************************************
+
+@create Vote Database <vd>=10
+@set Vote Database=safe
+@set Vote Database=inherit
+
+@parent Vote Database=Code Object Parent
+&prefix.votes Vote Database=v.*.name
+&prefix.functions Vote Database=_f.
+
+
+================================================================================
+== Vote Issue Format ===========================================================
+
+Things we need to record...
+
+	Issue Name
+	Issue Description (optional)
+	#: Option Name
+	#: Option Description (optional)
+	#: Dbrefs of Voters
+
+We'll do this on a single object in the format v.<num>.<item>:
+
+	&v.<num>.name: <name/title of vote>
+	&v.<num>.desc: <description of vote>
+	&v.<num>.optn.<num>: <name/desc of option>|<voted dbrefs for option>
+
+Where <num> is "1" to <n>.  A hard limit for <n> is provided in the preferences section of the code object.
+
+
+================================================================================
+== Database Functions ==========================================================
+
+I'm going to do something a little different this time around, and put code that could be reported by a more "normal" database on the db object itself.
+
+While the &_ prefix is "wizard/dark" in TinyMUX, the intent is not to lock the functions to local only, but to make it visibly different from the votes.
+
+--
+
+The quickest way to extract the <num> from a list of attributes is to use edit() to .  For example, to grab the vote id from all votes:
+
+	sort(edit(edit(lattr(v.*.name), v.), .name, ))
+
+We would use regeditall() if both TinyMUX and RhostMUSH provided this.
+
+--
+
+--------------------------------------------------------------------------------
+-- Indicies and Counters -------------------------------------------------------
+
+&_f.index.id Vote Database=sort(edit(edit(lattr(%!/v.*.name), .NAME, ), V., ))
+&_f.index.name-and-id Vote Database=iter(u(_f.index.id), [v(v.%i0.name)]:%i0, , |)
+
+&_f.counter-last Vote Database=last(u(_f.index.id))
+&_f.counter-next Vote Database=inc(u(_f.counter-last))
+
+&_f.option-last Vote Database=
+&_f.option-next Vote Database=
+
+
+--------------------------------------------------------------------------------
+-- Select: Name, Desc, Options, Option <#> -------------------------------------
+
+u(_f.select, <type>, <issue #>)
+
+&_f.select Vote Database=udefault(_f.select.%0, #-1 select not found, %1, %2)
+&_f.select.name Vote Database=default(v.%0.name, #-1 id %0 not found)
+&_f.select.desc Vote Database=default(v.%0.desc, #-1 desc not found for id %0)
+&_f.select.options Vote Database=localize([setq(0, lattr(%!/v.%0.optn.*))][case(0, t(%q0), #-1 options not found for id %0, sort(edit(%q0, V.%0.OPTN., )))])
+&_f.select.option Vote Database=default(v.%0.optn.%1, #-1 option %1 not found for id %0)
+
+
+--------------------------------------------------------------------------------
+-- Test Issue ------------------------------------------------------------------
+
+&v.1.name Vote Database=Test Issue
+&v.1.desc Vote Database=If you were to test this vote, would it work?  Let's say that there's a very long description, too.%r%rLet's also put a return in it.%r%t- [ansi(ch, Boldness!)]
+&v.1.optn.1 Vote Database=Hell Yes!
+&v.1.optn.2 Vote Database=No, Just ... No.
+&v.1.optn.3 Vote Database=Maybe?
+
+--
+
+think u(vd/_f.index.id)
+think u(vd/_f.index.name-and-id)
+
+think u(vd/_f.counter-last)
+think u(vd/_f.counter-next)
+
+think u(vd/_f.select, name, 1)
+think u(vd/_f.select, desc, 1)
+think u(vd/_f.select, options, 1)
+think iter(u(vd/_f.select, options, 1), u(vd/_f.select, option, 1, %i0), , %r)
+
+
+
+********************************************************************************
+** VOTE CODE OBJECT ************************************************************
+********************************************************************************
+
+@create Vote Object <vo>=10
+@set Vote Object=inherit
+@set Vote Object=safe
+
+@parent Vote Object=Code Object Parent
+&prefix.preferences Vote Object=pref.
+
+
+================================================================================
+== DATA/PREFRENCES =============================================================
+
+These are items to set between games and setups.
+
+--------------------------------------------------------------------------------
+--- Preferences: Defaults ------------------------------------------------------
+
+	issue-db: Dbref of the "issues" object.
+
+	max-issues: The maximum number of issues allowed at one time.
+		(100: Being as Rhost friendly as I can)
+
+	age-timeout: Age (in days) for the default vote to last
+
+
+&pref.issue-db Vote Object=#VOTE_DATBASE
+
+&pref.max-issues Vote Object=100
+&pref.age-timeout Vote Object=7
+
+
+--------------------------------------------------------------------------------
+--- Preferences: Formatting ----------------------------------------------------
+
+&pref.header Vote Object=header(%0)
+&pref.footer Vote Object=footer(%0)
+&pref.divider Vote Object=divider(%0)
+
+
+--------------------------------------------------------------------------------
+--- Preferences: Bboard --------------------------------------------------------
+
+These are items for interfacing with a Myrddin (or other) bboard.
+
+	bboard-command: Command to use to post to the bboard, replaces tokens.
+		#BOARDNUM#: Which bb number (or ID) to post to?
+		#TOPIC#: Topic/title of post
+		#CONTENT#: Board content
+
+	bboard-notify: Bboard # to post common alerts to.
+	bboard-staff: Board # to post staff-only alerts to.
+
+
+&pref.bboard-command Vote Object=+bbpost #BOARDNUM#/#TOPIC#=#CONTENT#
+&pref.bboard-notify Vote Object=1
+&pref.bboard-staff Vote Object=7
+
+
+================================================================================
+== +VOTE: THE BASICS ===========================================================
+
+Standard Mistress Code stuff.  Both "vote" and "votes" are valid.
+
+&c.vote Vote Object=
+	$+vote*:@pemit %#=
+	[switch(%0, 
+		@@(<null>), u(c.vote.default), 
+		s, u(c.vote.default), 
+		s/*, u(c.vote.switched, first(after(%0, /)), rest(%0)), 
+		/*, u(c.vote.switched, first(after(%0, /)), rest(%0)), 
+		s *, u(c.vote.specific, trim(rest(%0))), 
+		%b*, u(c.vote.specific, trim(%0)), 
+		Error: +vote's format is +vote or +vote%[/<switch>%] <topic>
+	)]
+
+--
+
+&c.vote Vote Object=$+vote*:@pemit %#=[switch(%0, @@(<null>), u(c.vote.default), s, u(c.vote.default), s/*, u(c.vote.switched, first(after(%0, /)), rest(%0)), /*, u(c.vote.switched, first(after(%0, /)), rest(%0)), s *, u(c.vote.specific, trim(rest(%0))), %b*, u(c.vote.specific, trim(%0)), Error: +vote's format is +vote or +vote%[/<switch>%] <topic>)]
+
+
+--------------------------------------------------------------------------------
+-- Vote Switcher: Process possible switches ------------------------------------
+
+&c.vote.switched Vote Object=
+	[setq(m, lattr(%!/c.vote/%0*))]
+	[case(0, 
+		words(lattr(%!/c.vote/*)), Error: +vote does not take switches., 
+	
+		neq(words(%qm), 1), u(%qm, %1), 
+
+		[case(1, 
+			gt(words(%qm), 1), Error: Too many matches, 
+			lt(words(%qm), 1), Error: No match, 
+			Error: Unknown reason
+		)]%r
+		Possible Switches: 
+			[itemize(titlestr(iter(lattr(%!/c.vote/*), rest(%i0, /))))]
+	)]
+
+--
+
+&c.vote.switched Vote Object=[setq(m, lattr(%!/c.vote/%0*))][case(0, words(lattr(%!/c.vote/*)), Error: +vote does not take switches., neq(words(%qm), 1), u(%qm, %1), [case(1, gt(words(%qm), 1), Error: Too many matches, lt(words(%qm), 1), Error: No match, Error: Unknown reason)]%rPossible Switches: [itemize(titlestr(iter(lattr(%!/c.vote/*), rest(%i0, /))))])]
+
+
+--------------------------------------------------------------------------------
+-- +vote: List all issues ------------------------------------------------------
+
+&c.vote.default Vote Object=u(vote/list)
+
+
+--------------------------------------------------------------------------------
+-- +vote *: Display that vote --------------------------------------------------
+
+&c.vote.specific Vote Object=-- display one vote here --
+
+
+================================================================================
+== +VOTE/LIST: LIST ALL TOPICS =================================================
+
+t: topics id list
+
+&c.vote/list Vote Object=
+	[setq(t, u(v(pref.issue-db), _f.index.id))]
+	[u(pref.header, Active Topics)]%r
+	
+	[iter(%qt, 
+		%b[ljust(%qt, strlen(v(pref.max-issues)))]. 
+		[rjust(u(v(pref.issue-db)/_f.select.name, %i0), 20)] 
+		[ansi(xh, -- basic vote info here --)], 
+		, %r
+	)]
+
+	%r
+	[u(pref.footer, words(%qt))]
+
+--
+
+&c.vote/list Vote Object=
+	[setq(t, u(v(pref.issue-db), _f.index.id))]
+	[u(pref.header, Active Topics)]%r
+	
+	[iter(%qt, 
+		%b[ljust(%qt, strlen(v(pref.max-issues)))]. 
+		[rjust(u(v(pref.issue-db)/_f.select.name, %i0), 20)] 
+		[ansi(xh, -- basic vote info here --)], 
+		, %r
+	)]
+
+	%r
+	[u(pref.footer, words(%qt))]
+
+
+================================================================================
+== ABOUT ONE OPTION ============================================================
+
+This function returns all the information may need to analyze the outcomes of the various options.  The analysis should need a simple "sort by percent" with a "filter for veto" and "filter for mandate"
+
+0: vote issue
+1: vote option
+returns: 
+	percentage (%)|
+	option votes (#)|
+	staff vote percentage (%)|
+	"veto" or "mandate"
+
+
+--------------------------------------------------------------------------------
+-- Staff Veto? -----------------------------------------------------------------
+
+If 100% of staff has voted, and on the same option, that option is Veto'd and the "highest vote" is ignored.
+
+0: vote issue
+1: vote option
+returns: 1 if "true"
+
+
+--------------------------------------------------------------------------------
+-- Player Mandate? -------------------------------------------------------------
+
+If 60% of the voting playerbase
+
+
+================================================================================
+== COUNTERS ====================================================================
+
+The counters return information about specific votes.
+
+
+--------------------------------------------------------------------------------
+-- Highest Vote ----------------------------------------------------------------
+
+returns: option# of highest vote, list if tied
+
+--------------------------------------------------------------------------------
+-- Staff Counters --------------------------------------------------------------
+
+@@ Adjust Below For Your System!
+@@ .. These people are "Staff" and allowed a vote.
+
+&f.isstaff? Vote Object=isstaff(%0)
+
+&f.staff.list.all Vote Object=
+	sort(setdiff(search(eplayer=u(f.isstaff?, ##)), #1), d)
+
+--
+
+think u(vo/f.staff.list.all)
+
+
+--------------------------------------------------------------------------------
+-- Player Counters -------------------------------------------------------------
+
+@@ Adjust Below For Your System!
+@@ .. These people are "Active Players" and allowed a vote.
+
+&f.isactive? Vote Object=isapproved(%0, approved)
+
+&fil.player.only Vote Object=setdiff(u(f.isactive?, %0), u(f.isstaff?, %0))
+
+&f.player.list.filtered Vote Object=filter(fil.player.only, %0)
+
+--
+
+think u(vo/f.player.list.filtered, #1 #302 #33)
+
+
+
+********************************************************************************
+** SCRIPT CLEANUP **************************************************************
+********************************************************************************
+
+Finalize temp dbrefs:
+
+@fo me={@edit Vote Object/*=#VOTE_DATABASE, [num(Vote Database)]}
