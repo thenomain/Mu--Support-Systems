@@ -1,0 +1,135 @@
+@create Function - Finger
+@set Function - Finger=safe
+@set Function - Finger=inherit
+
+@parent Function - Finger=Code Object Parent
+&prefix.player_info Function - Finger=info.player.
+
+================================================================================
+== FUNCTION: FINGER() ==========================================================
+
+Usage: finger(<player>[, <info|list>])
+
+Returns: name|alias|conn|idle
+	 Or: list|of|entered|elements
+
+(An element returning #-1 means that item is not found)
+
+--
+
+&ufunc.finger Function - Finger=
+localize(
+	case(0, 
+@@ .. function options
+			not(strmatch(secure(%0), options)), 
+			u(f.options), 
+
+@@ .. error
+			t(setr(0, pmatch(secure(%0)))), 
+			#-1 PLAYER NOT FOUND, 
+
+@@ .. if player found: run through the info|list
+		iter(
+			if(t(%1), secure(%1), name|alias|conn|idle), 
+			udefault(info.player.%i0, #-1, %q0, %#), 
+			|, |
+		)
+	)
+)
+
+--
+
+&ufunc.finger Function - Finger=localize(case(0, not(strmatch(secure(%0), options)), u(f.options), t(setr(0, pmatch(secure(%0)))), #-1 PLAYER NOT FOUND, iter(if(t(secure(%1)), secure(%1), name|alias|conn|idle), udefault(info.player.%i0, #-1, %q0, %#), |, |)))
+
+--------------------------------------------------------------------------------
+-- Startup: Set @Function ------------------------------------------------------
+
+@startup Function - Finger=@function/preserve/privileged finger=%!/ufunc.finger
+
+@trig Function - Finger/Startup
+
+
+================================================================================
+== SUPPORT FUNCTIONS ===========================================================
+
+--------------------------------------------------------------------------------
+-- Function: List Options ------------------------------------------------------
+
+Just what "finger" information can I get about a player using this? 
+
+&f.options Function - Finger=edit(edit(lcstr(sort(lattr(%!/info.player.*))), info.player., ), %b, |)
+
+
+--------------------------------------------------------------------------------
+-- Function: Can Find? ---------------------------------------------------------
+
+Can the viewer always find the target?
+(analyze "unfindable" flags)
+
+0: dbref of target
+1: dbref of viewer (%#)
+
+Returns: 1 (true) if %# has finding rights over %0
+	self
+	staff
+	powers: expanded_who
+	friend level: ally
+
+
+&f.canfind? Function - Finger=or(strmatch(%0, %1), isstaff(%1), haspower(%1, expanded_who), isfriend(%0, %1, ally))
+
+
+--------------------------------------------------------------------------------
+-- Function: Can See? ----------------------------------------------------------
+
+Can the viewer always see the target?
+(analyze "dark" flags)
+
+0: dbref of target
+1: dbref of viewer (%#)
+
+Returns: 1 (true) if %# has finding rights over %0
+	self
+	staff
+	powers: expanded_who, see_hidden
+	friend level: ally
+
+&f.cansee? Function - Finger=or(strmatch(%0, %1), isstaff(%1), haspower(%1, expanded_who), haspower(%1, see_hidden), isfriend(%0, %1, ally))
+
+
+================================================================================
+== PLAYER INFO =================================================================
+
+Each attribute is a single bit of information about a player.  These are 
+
+0: dbref of target
+1: dbref of viewer (%#)
+
+--
+
+&info.player.name Function - Finger=name(%0)
+&info.player.alias Function - Finger=get(%0/alias)
+&info.player.last_on Function - Finger=get(%0/last)
+
+@@ target's connection time looks disconnected if "dark": <$d>d <$H>:<$M>: 00:00
+&info.player.conn Function - Finger=if(or(u(f.cansee?, %0, %1), orflags(%0, !D)), digittime(conn(%0)), 00:00)
+
+@@ target's idle time looks disconnected if "dark": 0s
+&info.player.idle Function - Finger=if(or(u(f.cansee?, %0, %1), orflags(%0, !D)), singletime(idle(%0)), 0s)
+
+@@ target is always "unfindable" to someone "dark" or a "nemesis": 1 or 0
+&info.player.unfindable? Function - Finger=or(orflags(%0, UD), hasflag(loc(%0), UNFINDABLE), isfriend(%0, %1, nemesis))
+
+@@ target's ic status is ambiguous for "unfindable": 1, 0, or ?
+&info.player.ic? Function - Finger=if(or(u(f.canfind?, %0, %1), not(u(info.player.unfindable?, %0))), isic(%0), ?)
+
+@@ target's location is revealed if in the same room: <#dbref> or UNFINDABLE
+&info.player.location Function - Finger=if(or(u(f.canfind?, %0, %1), and(strmatch(loc(%0), loc(%1)), orflags(%1, !D)), not(u(info.player.unfindable?, %0))), loc(%0), UNFINDABLE)
+
+@@ <mail count> <unread>
+&info.player.mail Function - Finger=[ladd(mail(%0))] [elements(mail(%0), 2)]
+
+--
+
+&info.loc.zone
+	zone(loc(%0))
