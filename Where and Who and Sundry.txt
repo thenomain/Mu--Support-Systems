@@ -14,17 +14,6 @@ WHERE wishlist:
 &watchlist: As the current code.
 &idle: Idle time in seconds to filter people who are 'idle'. Default: 15m
 
-Function format:
-
-	who( ) -- lwho
-	who( <partial name> ) -- lwho filtered by partial name match
-	who( <target>/<list> ) -- lwho as by <target> filtered by <list>
-		/location
-		/watchlist
-		/hangout
-	who( <target>/<list>, <partial name> ) -- as above, filtered by <name>
-
-
 
 ================================================================================
 == SETUP: Who ==================================================================
@@ -38,6 +27,18 @@ Function format:
 
 --
 
+
+--
+
+
+
+================================================================================
+== USER DEFINED FUNCTIONS ======================================================
+
+REMEMBER TO HOOK THIS INTO WHATEVER YOUR USER-DEFINED FUNCTION SETUP IS!
+
+--
+
 &global_functions me=##YOUR GLOBAL FUNCTIONS OBJECT##
 
 --
@@ -47,12 +48,6 @@ Else:
 	@fo me=&global_functions me=[num( nwo )]
 
 
-================================================================================
-== USER DEFINED FUNCTIONS ======================================================
-
-REMEMBER TO HOOK THIS INTO WHATEVER YOUR USER-DEFINED FUNCTION SETUP IS!
-
-
 --------------------------------------------------------------------------------
 -- nwho() ----------------------------------------------------------------------
 
@@ -60,12 +55,14 @@ New-Who()
 
 	nwho( ) -- lwho
 	nwho( <partial name(s)> ) -- lwho filtered by partial name match
-	nwho( <action> ) -- do a thing
-	nwho( <action>, <input> ) -- lwho filtered by partial name match
+	nwho( <input>, <action> ) -- do 'action' to probably name(s)
+	nwho( , <action> ) -- do 'action' without input, if you want
+		-- not a good idea, but is checked for all the same
 
 If you need to run this as someone else:
 	objeval( *player, nwho( <action> ))
 
+--
 
 Actions:
 	lwho (default)
