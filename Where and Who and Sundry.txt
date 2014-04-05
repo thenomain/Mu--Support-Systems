@@ -40,6 +40,8 @@ Function format:
 
 &global_functions me=##YOUR GLOBAL FUNCTIONS OBJECT##
 
+--
+
 This is if you have @function/add locked to #1, like most games.
 Else:
 	@fo me=&global_functions me=[num( nwo )]
@@ -77,6 +79,7 @@ Actions:
 1: action (optional, defaults to 'lwho')
 
 --
+
 @@ on v( global_functions ), not nwo; needs %@ to be correct
 @@ I would normally set this as :: 
 @@ 		&ufunc.nwho nwo=
@@ -143,12 +146,15 @@ returns: everyone visible at %1's location
 I filter lwho() instead of using lcon() because it has already taken care of 
 visibility of dark players.
 
+Ignore 'unfindable' flags for yourself, and those in your location.
+
 --
 
 &action.location nwo=
 	strcat( 
 		setq( t, if( strlen( %1 ), u( .pmatch, %1 ), %0 )), 
 		setq( w, u( f.lwho, %0 )), 
+		setq( f, filter( filter.lcon-from-lwho, %qw, , , loc( %qt ))), 
 
 		case( 0, 
 			cand( t( %1 ), t( %qt )), 
@@ -157,11 +163,13 @@ visibility of dark players.
 			t( u( f.findable, %qt, %0 )), 
 			#-1 TARGET UNFINDABLE, 
 
+
 			filter( 
 				f.findable, 
-				filter( filter.lcon-from-lwho, %qw, , , loc( %qt )), 
+				%qf, 
 				, , %0
 			)
+
 		)
 	)
 
@@ -175,6 +183,8 @@ visibility of dark players.
 &f.findable nwo=
 cor( 
 	isstaff( %1 ), 
+	strmatch( %0, %1 ), 
+	strmatch( loc( %0 ), loc( %1 )), 
 	not( cor( 
 		hasflag( %0, UNFINDABLE ), 
 		hasflag( loc( %0 ), UNFINDABLE )
