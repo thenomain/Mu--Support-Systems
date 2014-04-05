@@ -140,6 +140,11 @@ returns: everyone visible at %1's location
 
 --
 
+I filter lwho() instead of using lcon() because it has already taken care of 
+visibility of dark players.
+
+--
+
 &action.location nwo=
 	strcat( 
 		setq( t, if( strlen( %1 ), u( .pmatch, %1 ), %0 )), 
@@ -154,7 +159,7 @@ returns: everyone visible at %1's location
 
 			filter( 
 				f.findable, 
-				filter( filter.lattr-from-lwho, %qw, , , loc( %qt )), 
+				filter( filter.lcon-from-lwho, %qw, , , loc( %qt )), 
 				, , %0
 			)
 		)
@@ -192,7 +197,7 @@ cor(
 @@ (does not work with aliases like pmatch++ checks)
 &filter.name-from-dbref nwo=strmatch( name( %0 ), %1* )
 
-&filter.lattr-from-lwho nwo=strmatch( loc( %0 ), %1 )
+&filter.lcon-from-lwho nwo=strmatch( loc( %0 ), %1 )
 
 
 
