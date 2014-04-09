@@ -64,9 +64,10 @@ If you need to run this as someone else:
 --
 
 Actions:
-	lwho (default) -- lwho[:<names to filter>]
-	who -- alias to lwho
-	location -- loc:<dbref>
+✓	lwho (default) -- lwho[:<names to filter>]
+✓	who -- alias to lwho
+✓	location -- loc:<dbref>
+✓	here -- loc:%#
 	watchlist -- watch[:<charbit dbref>]
 	hangout -- hangout:
 
