@@ -12,6 +12,7 @@ WHERE wishlist:
 	'n' columns option
 
 &watchlist: As the current code.
+&whonote-<uuid>: A short note about someone
 &idle: Idle time in seconds to filter people who are 'idle'. Default: 15m
 
 
@@ -54,21 +55,20 @@ Else:
 New-Who()
 
 	nwho( ) -- lwho
-	nwho( <partial name(s)> ) -- lwho filtered by partial name match
-	nwho( <input>, <action> ) -- do 'action' to probably name(s)
-	nwho( , <action> ) -- do 'action' without input, if you want
-		-- not a good idea, but is checked for all the same
+	nwho( <action>[:<extra inputs>][, <extra outputs>] )
+
 
 If you need to run this as someone else:
-	objeval( *player, nwho( <action> ))
+	objeval( *player, nwho( ... ))
 
 --
 
 Actions:
-	lwho (default)
-	location
-	watchlist
-	hangout
+	lwho (default) -- lwho[:<names to filter>]
+	who -- alias to lwho
+	location -- loc:<dbref>
+	watchlist -- watch[:<charbit dbref>]
+	hangout -- hangout:
 
 --
 
@@ -86,18 +86,36 @@ Actions:
 		setq( a, 
 			grab( 
 				edit( sort( lattr( ##NWO##/action.* )), ACTION., ), 
-				%1* 
+				[first( %0, : )]* 
+			)
+		), 
+
+@@ the next two registers are for pulling 'output options'
+		setq( g, 
+			edit( 
+				sort( lattr( ##NWO##/f.who.* )), 
+				F.WHO., , 
+				%b, | 
+			)
+		), 
+		setq( i, 
+			edit( 
+				iter( %1, 
+					grab( |%qg, %i0*, |), 
+					, | 
+				), 
+				|, %b 
 			)
 		), 
 
 		case( 0, 
-			strlen( %1 ), 
-			u( ##NWO##/action.lwho, %@, %0 ), 
+			strlen( first( %0, : )), 
+			u( ##NWO##/action.lwho, %@, rest( %0, : ), %qi ), 
 			
 			hasattr( ##NWO##, action.%qa ), 
 			#-1 ACTION NOT FOUND, 
 
-			u( ##NWO##/action.%qa, %@, %0 )
+			u( ##NWO##/action.%qa, %@, rest( %0, : ), %qi )
 		)
 	)
 
@@ -111,10 +129,14 @@ This is probably the last time this is used.
 
 
 --------------------------------------------------------------------------------
--- who(): lwho -----------------------------------------------------------------
+-- nwho(): lwho ----------------------------------------------------------------
+
+	nwho( )
+	nwho( who, <list of partial names>[, <extra outputs>] )
 
 0: enactor
 1: partial names (optional)
+2: extra outputs
 
 returns: everyone online (matching 'partial name')
 
@@ -122,19 +144,35 @@ returns: everyone online (matching 'partial name')
 
 &action.lwho nwo=
 	strcat( 
-		setq( w, u( f.lwho, %0 )), 
-		if( strlen( %1 ), 
-			iter( %1, filter( filter.name-from-dbref, %qw, , , %i0 )), 
-			%qw 
-		)
+		setq( w, u( .lwho, %0 )), 
+		setq( w, 
+			if( strlen( %1 ), 
+				iter( %1, filter( filter.name-from-dbref, %qw, , , %i0 )), 
+				%qw 
+			)
+		), 
+		u( f.output.with-extras, %qw, %2 )
 	)
 
 
 --------------------------------------------------------------------------------
--- who(): location -------------------------------------------------------------
+-- nwho(): who -----------------------------------------------------------------
+
+Alias for 'lwho'.
+
+--
+
+&action.who nwo=u( action.lwho, %0, %1, %2 )
+
+
+--------------------------------------------------------------------------------
+-- nwho(): location ------------------------------------------------------------
+
+	nwho( location, <target's name>[, <extra outputs>] )
 
 0: enactor
-1: partial name (optional, defaults to %0)
+1: partial name (barely optional, defaults to %0)
+2: extra outputs
 
 returns: everyone visible at %1's location
 
@@ -149,8 +187,8 @@ Ignore 'unfindable' flags for yourself, and those in your location.
 
 &action.location nwo=
 	strcat( 
+		setq( w, u( .lwho, %0 )), 
 		setq( t, if( strlen( %1 ), u( .pmatch, %1 ), %0 )), 
-		setq( w, u( f.lwho, %0 )), 
 		setq( f, filter( filter.lcon-from-lwho, %qw, , , loc( %qt ))), 
 
 		case( 0, 
@@ -160,22 +198,36 @@ Ignore 'unfindable' flags for yourself, and those in your location.
 			t( u( f.findable, %qt, %0 )), 
 			#-1 TARGET UNFINDABLE, 
 
-
-			filter( 
-				f.findable, 
-				%qf, 
-				, , %0
+			u( f.output.with-extras, 
+				filter( 
+					f.findable, 
+					%qf, 
+					, , %0
+				), 
+				%2
 			)
-
 		)
 	)
+
+
+--------------------------------------------------------------------------------
+-- nwho(): here ----------------------------------------------------------------
+
+Alias for 'location:<enactor>'.
+
+--
+
+&action.here nwo=u( action.location, %0, %0, %2 )
 
 
 
 ================================================================================
 == FUNCTIONS ===================================================================
 
-&f.lwho nwo=objeval( %0, lwho( ))
+
+0: target
+1: watcher
+returns: '1' if target is findable by watcher
 
 &f.findable nwo=
 cor( 
@@ -188,13 +240,81 @@ cor(
 	))
 )
 
+--
+
+@@ A list of things that you can get with every dbref in WHO.
+@@ Add your own here as '&f.who.<name>'
+
+@@ yes, this one makes things easier
+&f.who.dbref nwo=%0
+
+&f.who.name nwo=name( %0 )
+&f.who.alias nwo=get( %0/alias )
+
+&f.who.port nwo=@@( done through lwho(<bool>) )
+&f.who.location nwo=loc( %0 )
+&f.who.doing nwo=edit( doing( %0 ), ~, , |, )
+&f.who.on_for nwo=conn( %0 )
+&f.who.idle_for nwo=idle( %0 )
+
+--
+
+&f.who.whonote nwo=get( %0/whonote-[u( .uuid, %1 )] )
+
+&f.who.template nwo=template( %0 )
+&f.who.sphere nwo=sphere( %0 )
+
+--
+
+*** Needs more design/development before implementing ***
+
+&f.who.flags nwo=iter( lattr( %!/f.hasflag.* ), u( %i0, %0 ))
+
+&f.hasflag.staff nwo=if( u( .isstaff, %0 ), ansi( h, S ))
+&f.hasflag.storyteller nwo=if( hasflag( %0, storyteller ), ansi( g, P ))
+&f.hasflag.unapproved nwo=if( not( u( .isapproved, %0 )), ? )
+&f.hasflag.wantsrp nwo=@@( ??? )
+
+
 
 
 ================================================================================
 == OTHER FUNCTIONS =============================================================
 
+&.lwho nwo=objeval( %0, lwho( ))
 &.isstaff nwo=isstaff( %0 )
+&.isapproved nwo=isapproved( %0 )
+
+--
+
+@@ this version matches on name or alias, even when offline
 &.pmatch nwo=pmatch++( %0 )
+
+--
+
+@@ this way, there is no way to mistake a recycled dbref (new object)
+@@ 0: dbref
+@@ output: <dbref>.<created, in seconds>
+
+&.uuid nwo=if( isdbref( %0 ), [rest( %0, # )].[convtime( get( %0/created ))], #-1 NO SUCH DBREF )
+
+--
+
+0: lwho() so far
+1: extras to add
+
+&f.output.with-extras nwo=
+	if( strlen( %1 ), 
+		iter( %0, 
+			iter( dbref %1, 
+				u( f.who.%i0, %i1 ), 
+				, ~ 
+			), 
+			, | 
+		), 
+
+		edit( %0, %b, | )
+	)
 
 
 
