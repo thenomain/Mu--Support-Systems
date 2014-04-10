@@ -3,6 +3,7 @@ WHO wishlist:
 	Filter by watchlist
 	Filter out 'idle' people
 	Include 'comment' feature from watchlist
+	Keep same order as lwho()
 
 WHERE wishlist:
 	Include all 'WHO' options
@@ -68,7 +69,7 @@ Actions:
 ✓	who -- alias to lwho
 ✓	location -- loc:<dbref>
 ✓	here -- loc:%#
-	watchlist -- watch[:<charbit dbref>]
+✓	watchlist -- watch[:<charbit dbref>]
 	hangout -- hangout:
 
 --
@@ -130,10 +131,29 @@ This is probably the last time this is used.
 
 
 --------------------------------------------------------------------------------
+-- nwho(): what ----------------------------------------------------------------
+
+		nwho( what )
+
+What can nwho() look up?
+
+returns: <list of actions> | <list of extra outputs>
+
+--
+
+&action.what nwo=
+	cat(
+		sort( lcstr( edit( lattr( %!/action.* ), ACTION., ))), 
+		|, 
+		sort( lcstr( edit( lattr( %!/f.who.* ), F.WHO., )))
+	)
+
+
+--------------------------------------------------------------------------------
 -- nwho(): lwho ----------------------------------------------------------------
 
 	nwho( )
-	nwho( who, <list of partial names>[, <extra outputs>] )
+	nwho( who[:<list of partial names>][, <extra outputs>] )
 
 0: enactor
 1: partial names (optional)
@@ -152,7 +172,7 @@ returns: everyone online (matching 'partial name')
 				%qw 
 			)
 		), 
-		u( f.output.with-extras, %qw, %2 )
+		u( f.output.with-extras, %qw, %2, %0 )
 	)
 
 
@@ -169,7 +189,7 @@ Alias for 'lwho'.
 --------------------------------------------------------------------------------
 -- nwho(): location ------------------------------------------------------------
 
-	nwho( location, <target's name>[, <extra outputs>] )
+	nwho( location[:<target's name>][, <extra outputs>] )
 
 0: enactor
 1: partial name (barely optional, defaults to %0)
@@ -205,7 +225,8 @@ Ignore 'unfindable' flags for yourself, and those in your location.
 					%qf, 
 					, , %0
 				), 
-				%2
+				%2, 
+				%0 
 			)
 		)
 	)
@@ -219,6 +240,33 @@ Alias for 'location:<enactor>'.
 --
 
 &action.here nwo=u( action.location, %0, %0, %2 )
+
+
+--------------------------------------------------------------------------------
+-- nwho(): watchlist -----------------------------------------------------------
+
+	nwho( watchlist[:<partial name(s)>][, <extra outputs>])
+
+0: enactor
+1: partial names, for filtering (optional)
+2: extra outputs
+
+--
+
+&action.watchlist nwo=
+	strcat( 
+		setq( a, u( .watchlist, %0 )), 
+		setq( w, u( .lwho, %0 )), 
+		setq( w, filter( filter.lwho-with-dbref-list, %qw, , , %qa )), 
+		setq( w, 
+			if( strlen( %1 ), 
+				iter( %1, filter( filter.name-from-dbref, %qw, , , %i0 )), 
+				%qw 
+			)
+		), 
+		u( f.output.with-extras, %qw, %2, %0 )
+	)
+
 
 
 
@@ -253,17 +301,23 @@ cor(
 &f.who.alias nwo=get( %0/alias )
 
 &f.who.port nwo=@@( done through lwho(<bool>) )
-&f.who.location nwo=loc( %0 )
+&f.who.location nwo=if( u( f.findable, %0, %2 ), loc( %0 ), )
 &f.who.doing nwo=edit( doing( %0 ), ~, , |, )
 &f.who.on_for nwo=conn( %0 )
 &f.who.idle_for nwo=idle( %0 )
 
 --
 
-&f.who.whonote nwo=get( %0/whonote-[u( .uuid, %1 )] )
+&f.who.whonote nwo=get( %1/whonote-[u( .uuid, %0 )] )
+&f.who.uuid nwo=u( .uuid, %0 )
 
-&f.who.template nwo=template( %0 )
-&f.who.sphere nwo=sphere( %0 )
+--
+
+@@ Game-Related Extras 
+
+&f.who.template nwo=if( cor( isstaff( %1 ), strmatch( %0, %1 ), strmatch( sphere( %0 ), sphere( %1 ))), template( %0 ), )
+
+&f.who.sphere nwo=if( cor( isstaff( %1 ), strmatch( %0, %1 ), strmatch( sphere( %0 ), sphere( %1 ))), sphere( %0 ), )
 
 --
 
@@ -282,9 +336,12 @@ cor(
 ================================================================================
 == OTHER FUNCTIONS =============================================================
 
+***** change "get( %0/friends )" to new watch-system when coded *****
+
 &.lwho nwo=objeval( %0, lwho( ))
 &.isstaff nwo=isstaff( %0 )
 &.isapproved nwo=isapproved( %0 )
+&.watchlist nwo=get( %0/friends )
 
 --
 
@@ -303,12 +360,13 @@ cor(
 
 0: lwho() so far
 1: extras to add
+2: enactor (%#)
 
 &f.output.with-extras nwo=
 	if( strlen( %1 ), 
 		iter( %0, 
 			iter( dbref %1, 
-				u( f.who.%i0, %i1 ), 
+				u( f.who.%i0, %i1, %2 ), 
 				, ~ 
 			), 
 			, | 
@@ -326,6 +384,19 @@ cor(
 &filter.name-from-dbref nwo=strmatch( name( %0 ), %1* )
 
 &filter.lcon-from-lwho nwo=strmatch( loc( %0 ), %1 )
+
+@@ rather than setunion() to avoid sorting
+&filter.lwho-with-dbref-list nwo=t( match( %1, %0 ))
+
+
+
+
+
+
+
+
+
+
 
 
 
