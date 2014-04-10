@@ -1,0 +1,1129 @@
+################################################################################
+## FREEZER MANAGEMENT CODE #####################################################
+
+Yeah, it's complex enough that it gets its own object.
+
+
+
+================================================================================
+== SETUP: Changes to Config ====================================================
+
+Put the following in the '<game>.config' file and @restart.
+Be careful that you don't clobber other markers.
+
+--
+
+## ACCESS LIST                                                                                                                                       
+
+## "haven" is completely unused, so we can use it to keep groups of people from renaming                                                             
+access @name no_guest no_haven
+access @alias no_guest no_haven
+flag_access haven wizard
+
+## FLAGS: approval flags                                                                                                                             
+flag_name marker0 frozen
+flag_access marker0 wizard
+flag_name marker6 permafrozen
+flag_access marker6 wizard
+flag_name marker1 exstaff
+flag_access marker1 wizard
+
+
+================================================================================
+== CREATE: Freezer Management Object ===========================================
+
+@create Freezer Management Object <fmo>=10
+
+@set fmo=safe inherit
+
+@parent fmo=#2833
+&prefix.cross-platform_functions fmo=.
+&prefix.reports fmo=report.
+
+
+
+================================================================================
+== CROSS-PLATFORM FUNCTIONS ====================================================
+
+&.isstaff fmo=isstaff( %0 )
+&.isapproved fmo=isapproved( %0, %1 )
+&.getsphere fmo=sphere( %0 )
+
+&.superheader fmo=edit( u( .header, %0 ), =, #, >, %[, <, %] )
+&.superfooter fmo=edit( u( .footer, %0 ), =, #, >, %[, <, %] )
+&.header fmo=header( %0 )
+&.footer fmo=footer( %0 )
+&.divider fmo=divider( %0 )
+&.notice fmo=lcstr( ansi( h, if( t( %0 ), <%0>, <freeze> )))
+&.titlestr fmo=titlestr( %0, %1 )
+
+&.places fmo=places( %0, %1, %2 )
+
+&.allbutlast fmo=revwords( rest( revwords( %0, %1 ), %1 ), %1 )
+
+--
+
+@@ Uses TinyMUX columns() - redefine for your platform of choice
+
+&.columns fmo=columns( %0, %1, %2, %3 )
+
+--
+
+@@ some people have andlist()
+
+&.itemize fmo=itemize( %0, %1, if( t( %2 ), %2, or ), if( t( %3 ), %3, %, ))
+
+
+
+================================================================================
+== DATA ========================================================================
+
+&d.freezer.player fmo=#1408
+&d.freezer.staff fmo=#803
+
+&d.home.player fmo=#0
+&d.home.staff fmo=#205
+
+&d.audit.players fmo=#1642
+
+&d.ajobs.job-global fmo=#2530
+&d.ajobs.job-tracker fmo=#2594
+&d.ajobs.job-database fmo=#2564
+&d.ajobs.report-jgroup fmo=+Build
+&d.ajobs.report-bucket fmo=BUILD
+
+@@ frozen: 60 days / permafrozen: 7 days
+&d.ajobs.timeout.freeze fmo=5184000
+&d.ajobs.timeout.permafreeze fmo=604800
+&d.ajobs.timeout.stafffreeze fmo=604800
+
+@@ XP system
+&d.xp.system fmo=#3088
+
+
+================================================================================
+== MISTRESS SYSTEM =============================================================
+
+The usual cascading command to switches, unknown switches sent as "fake" switches that will almost certainly be ignored for this code.
+
+
+--------------------------------------------------------------------------------
+-- Mistress: Setup -------------------------------------------------------------
+
+n: name of the command for finding right attr
+   GLOBAL REGISTER - holds command/alias player is using
+
+--
+
+&c.freezer fmo=$+freeze*:@pemit %#=
+	[setq(n, freezer)]
+	[switch(%0, 
+
+@@ Without 'r' ending
+		, u(c.%qn.default), 
+		/*, u(c.%qn.switch, first(%0), rest(%0)), 
+		%b*, u(c.%qn.specific, trim(%0)), 
+
+@@ With 'r' ending
+		r, u(c.%qn.default), 
+		r/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), 
+		r%b*, u(c.%qn.specific, trim(rest(%0))), 
+
+@@ No match
+		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
+	)]
+
+
+--------------------------------------------------------------------------------
+-- freezer/<switch> ------------------------------------------------------------
+
+Handles all /switches, which is to say it makes sure they exist and passes them on.
+
+Also handles pseudo-switches, passing them on as elements to any switched item.
+
+Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if %1 is empty.
+
+--
+
+0: /<switch>[/<switch>/<switch>, etc.]
+1: [<more>], stuff to pass to c.<name>/<switch>, if any
+
+n: Name of the command, global register set in &c.<name> (set above)
+   'qn' MUST BE MAINTINED after this command (for aliases)
+
+a: all c.<name>/* on this object
+s: /valid/command/switches/found
+p: /pseudo/switches/found, pass to c.<name>[/<switch>]
+
+--
+
+&c.freezer.switch fmo=
+	[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))]
+	[iter(rest(%0, /), 
+		if(
+			t(grab(%qa, c.%qn/%i0*)), 
+			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
+			setq(p, %qp/%i0)
+		), 
+		/, @@
+	)]
+	[if(t(%qs), 
+		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+		if(t(%1), 
+			ulocal(c.%qn.specific, %1, %qp), 
+			ulocal(c.%qn.default, %1, %qp)
+		)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- freezer (default) -----------------------------------------------------------
+
+Nothing for now.
+
+n: name of calling command/alias, MUST BE MAINTAINED after this command
+
+--
+
+0: ignored
+1: fake /switches, if any
+
+l: location of %#
+
+--
+
+&c.freezer.default fmo=
+	case( 0, 
+		u( .isstaff, %# ), 
+		[u( .notice )] Staff only, 
+
+		[u( .notice )] No default available 
+	)
+
+
+--------------------------------------------------------------------------------
+-- freezer <stuff> (specific) --------------------------------------------------
+
+Freeze this person
+
+--
+
+0: player to freeze
+1: fake /switches
+
+t: target
+m: message from staffer, if any
+
+--
+
+&c.freezer.specific fmo=
+	[setq( t, pmatch( trim( before( %0, = ))))]
+	[setq( m, trim( rest( %0, = )))]
+
+	[case( 0, 
+		u( .isstaff, %# ), 
+		[u( .notice )] Staff only, 
+
+		t( hastype( %qt, PLAYER )), 
+		[u( .notice )] Cannot find '[trim( secure( %0 ))]', 
+
+		not( u( .isapproved, %qt, permafrozen )), 
+		[u( .notice )] '[name( %qt )]' is already permafrozen, 
+
+		not( u( .isapproved, %qt, exstaff )), 
+		[u( .notice )] '[name( %qt )]' is already stafffrozen, 
+
+		not( u( .isapproved, %qt, frozen )), 
+		[u( .notice )] '[name( %qt )]' is already frozen, 
+
+		not( haspower( %qt, guest )), 
+		[u( .notice )] '[name( %qt )]' (%qt) is a guest and cannot be frozen, 
+
+		cor( u( .isstaff, %qt ), not( u( .isapproved, %qt, unapproved ))), 
+		[u( .notice )] '[name( %qt )]' (%qt) has never been approved and should be destroyed instead, 
+
+@@ OK GO (create the freeze-report job first)
+		trigger( %!/trig.freeze-report.create, 
+			%#, 
+			%qt, 
+			[if( u( .isstaff, %qt ), staff )]freeze, 
+			%qm
+		)
+	)]
+
+
+================================================================================
+== SWITCH: /permafreeze ========================================================
+
+This person wishes to never have their character return to the game. On The Reach, it frees up their XP.
+
+--
+
+0: player to freeze
+1: fake /switches
+
+t: target
+m: message from staffer, if any
+
+--
+
+&c.freezer/permafreeze fmo=
+
+	[setq( t, pmatch( trim( before( %0, = ))))]
+	[setq( m, trim( rest( %0, = )))]
+
+	[case( 0, 
+		u( .isstaff, %# ), 
+		[u( .notice )] Staff only, 
+
+		t( hastype( %qt, PLAYER )), 
+		[u( .notice )] Cannot find '[trim( secure( %0 ))]', 
+
+		not(u( .isstaff, %qt )), 
+		[u( .notice )] You can't permafreeze a staffer - 
+		use '+freeze [name( %qt )]' instead, 
+
+		not( u( .isapproved, %qt, permafrozen )), 
+		[u( .notice )] '[name( %qt )]' is already permafrozen, 
+
+		not( u( .isapproved, %qt, exstaff )), 
+		[u( .notice )] '[name( %qt )]' is already stafffrozen, 
+
+		not( haspower( %qt, guest )), 
+		[u( .notice )] '[name( %qt )]' (%qt) is a guest and cannot be frozen, 
+
+		not( u( .isapproved, %qt, unapproved )), 
+		[u( .notice )] '[name( %qt )]' (%qt) has never been approved and should be destroyed instead, 
+
+@@ OK GO (create the freeze-report job first)
+		trigger( %!/trig.freeze-report.permafreeze, 
+			%#, 
+			%qt, 
+			permafreeze, 
+			%qm
+		)
+	)]
+
+
+
+================================================================================
+== TRIGGER: Permafreeze Exception Report =======================================
+
+Don't send a report unless the person is being transfered from approved -> permafreeze
+
+--
+
+0: trigerer
+1: person to freeze
+2: type of freeze (freeze, permafreeze, stafffreese)
+3: comment from staffer, if any
+
+--
+
+&trig.freeze-report.permafreeze fmo=
+	@if u( .isapproved, %1, approved )=
+		{ @trig %!/trig.freeze-report.create=%0, %1, %2, %3 }, 
+		{ @trig %!/trig.freeze=%0, %1, permafreeze }; 
+
+
+
+================================================================================
+== TRIGGER: Freeze Report ======================================================
+
+Our Freeze Report relies upon the "Audit - Players" code. It could be placed on this object, but remember to change &d.player-audit
+
+--
+
+0: trigerer
+1: person to freeze
+2: type of freeze (freeze, permafreeze, stafffreese)
+3: comment from staffer, if any
+
+c: ajobs global dbref
+d: ajobs database dbref
+p: percent jobs system full
+
+b: bucket's dbref
+j: +jgroup's dbref
+
+n: new jobs number
+x: new job dbref
+
+t: title
+m: message
+
+--
+
+&trig.freeze-report.create fmo=
+	think strcat( 
+		qg:%b, setr( d, v( d.ajobs.job-tracker )), %r, 
+		qd:%b, setr( d, v( d.ajobs.job-database )), %r, 
+		qp:%b, setr( p, u( %qd/FN_PCT )), %r, 
+		qb:%b, setr( b, u( %qd/FN_FIND-BUCKET, v( d.ajobs.report-bucket ))), %r, 
+		qj:%b, setr( j, u( %qd/FN_FIND-JGROUP, v( d.ajobs.report-jgroup ))), %r, 
+		qt:%b, setr( t, [u( .titlestr, %2 )]: [name( %1 )] ), %r, 
+		qm:%b, setr( m, u( text.report.initial, %1, %2 )), %r, 
+	); 
+
+@@ System is full - panic
+	@break gte( %qp, 100 )={ 
+		@pemit %0=
+			[ansi( hr, JOBS ERROR DURING +FREEZE: )] Creation failed. 
+			The +jobs system is full. Contact staff immediately.; 
+			@trigger %qd/TRIG_BROADCAST=
+				%qb, 
+				JOBS SYSTEM IS FULL! 
+				Please complete jobs or boost your MAX_JOBS configuration. 
+	}; 
+
+@@ Bucket not found
+	@assert isdbref( %qb )={ 
+		[u( .notice )] Bucket '[v( d.ajobs.report-bucket )]' not found. 
+		Please check data setting &d.ajobs.report-bucket 
+	}; 
+
+@@ Jgroup not found
+	@assert isdbref( %qb )={ 
+		[u( .notice )] Jgroup '[v( d.ajobs.report-jgroup )]' not found. 
+		Please check data setting &d.ajobs.report-jgroup; 
+	}; 
+
+@@ Error if setting new &Job_Num raised errors -- set() succeeds silently
+	@break 
+		comp( 
+			setr( e, 
+				set( %qd, 
+					JOBS_NUM:[setr( n, inc( get( %qd/JOBS_NUM )))]
+				)
+			), 
+		)=
+		{ 
+			@pemit %0=[u( .notice )] Error increasing &JOBS_NUM: %qe; 
+		}; 
+	
+@@ Error if creating Jobs object failed -- create() succeeds with dbref
+	@assert 
+		isdbref( setr( x, create( Job %qn, 10 )))=
+		{ 
+			@pemit %0=[u( .notice )] Error creating 'Job %qn'.; 
+		}; 
+
+@@ SUCCESS!
+
+@@ .. change object ownership to aJobs
+	@chown %qx=owner( %qd ); 
+	@set %qx=!halt; 
+
+@@ .. A copy of aJobs/TRIG_CREATE, with +freeze-specific changes
+	&OPENED_BY %qx=%1; 
+	&OPENED_ON %qx=[secs()]; 
+	&MODIFIED_ON %qx=[secs()]; 
+	&ASSIGNED_TO %qx=%qj; 
+	&STATUS %qx=1; 
+	&PRIORITY %qx=1; 
+
+@@ Make space for the reports - set early for timing reasons
+	&NUM_COMMENT %qx=6; 
+	&LIST_JOBSN %qx=%0|5; 
+
+@@ Title & comment
+	&TITLE %qx=%qt; 
+	&COMMENT_1 %qx=
+		u( ajobs.f.comment, %0, CRE, 
+			if( u( %qd/FN_HASATTRP, parent( %qx ), ALETTER_CRE ), 
+				u( %qd/FN_STRTRUNC, 
+					u( [parent( %qx )]/ALETTER_CRE, 
+						%qx, %0, edit( %qm, |, @@PIPE@@ )
+					), 
+					get( %qd/BUFFER )
+				), 
+				u( %qd/FN_STRTRUNC, edit( %qm, |, @@PIPE@@ ), get( %qd/BUFFER ))
+			)
+		); 
+
+	@set %qx/COMMENT_1=no_inherit; 
+
+	&DUE_ON %qx=[add( secs(), v( d.ajobs.timeout.%2 ))]; 
+
+	@trigger %qd/TRIG_BROADCAST=%qx, %0, CRE, %qt; 
+
+	@trigger %1/HOOK_CRE=%qx, %0, %1, %qm; 
+	@trigger %qd/TRIG_POST=%qx, CRE, %0, %qm; 
+	@trigger %qd/TRIG_MAIL=%qx, MAI, %1, %qm; 
+
+	think u( ajobs.f.addstat, CRE, %qx ); 
+	
+	@if gt( u(%qd/FN_PCT), 95 )={
+		@trigger %qd/TRIG_BROADCAST=
+			%1, 
+			JOBS SYSTEM IS NEARING CAPACITY! 
+			Please complete jobs or boost your MAX_JOBS configuration. 
+	}; 
+
+@@ Add to the jobs db object late, for timing reasons
+	@tel %qx=%qd; 
+	@link %qx=%qd; 
+	@parent %qx=%qb; 
+
+@@ Add report information!
+	@trigger %!/trig.freeze-report.the-rest=%0, %1, %2, %qx, %3; 
+
+
+================================================================================
+== TRIGGER: Freeze Report - Player =============================================
+
+0: trigerer
+1: person to freeze
+2: type of freeze (freeze, permafreeze, stafffreese) - passed on
+3: dbref of job
+4: comment from staffer
+
+a: audit dbref
+m: message at the moment
+
+--
+
+&trig.freeze-report.the-rest fmo=
+
+	think strcat( 
+		qa:%b, setr( a, v( d.audit.players )), %r, 
+	); 
+	
+@@ >> Player Report <<
+@@ Add report to job, publish, & manipulate stats
+	&COMMENT_2 %3=
+		[u( ajobs.f.comment, %0, ADD, ulocal( %qa/f.action.player, %1, %1 ))]; 
+	@set %3/COMMENT_2=no_inherit; 
+	think ulocal( ajobs.f.addstat, ADD, %3 ); 
+
+@@ >> Rooms Report << 
+	&COMMENT_3 %3=
+		[u( ajobs.f.comment, %0, ADD, ulocal( %qa/f.action.rooms, %1, %1 ))]; 
+	@set %3/COMMENT_3=no_inherit; 
+	think ulocal( ajobs.f.addstat, ADD, %3 ); 
+
+@@ >> Objects Report << 
+	&COMMENT_4 %3=
+		[u( ajobs.f.comment, %0, ADD, ulocal( %qa/f.action.objects, %1, %1 ))]; 
+	@set %3/COMMENT_4=no_inherit; 
+	think ulocal( ajobs.f.addstat, ADD, %3 ); 
+
+@@ >> Final Message << 
+	&COMMENT_5 %3=
+		[u( ajobs.f.comment, %0, ADD, ulocal( text.report.final, %0, %1, %4 ))]; 
+	@set %3/COMMENT_5=no_inherit; 
+	think ulocal( ajobs.f.addstat, ADD, %4 ); 
+
+@@ RUN THE FREEZE!
+	@trig %!/trig.freeze=%0, %1, %2; 
+
+
+
+================================================================================
+== TRIGGER: Freeze Person ======================================================
+
+0: trigerer
+1: target to freeze
+2: 'freeze', 'stafffreeze', 'permafreeze'
+
+n: name of target
+
+--
+
+&trig.freeze fmo=
+	think >> trig.freeze (%2) >> target name: [setr( n, name( %1 ))]; 
+
+	@pemit %0=[u( .notice )] Trying to [lcstr(%2)] %qn (%1); 
+
+@@ remove all powers, all staff-related flags, 'approved' flag, and alias
+@@ add flags 'fixed' (cannot teleport) & 'haven' (to lock out of @name/@alias)
+	@power %1=[iter( powers( %1 ), !%i0) ]; 
+	@set %1=!staff !royalty !dark !inherit !approved fixed haven; 
+	@alias %1=; 
+	
+@@ remove from +jgroups (Anomaly Jobs)
+	@trigger %!/ajobs.trig.remove-from-jgroups=%1, %qn; 
+
+@@ remove from factions (Aether Factions)
+	think u( factions.f.remove-from-factions, %1 ); 
+
+@@ change name unless previously frozen
+	@if not( cor( 
+		hasflag( %1, frozen ), 
+		hasflag( %1, permafrozen ), 
+		hasflag( %1, exstaff )
+	))={
+		@name %1=%qn_[rest( %1, # )]; 
+	}; 
+
+@@ >> staffer
+	@if strmatch( %2, staff* )=
+		{ 
+			@set %1=exstaff; 
+
+			@cboot %1=Staff; 
+
+			@trigger %!/trig.staff-roster.remove=%1; 
+
+@@ .. move to staff freezer
+			@tel/quiet %1=[v( d.freezer.staff )]; 
+			@link %1=[v( d.freezer.staff )]; 
+
+@@ .. >> MUST BE DONE BY HAND: 
+@@ .. .. Remove Wiz Flag (if exists)
+			@if hasflag(%1, WIZARD)=
+				{ 
+					@pemit %0=[u( .notice )] 
+					Remember to remove the Wizard flag from '%qn' 
+				}; 
+
+@@ .. .. Remove Wiki & Forum privs
+			@pemit %0=[u( .notice )] 
+			Remember to remove privs from '%qn' on the Wiki and Forums; 
+		 }, 
+
+@@ >> not staff
+		{ 
+@@ .. set proper flag - remove 'frozen' in case setting 'permafrozen'
+			@set %1=!frozen [edit( %2, freeze, frozen )]; 
+
+@@ .. move to player freezer
+			@tel/quiet %1=[v( d.freezer.player )]; 
+			@link %1=[v( d.freezer.player )]; 
+
+@@ .. update xp log
+			think cat( 
+				XP system update:, 
+				u( [v( d.xp.system )]/FCT.XP.UPDATE, 
+					%0, %1, 0, 
+					Character [u( .titlestr, edit( %2, freeze, frozen ))])
+			); 
+		}; 
+
+@@ >> DONE
+		think DONE; 
+
+
+
+================================================================================
+== TRIGGER: Remove from Staff Rosters ==========================================
+
+The Reach: +staff/del name=dept to remove them from the #99 +staff lists
+
+--
+
+&trig.staff-roster.remove fmo=
+	@dolist grepi( #99, v_dept_*, %0 )=
+		{ +staff/del [name( %0 )]=[last(##, _)] }; 
+
+
+================================================================================
+== TRIGGER: Remove from All Channels ===========================================
+
+ONLY WORKS IF CHANNELS DON'T HAVE SPACES IN THEM -- kind of a problem
+
+NOT YET IMPLEMENTED
+
+--
+
+&trig.staff-roster.remove fmo=
+	@dolist grepi( #99, v_dept_*, %0 )=
+		{ +staff/del [name( %0 )]=[last(##, _)] }; 
+
+
+================================================================================
+== TEXT & REPORTS ==============================================================
+
+&prefix.text_&_reports fmo=text.
+
+
+--------------------------------------------------------------------------------
+-- REPORT: Initial -------------------------------------------------------------
+
+The initial report has the general information for the freeze job. Because Anomaly Jobs doesn't seem to email the person who submitted the job (via TRIG_CREATE, at least), this is a boilerplate header.
+
+0: target dbref
+1: type of freeze (freeze, permafreeze, stafffreese)
+
+--
+
+&text.report.initial fmo=
+	%r[u( .superheader, 
+		[u( .titlestr, %1 )] for 
+		[if( u( .isstaff, %0 ), Staff, Player )]: [name( %0 )] (%0) 
+	)]%r
+	The player object [name( %0 )] (%0) is being [edit( lcstr( %1 ), freeze, frozen )] at [time()]. What follows in the job are reports related to the player object. These are here for both player and staff review.%r%r
+
+	Staff may get detailed information using: +audit/player [name( %0 )]%r
+
+	[if( strmatch( %1, permafreeze ), 
+		%r%rThis character is now permafrozen and cannot be brought back 
+		into play. If this was a mistake, please contact staff ASAP.%r
+	)]
+
+	[u( .superfooter )]
+
+
+--------------------------------------------------------------------------------
+-- REPORT: Final ---------------------------------------------------------------
+
+After all the above reports are added to the job, a final summary report is filed which thanks the player and adds additional comments from the staffer doing the freezing.
+
+--
+
+0: enactor dbref
+1: target dbref
+2: final message (if any)
+
+--
+
+&text.report.final fmo=
+	[u( .superheader, 
+		Final Words 
+	)]%r
+
+	[if( t( strlen( %2 )), u( .divider, Notes from [name( %0 )] )%r%2%r[u( .divider )]%r%r)]
+
+	If you have any questions, parting comments, or if you'd like to see something specific done with anything listed above, let staff know through this job and we'll do our best to accommodate you.%r%r
+
+	Thank you for all your time. - The Reach Staff%r
+
+	[u( .superfooter )]
+
+
+
+================================================================================
+== ANOMALY JOBS ================================================================
+
+Interfaces for Anomaly Jobs
+
+
+--------------------------------------------------------------------------------
+-- SETUP: ajobs for codp -------------------------------------------------------
+
+&prefix.anomaly_jobs fmo=ajobs.
+
+
+--------------------------------------------------------------------------------
+-- TRIGGER: remove from jgroups ------------------------------------------------
+
+&ajobs.trig.remove-from-jgroups fmo=
+	@dolist u( ajobs.f.belongs-to-jgroups, %0 )=
+		{ +jgroup/member %1=[name( ## )] }; 
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: belongs to jgroups ------------------------------------------------
+
+0: player dbref
+
+--
+
+&ajobs.f.belongs-to-jgroups fmo=
+	filter( ajobs.filter.belongs-to-jgroup, 
+		lcon( v( d.ajobs.job-tracker )), , , %0 
+	)
+
+
+--------------------------------------------------------------------------------
+-- FILTER: belongs to +jgroup --------------------------------------------------
+
+0: +jgroup object dbref
+1: player dbref
+
+--
+
+&ajobs.filter.belongs-to-jgroup fmo=t( match( get( %0/memberlist ), %1 ))
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Build the 'comment_x' attribute -----------------------------------
+
+0: triggerer
+1: type
+2: comment
+
+--
+
+&ajobs.f.comment fmo=%1|[secs()]|%0|[name(%0)]|%r%2
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Run aJob's 'update stats' function --------------------------------
+
+0: addstat type (ADD, MAI, UPD, CRE, )etc.
+1: bucket dbref
+
+--
+
+&ajobs.f.addstat fmo=
+localize(
+	strcat(
+		setq( d, v( d.ajobs.job-database )), 
+		ulocal( %qd/FN_ADDSTAT, %0, %qd ), %r, 
+		ulocal( %qd/FN_ADDSTAT, %0, parent( %1 )), %r, 
+	)
+)
+
+
+
+================================================================================
+== FACTIONS ====================================================================
+
+Interfaces with the Aether Factions System. If you use Amberyl's Org code, look here.
+
+--
+
+&prefix.factions fmo=factions.
+
+&d.factions fmo=#2832
+
+
+--------------------------------------------------------------------------------
+-- FACTIONS: List Factions -----------------------------------------------------
+
+	u( factions.list-factions, <player dbref>, 'staff' or 'player' )
+
+%0: player dbref
+%1: 'staff' or 'player' (default)
+
+--
+
+&factions.list-factions fmo=
+@@ filter from 'staff' (all) or 'player' (some may not be visible)
+filter(
+	v( d.factions )/fil.see-faction, 
+	setunion( 
+
+@@ .. from player object
+		iter( get( %0/_faction-member ), rest( %i0, ! ), | ), 
+
+@@ .. from faction objects
+		filter( factions.filter.player-in-faction, 
+			lcon( v( d.factions ), object ), , , %1 
+		)
+	), , , 
+@@ .. see faction list as '#1' if 'staff' is passed
+	switch(%1, st*, #1, %0)
+)
+
+
+--------------------------------------------------------------------------------
+-- FACTIONS: Filter, player in faction -----------------------------------------
+
+	filter(factions.filter.player-in-faction, <factions>, , , <player> )
+
+0: faction dbref
+1: player dbref
+
+--
+
+&factions.filter.player-in-faction fmo=hasattr(%0, member-%1)
+
+
+--------------------------------------------------------------------------------
+-- FACTIONS: Filter, object is faction -----------------------------------------
+
+Return things that are valid faction objects. We'll probably need this. We might not.
+
+0: faction dbref
+
+--
+
+&faction.filter.object-is-faction fmo=strmatch( loc( %0 ), v( d.factions ))
+
+
+--------------------------------------------------------------------------------
+-- FACTIONS: Get Faction Name --------------------------------------------------
+
+&factions.name fmo=name( %0 )
+
+
+--------------------------------------------------------------------------------
+-- FACTIONS: Trigger - Remove From Faction -------------------------------------
+
+Remove player from all factions, with impunity
+
+0: dbref of player
+
+--
+
+&factions.f.remove-from-factions fmo=
+localize(
+	iter( 
+		get( %0/_faction-member ), 
+
+		cat( 
+			>> remove from faction:, setr( f, rest( %i0, ! )), 
+			ulocal( v( d.factions )/f.member.remove, %0, %qf )
+		), 
+
+		|, 
+		%r
+	)
+)
+
+
+
+################################################################################
+## UNFREEZE ####################################################################
+
+Note for setting faction information at chargen:
+
+&trig.approve.set-faction #89=@trigger %!/trig.approve.[edit(%2, %b, _)]=%0, %1; @if t(setr(f, get(%0/_FAMILY)))={@eval u(fct.faction.set, %qf, name(%0), ); @eval u(#2832/c.faction/rank, [name(%0)]=%qf/[extract(extract(u(%0/_MERITS), match(u(%0/_MERITS), *%qf*, |), 1, |), 2, 1, ~)])};
+
+
+So:
+	@trig #89/trig.approve.set-faction=
+		<dbref>, 
+		get(<dbref>/_template), 
+		sphere(<dbref>)
+
+This will, among other things, re-add people to the factions.
+
++unfreeze <player>[=<new name>]:
+	- Check user is staff
+	- Check for <player>
+	- Check for flag 'frozen', otherwise reject
+	- Check that <new name> is valid for the server
+	- Check that <player>'s original name or <new name> is still available
+
+Factions: Sphere, Family
+
+
+
+================================================================================
+== MISTRESS SYSTEM =============================================================
+
+The usual cascading command to switches, unknown switches sent as "fake" switches that will almost certainly be ignored for this code.
+
+
+--------------------------------------------------------------------------------
+-- Mistress: Setup -------------------------------------------------------------
+
+n: name of the command for finding right attr
+   GLOBAL REGISTER - holds command/alias player is using
+
+--
+
+&c.unfreeze fmo=$+unfreeze*:@pemit %#=
+	[setq(n, unfreeze)]
+	[switch(%0, 
+
+@@ catch while catch can
+		, u(c.%qn.default), 
+		/*, u(c.%qn.switch, first(%0), rest(%0)), 
+		%b*, u(c.%qn.specific, trim(%0)), 
+
+@@ No match
+		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
+	)]
+
+
+--------------------------------------------------------------------------------
+-- unfreeze/<switch> -----------------------------------------------------------
+
+Handles all /switches, which is to say it makes sure they exist and passes them on.
+
+Also handles pseudo-switches, passing them on as elements to any switched item.
+
+Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if %1 is empty.
+
+--
+
+0: /<switch>[/<switch>/<switch>, etc.]
+1: [<more>], stuff to pass to c.<name>/<switch>, if any
+
+n: Name of the command, global register set in &c.<name> (set above)
+   'qn' MUST BE MAINTINED after this command (for aliases)
+
+a: all c.<name>/* on this object
+s: /valid/command/switches/found
+p: /pseudo/switches/found, pass to c.<name>[/<switch>]
+
+--
+
+&c.unfreeze.switch fmo=
+	[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))]
+	[iter(rest(%0, /), 
+		if(
+			t(grab(%qa, c.%qn/%i0*)), 
+			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
+			setq(p, %qp/%i0)
+		), 
+		/, @@
+	)]
+	[if(t(%qs), 
+		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+		if(t(%1), 
+			ulocal(c.%qn.specific, %1, %qp), 
+			ulocal(c.%qn.default, %1, %qp)
+		)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- unfreeze (default) ----------------------------------------------------------
+
+Nothing for now.
+
+n: name of calling command/alias, MUST BE MAINTAINED after this command
+
+--
+
+0: ignored
+1: fake /switches, if any
+
+l: location of %#
+
+--
+
+&c.unfreeze.default fmo=
+	case( 0, 
+		u( .isstaff, %# ), 
+		[u( .notice, unfreeze )] Staff only, 
+
+		[u( .notice, unfreeze )] No default available 
+	)
+
+
+--------------------------------------------------------------------------------
+-- unfreeze <stuff> (specific) -------------------------------------------------
+
+Unfreeze this person with the name portion of '<name>_<dbref>', or a specific name if indicated.
+
+--
+
+0: player[=<new name>]
+1: fake /switches
+
+t: target
+n: new (unfrozen) name
+a: approval type
+
+--
+
+&c.unfreeze.specific fmo=
+	[setq( t, pmatch( trim( before( %0, = ))))]
+	[setq( n, trim( rest( %0, = )))]
+
+	[case( 0, 
+		u( .isstaff, %# ), [u( .notice, unfreeze )] Staff only, 
+
+		t( hastype( %qt, PLAYER )), 
+		[u( .notice, unfreeze )] Cannot find '[trim( secure( %0 ))]', 
+
+@@ check for frozen
+		cor( 
+			u( .isapproved, %qt, frozen ), 
+			u( .isapproved, %qt, exstaff )
+		), 
+		[u( .notice, unfreeze )] 
+		[if( u( .isstaff, %qt ), Staffer, Player )] is 
+		[iter( approved unapproved permafrozen, 
+			if( u( .isapproved, %qt, %i0 ), setq( a, %i0 )), 
+			, @@ 
+		)]
+		%qa and may not be unfrozen, 
+
+
+@@ new name is valid
+		valid( playername, 
+			setr( n, if( t( %qn ), %qn, u( .allbutlast, name( %qt ), _ )))
+		), 
+		[u( .notice, unfreeze )] The name requested is not a valid name, 
+
+@@ look for someone else with the same 'new' name
+		not( 
+			strmatch( 
+				%qn, 
+				name( first( search( %qn type=players )))
+			)
+		), 
+		[u( .notice, unfreeze )] Someone with the name or alias '%qn' already exists, 
+
+@@ call up the workhorse
+		u( f.unfreeze.workhorse, %#, %qt, %qn )
+
+	)]
+
+
+
+================================================================================
+== FUNCTIONS ===================================================================
+
+
+--------------------------------------------------------------------------------
+-- FUNCTION: Unfreeze Workhorse ------------------------------------------------
+
+Does the heavy lifting of getting everything back in order.
+
+0: requested by (%#)
+1: target dbref
+2: target's new name (must be validated)
+
+--
+
+&f.unfreeze.workhorse fmo=
+	strcat( 
+		u( .notice, unfreeze ), %b, 
+		Unfreezing '[name( %1 )]' as '%2', 
+
+@@ set name
+		name( %1, %2 ), 
+
+@@ add to sphere faction
+		trigger( 
+			#89/trig.approve.set-faction, 
+			%1, 
+			get( %1/_template ), 
+			sphere( %1 )
+		), 
+
+@@ add to family faction
+		@@( <do this when available> ), 
+
+@@ .. split between 'exstaff -> staffer' & 'frozen -> approved'
+@@ .. panic if neither
+		case( 1, 
+			u( .isapproved, %1, frozen ), 
+			trigger( %!/trig.unfreeze.player, %1 ), 
+
+			u( .isapproved, %1, exstaff ), 
+			trigger( %!/trig.unfreeze.staffer, %1 ) 
+			... remember to re-add to wiki%, forums%, +staff%, and +jgroups., 
+
+			%b... but I couldn't figure out if they were player or staffer!
+		)
+	)
+
+
+================================================================================
+== TRIGGERS ====================================================================
+
+
+--------------------------------------------------------------------------------
+-- TRIGGER: Unfreeze Player ----------------------------------------------------
+
+&trig.unfreeze.player fmo=
+	@set %0=!fixed !haven !frozen approved; 
+	@link %0=v( d.home.player ); 
+	&_xp.diff.weeks %0=u( #3088/data.xp.diff.weeks ); 
+	think cat( 
+		XP system update:, 
+		u( [v( d.xp.system )]/FCT.XP.UPDATE, 
+			%0, %1, 0, 
+			Character Unfrozen 
+		)
+	); 
+	@teleport %0=HOME; 
+
+				
+--------------------------------------------------------------------------------
+-- TRIGGER: Unfreeze Staff -----------------------------------------------------
+
+&trig.unfreeze.staffer fmo=
+	@set %0=!fixed !haven !exstaff staff; 
+	@link %0=[v( d.home.staff )]; 
+	@power %0=comm_all find_unfindable free_quota hide long_fingers see_all see_hidden; 
+	@teleport %0=HOME; 
