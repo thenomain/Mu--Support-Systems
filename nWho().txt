@@ -1,9 +1,22 @@
+================================================================================
+== NOTES: New Who ==============================================================
+
 WHO wishlist:
 	Filter by name
 	Filter by watchlist
 	Filter out 'idle' people
 	Include 'comment' feature from watchlist
 	Keep same order as lwho()
+
+Actions:
+✓	lwho (default) -- lwho[:<names to filter>]
+✓	who -- alias to lwho
+✓	location -- loc:<dbref>
+✓	here -- loc:%#
+✓	watchlist -- watch[:<charbit dbref>]
+	hangout -- hangout:
+
+--
 
 WHERE wishlist:
 	Include all 'WHO' options
@@ -18,7 +31,7 @@ WHERE wishlist:
 
 
 ================================================================================
-== SETUP: Who ==================================================================
+== SETUP: New Who ==============================================================
 
 @create New Who Object <nwo>
 @set nwo=Inherit
@@ -64,16 +77,6 @@ If you need to run this as someone else:
 
 --
 
-Actions:
-✓	lwho (default) -- lwho[:<names to filter>]
-✓	who -- alias to lwho
-✓	location -- loc:<dbref>
-✓	here -- loc:%#
-✓	watchlist -- watch[:<charbit dbref>]
-	hangout -- hangout:
-
---
-
 0: item of interest, player or players
 1: action (optional, defaults to 'lwho')
 
@@ -88,7 +91,7 @@ Actions:
 		setq( a, 
 			grab( 
 				edit( sort( lattr( ##NWO##/action.* )), ACTION., ), 
-				[first( %0, : )]* 
+				[trim( first( %0, : ))]* 
 			)
 		), 
 
@@ -112,12 +115,12 @@ Actions:
 
 		case( 0, 
 			strlen( first( %0, : )), 
-			u( ##NWO##/action.lwho, %@, rest( %0, : ), %qi ), 
+			u( ##NWO##/action.lwho, %@, trim( rest( %0, : )), %qi ), 
 			
 			hasattr( ##NWO##, action.%qa ), 
 			#-1 ACTION NOT FOUND, 
 
-			u( ##NWO##/action.%qa, %@, rest( %0, : ), %qi )
+			u( ##NWO##/action.%qa, %@, trim( rest( %0, : )), %qi )
 		)
 	)
 
@@ -269,10 +272,12 @@ Alias for 'location:<enactor>'.
 
 
 
-
 ================================================================================
 == FUNCTIONS ===================================================================
 
+
+--------------------------------------------------------------------------------
+-- Function: findable ----------------------------------------------------------
 
 0: target
 1: watcher
@@ -288,6 +293,32 @@ cor(
 		hasflag( loc( %0 ), UNFINDABLE )
 	))
 )
+
+
+--------------------------------------------------------------------------------
+-- Function: who-details -------------------------------------------------------
+
+Returns a single point of detail
+
+0: list of details to grab
+1: target's dbref
+2: enactor's dbref (usually %#)
+
+returns: list~of~details
+
+--
+
+&f.who-details nwo=
+	strcat( 
+		setq( d, |[edit( sort( lattr( %!/f.who.* )), F.WHO., , %b, | )]), 
+
+		iter( %0, 
+			u( f.who.[grab( %qd, %i0, | )], %1, %2 ), 
+			, ~ 
+		)
+	)
+
+
 
 --
 
@@ -365,10 +396,7 @@ cor(
 &f.output.with-extras nwo=
 	if( strlen( %1 ), 
 		iter( %0, 
-			iter( dbref %1, 
-				u( f.who.%i0, %i1, %2 ), 
-				, ~ 
-			), 
+			u( f.who-details, dbref %1, %i0, %2 ), 
 			, | 
 		), 
 
