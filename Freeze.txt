@@ -29,6 +29,7 @@ flag_name marker1 exstaff
 flag_access marker1 wizard
 
 
+
 ================================================================================
 == CREATE: Freezer Management Object ===========================================
 
@@ -36,7 +37,7 @@ flag_access marker1 wizard
 
 @set fmo=safe inherit
 
-@parent fmo=#2833
+@parent fmo=Code Object Data Parent <codp>
 &prefix.cross-platform_functions fmo=.
 &prefix.reports fmo=report.
 
@@ -78,12 +79,17 @@ flag_access marker1 wizard
 ================================================================================
 == DATA ========================================================================
 
+MUST BE ALTERED BEFORE YOU INSTALL
+
+--
+
 &d.freezer.player fmo=#1408
 &d.freezer.staff fmo=#803
 
 &d.home.player fmo=#0
 &d.home.staff fmo=#205
 
+@@ Note to Self: This may be too "The Reach"-specific
 &d.audit.players fmo=#1642
 
 &d.ajobs.job-global fmo=#2530
@@ -97,7 +103,7 @@ flag_access marker1 wizard
 &d.ajobs.timeout.permafreeze fmo=604800
 &d.ajobs.timeout.stafffreeze fmo=604800
 
-@@ XP system
+@@ XP system: Also "The Reach"-specific
 &d.xp.system fmo=#3088
 
 
