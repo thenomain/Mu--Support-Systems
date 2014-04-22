@@ -3,11 +3,21 @@
 ================================================================================
 == DESIGN GOALS ================================================================
 
-	1. Easy non-coder editing.  One map and data per object.  The drawback of this is that keywords and groups would need to be set per object, unless a global setup were used.
+	1. Easy non-coder editing.  One map and data per object.  The drawback of 
+this is that keywords and groups would need to be set per object, unless a 
+global setup were used.
 
-	2. Dynamic layers.  The system will have one main map, `Default`, and scan the data on the object to determine which display options to use.  Accessed via +map/<submap>.  Colors, symbols, and legends will be generated all from data.  The drawback to this is its massive potential for confusing data bloat, and should conform to design goal #1 over simple coding.
+	2. Dynamic layers.  The system will have one main map, `Default`, and scan
+the data on the object to determine which display options to use.  Accessed via
++map/<submap>.  Colors, symbols, and legends will be generated all from data.  
+The drawback to this is its massive potential for confusing data bloat, and 
+should conform to design goal #1 over simple coding.
 
-	3. Multi-platform.  Not only should the system try to be friendly with TinyMush and Rhost, but it should also be friendly with systems that don't build their grid all in the same way.  That is, determining where "here" (et al.) is on any given map should be a separated function that can be changed between games.
+	3. Multi-platform.  Not only should the system try to be friendly with 
+TinyMush and Rhost, but it should also be friendly with systems that don't build 
+their grid all in the same way.  That is, determining where "here" (et al.) is 
+on any given map should be a separated function that can be changed between 
+games.
 
 
 ================================================================================
@@ -46,7 +56,8 @@
 == STORAGE FORMATS =============================================================
 (per map object)
 
-In all instances, `default` is the default layer when someone types +map, but only `&map.default` will be used by other layers.
+In all instances, `default` is the default layer when someone types +map, but 
+only `&map.default` will be used by other layers.
 
 	&map.<layer>: ANSI map.  If none exists for <layer>, use `default`.
 					(don't make an <layer> map unless it's important)
@@ -89,19 +100,22 @@ qd: don't show ansi (1 if true)
 		)
 	)
 
---
-
-&f.compile.locations Parent Map Object=if(not(match(%1, %0)), iter(lattr(%!/loc.%0.*), [setq(a, v(ansi.%0.[last(%i0, .)]))][iter(v(%i0), ansi(%qa, %i0))]))
-
 
 --------------------------------------------------------------------------------
 -- Parent Map Object: Compile Layer Map ----------------------------------------
 
-Creates the final map for layer %0.  Assumes all validation and access checks have been done.
+Creates the final map for layer %0.  Assumes all validation and access checks 
+have been done.
 
-The set()/u() allows us to make an `edit()` on the fly.  First we set() an attribute to contain `edit(<map>, <loc>, <ansi loc>, <loc>, <ansi loc>)`.  If we did this in-line, it wouldn't evaluate.  (The `iter()` would be taken as a block, and not part of the edit().)  Then we call our new attribute via `u()` and clear the attribute when we're done.
+The set()/u() allows us to make an `edit()` on the fly.  First we set() an 
+attribute to contain `edit(<map>, <loc>, <ansi loc>, <loc>, <ansi loc>)`.  If we 
+did this in-line, it wouldn't evaluate.  (The `iter()` would be taken as a 
+block, and not part of the edit().)  Then we call our new attribute via `u()` 
+and clear the attribute when we're done.
 
 The result is: edit(<item>, [any number of edit pairs, up to internal limit of 49])
+
+** RHOST: You will need to replace these instances with pedit() **
 
 --
 
@@ -126,15 +140,12 @@ ql: locations for <layer>.*
 		s(%qm)
 	)]
 
---
-
-&f.compile.map Parent Map Object=[setq(m, default(map.%q0, v(map.default)))][setq(l, u(f.compile.locations, %0, %1))][if(t(%ql), [set(%!, .tmp:edit(%qm, [iter(%ql, %i0%,%i0, ,%,)]))][u(.tmp)][set(%!, .tmp:)], s(%qm))]
-
 
 --------------------------------------------------------------------------------
 -- Parent Map Object: Compile Layer Key --------------------------------------
 
-The key (footer) for a particular map's layer.  Only layers with both an ansi.* and a loc.* will be used.
+The key (footer) for a particular map's layer.  Only layers with both an ansi.* 
+and a loc.* will be used.
 
 --
 
@@ -161,15 +172,12 @@ qs: <section> name, properly formatted
 		)
 	)
 
---
-
-&f.compile.key Parent Map Object=if(not(match(%1, %0)), crumple(iter(lattr(%!/loc.%0.*), if(hasattr(%!, setr(a, ansi.%0.[last(%i0, .)])), [setq(a, v(%qa))][setq(s, titlestr(edit(last(%i0, .), _, %b)))][ansi(%qa, %qs)]), , %b-%b), %b-%b))
-
 
 --------------------------------------------------------------------------------
 -- Parent Map Object: Compile Layer Locations, Multiple Layers -------------
 
-Overlapping layers, process in order, so 'default packs' runs through `default`, applying `packs`, then adds `packs` not in `default`.
+Overlapping layers, process in order, so 'default packs' runs through `default`, 
+applying `packs`, then adds `packs` not in `default`.
 
 Assumes all validation and access checks done beforehand.
 
@@ -217,17 +225,14 @@ ql: total list of locaations for all layers
 		)
 	)]
 
---
-
-&f.compile.locations.overlap Parent Map Object=[setq(o, %0)][iter(setunion(%1, ), setq(o, edit(%qo, %i0, )), , @@)][setq(n, min(words(%qo), 9))][iter(extract(%qo, 1, 9), setq(inum(), iter(lattr(%!/loc.%i0.*), [setq(a, v(ansi.%i1.[last(%i0, .)]))][iter(v(%i0), %i0:%qa[setq(l, %ql %i0)])])), , @@)][setq(l, setunion(%ql, ))][iter(%ql, ansi(iter(lnum(1, %qn), edit(regraball(r(%i0), %i1:.*), %i1:, ), , @@), %i0))]
-
 
 --------------------------------------------------------------------------------
 -- Parent Map Object: Compile Layer Locations, Multiple Layers -------------
 
 And with multiple layers, a map.  %0 is now: <list of layers>
 
-The differences: It uses the map of the first layer passed, and it calls the much more complex `f.compile.locations.overlap` (above).
+The differences: It uses the map of the first layer passed, and it calls the 
+much more complex `f.compile.locations.overlap` (above).
 
 Assumes all validation and access checks performed beforehand.
 
@@ -245,15 +250,12 @@ Assumes all validation and access checks performed beforehand.
 		s(%qm)
 	)]
 
---
-
-&f.compile.map.overlap Parent Map Object=[setq(m, default(map.[first(%0)], v(map.default)))][setq(l, u(f.compile.locations.overlap, %0, %1))][if(t(%ql), [set(%!, .tmp:edit(%qm, [iter(%ql, %i0%,%i0, ,%,)]))][u(.tmp)][set(%!, .tmp:)], s(%qm))]
-
 
 --------------------------------------------------------------------------------
 -- Parent Map Object: Where Am I? ----------------------------------------------
 
-Returns the named location of the player, or null otherwise.  Simple, but different from game to game.
+Returns the named location of the player, or null otherwise.  Simple, but 
+different from game to game.
 
 0: dbref of viewer (usually %#)
 
@@ -274,7 +276,9 @@ That is, does this map have &loc.<layer>.*?
 Processes the possible "layer locks" against a number of elements, stored in the format:
 	&lock.<layer>: <list>|<of>|<locks>
 
-If they pass any, they can see the layer.  I'm using this for +faction as well, so we're offloading this on a separate "access" system, but in case that vanishes, here are the basics:
+If they pass any, they can see the layer.  I'm using this for +faction as well, 
+so we're offloading this on a separate "access" system, but in case that 
+vanishes, here are the basics:
 
 	attribute:<attribute>[:<value>] - has <attribute>, or has <attr> at <value>
 	faction:<faction name> - member of <faction name>
@@ -308,10 +312,6 @@ usage: filter(fil.see-layer, <list of layers>, , , <player dbref>)
 
 --
 
-&fil.see-layer Parent Map Object=or(if(hasattr(%!, lock.[edit(%0, %b, _)]), u(#3233/f.access, %1, get(%!/lock.[edit(%0, %b, _)])), 1), isstaff(%1))
-
---
-
 think u(#3284/fil.see-layer, packs, *Lashia)
 think u(#3284/fil.see-layer, packs, *Zane)
 think u(#3284/fil.see-layer, packs, *q)
@@ -332,19 +332,17 @@ List of layers visible to a player.
 
 --
 
-&f.layers.visible Parent Map Object=filter(fil.see-layer, setunion(iter(lattr(%!/loc.*.*), elements(%i0, 2, .)), ), , , %0)
-
---
-
 think u(#3284/f.layers.visible, *gem)
 
 
 --------------------------------------------------------------------------------
 -- Parent Map Object: Add Map Location -----------------------------------------
 
-We do assume the location (%1) exists in only one location on the map.  If they exist in multiple locations, only the first will be found.
+We do assume the location (%1) exists in only one location on the map.  If they 
+exist in multiple locations, only the first will be found.
 
-Due to the way `regmatchi()` works, this will potentially eat any code and should be run LAST.
+Due to the way `regmatchi()` works, this will potentially eat any code and 
+should be run LAST.
 
 --
 
@@ -386,10 +384,6 @@ qa: the ansi
 @@ Else, just display the map
 		%0
 	)]
-
---
-
-&f.add.map-location Parent Map Object=[setq(r, regmatchi(strip(%0), %\s%1%\s, l))][if(and(t(%1), t(%qr)), [setq(o, %2)][iter(setunion(%3, ), setq(o, edit(%qo, %i0, )), , @@)][setq(a, iter(%qo, v(ansi.%i0.[last(grepi(%!, loc.%i0.*, %1), .)]), , @@))][if(not(%qa), setq(a, h))][edit(%0, %ql, ucstr(ansi(%qa, %[%1%])))], %0)]
 
 
 
@@ -460,10 +454,6 @@ qn: Name of the command for finding 'c.<name>.default', et al. (portability)
 		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
 	)]
 
---
-
-&c.map Map System=$+map*:@pemit %#=[setq(n, map)][switch(%0, , u(c.%qn.default), /*, u(c.%qn.switch, first(%0), rest(%0)), %b*, u(c.%qn.specific, trim(%0)), s, u(c.%qn.default), s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), s%b*, u(c.%qn.specific, trim(rest(%0))), Error: I don't know what you mean. Please see [ansi(h, +help %qn)])]
-
 
 --------------------------------------------------------------------------------
 -- Map System: +map, switches --------------------------------------------------
@@ -501,10 +491,6 @@ qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
 		ulocal(c.%qn.specific, %1, %qp)
 	)]
 
---
-
-&c.map.switch Map System=[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))][iter(rest(%0, /), if(t(grab(%qa, c.%qn/%i0*)), setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), setq(p, %qp/%i0)), /, @@)][if(t(%qs), ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), ulocal(c.%qn.specific, %1, %qp))]
-
 
 --------------------------------------------------------------------------------
 -- Map System: +map, default ---------------------------------------------------
@@ -514,30 +500,6 @@ It was easier to get the specific map to do everything the general map did.
 --
 
 &c.map.default Map System=u(c.map.specific)
-
---
-
-Old (no layer-lock checking): 
-
-@@ &c.map.default Map System=
-@@ 	[setq(w, u(f.whereami?, %#))]
-@@ 	[setq(m, u(f.whichmap?, %qw))]
-@@ 	[setq(n, <holder>)]
-@@ 
-@@ 	[case(0, 
-@@ @@ .. found on no map, show default map
-@@ 		comp(%qm, ), u(f.display.map, v(d.default-map), default, %qn), 
-@@ 
-@@ @@ .. found on multiple maps, notify
-@@ 		lte(words(%qm), 1), 
-@@ 		[alert(+map)] I've found where you are (%qw) on multiple maps%, 
-@@ 		[itemize(iter(%qm, '[name(%i0)]', , |), |)]. 
-@@ 		Use '+map <map name>' to see that particular map., 
-@@ 
-@@ @@ .. else: call the default map
-@@ 		[u(f.display.map, %qm, default, %qn, %qw, loc(%#))]
-@@ 	)]
-
 
 
 --------------------------------------------------------------------------------
@@ -607,10 +569,6 @@ qk: map's key (if any)
 		)]
 	)]
 
---
-
-&c.map.specific #3341=[setq(w, u(f.whereami?, %#))][setq(m, if(t(%0), locate(%!, %0, i), if(setr(m, u(f.whichmap?, %qw)), %qm, v(d.default-map))))][setq(x, setinter(%qm, u(f.whichmap?, %qw)))][setq(n, get(%#/_map.noansi))][setq(l, edit(edit(%1, %b, _), /, %b))][setq(l, filter(%qm/fil.valid-layer, %ql))][setq(l, if(t(%ql), %ql, default))][setq(l, filter(%qm/fil.see-layer, %ql, , , %#))][case(0, comp(%qm, #-1), [alert(+map)] I don't know that map., comp(%ql, ), [alert(+map)] You aren't allowed to see any of the layers you requested., comp(%qm, #-2), [alert(+map)] Found multiple maps matching that name%, [itemize(graballi(iter(lcon(%!), '[name(%i0)]', , |), '%0*', |, |), |)]., lte(words(%qm), 1), [alert(+map)] I've found where you are (%qw) on multiple maps%, [itemize(iter(%qm, '[name(%i0)]', , |), |)]. Use '+map <map name>' to see that particular map., [if(strmatch(%qm, %qx), u(f.display.map, %qm, %ql, %qn, %qw, loc(%#)), u(f.display.map, %qm, %ql, %qn))])]
-
 
 --------------------------------------------------------------------------------
 -- Map System: +map/list -------------------------------------------------------
@@ -625,10 +583,6 @@ qk: map's key (if any)
 		), 
 		|
 	)]
-
---
-
-&c.map/list Map system=[u(.msg, h, +map/list)][itemize(iter(iter(lcon(%!), if(u(%i0/fil.see-layer, default, %#), %i0)), name(%i0), , |), |)]
 
 
 --------------------------------------------------------------------------------
@@ -674,10 +628,6 @@ qk: key (one per ansi-displayed layer: key|key|key)
 	)]
 
 	[footer()]
-
---
-
-&f.display.map #3341=[setq(o, if(t(%1), %1, default))][setq(v, titlestr(setdiff(lcstr(u(%0/f.layers.visible, %#)), lcstr(%qo default))))][setq(k, iter(setdiff(%qo, %2), u(%0/f.compile.key, %i0), , %r))][header(name(%0))]%r%r[u(%0/f.add.map-location, u(%0/f.compile.map[if(gt(words(%qo), 1), .overlap)], %qo, %2),%3, %qo, %2)]%r%r[if(t(%4), [rjust( ( You are at: [ansi(h, trim(first(name(%4), -)))] ) , 75 )]%r)][if(t(%qk), [divider(Legend)]%r%qk%r)][if(t(%qv), [if(not(t(%qk)), [divider()]%r)]Other Layers: [itemize(%qv)]%r)][footer()]
 
 --
 
@@ -796,11 +746,6 @@ qa: ansi for this ansi.layer.section
 	)
 
 
---
-
-&c.map/info #3341=case(0, isstaff(%#), [alert(+map/info)] Staff only., comp(%0, ), [header(Info About the Map System)]%r%b [ansi(h, Map System)]: %! %r%b [ansi(h, Map Parent)]: [v(d.parent)] %r%b [ansi(h, Default Map)]: [name(v(d.default-map))] ([v(d.default-map)]) %r[divider(Maps)]%r[iter(lcon(%!), %b [ansi(h, [name(%i0)]%b, n, (%i0))][setq(o, setdiff(u(%i0/f.layers.visible, %#), DEFAULT, , %b-%b))] [if(t(%qo), - [titlestr(%qo)])], , %r)]%r[footer()], [setq(m, locate(%!, %0, i))][setq(n, <holder>)][case(0, comp(%qm, #-1), [alert(+map/info)] No map name matched., comp(%qm, #-2), [alert(+map/info)] Multiple maps found., [setq(o, u(%qm/f.layers.visible, %#))][header(Info About Map '[name(%qm)]' (%qm))]%r[iter(%qo, [if(hasattr(%qm, map.%i0), ansi(c, *), %b)] [ansi(h, titlestr(%i0))]: [if(hasattr(%qm, lock.%i0), ansi(xh, ([ulocal(#3233/f.translate-access, get(%qm/lock.%i0))])))]%r[iter(lattr(%qm/loc.%i0.*), [setq(l, last(%i0, .))][setq(a, get(%qm/ansi.%i1.%ql))][setq(r, get(%qm/%i0))] %b %b [ansi(if(strmatch(%qn, %i1), n, %qa), [titlestr(edit(%ql, _, %b))] (%qa))] - %qr, , %r)], , %r)]%r[if(gt(words(setunion(iter(lattr(%qm/loc.*.*), get(%qm/%i0)), )), 49), %r[ansi(r, %b ***, nh, %bWARNING: Maps limited to 49 locations%b, r, ***, n, %r)])][footer(* - layer has map)])])
-
-
 --------------------------------------------------------------------------------
 -- Map System: +map/set --------------------------------------------------------
 
@@ -857,12 +802,6 @@ qv: new value
 		[u(f.set.%qi)]
 	)]
 
---
-
-&c.map/set #3341=[case(0, isstaff(%#), [alert(+map/info)] Staff Only, gt(words(%1, /), 1), [alert(+map/info)] Set what?, lte(words(%1, /), 2), [alert(+map/info)] Set one item only, t(setr(i, grab(location ansi lock, [rest(%1,/)]*))), [alert(+map/info)] Item not found, comp(setr(m, locate(%!, first(%0, .), i)), #-1), [alert(+map/info)] Map not found, comp(%qm, #-2), [alert(+map/info)] Map name matched multiple maps, [setq(l, edit(elements(before(%0, =), 2, .), %b, _))][setq(s, edit(elements(before(%0, =), 3, .), %b, _))][setq(v, rest(%0, =))][u(f.set.%qi)])]
-
-
-
 
 --------------------------------------------------------------------------------
 -- Map System: Display 'Set' ---------------------------------------------------
@@ -892,10 +831,6 @@ qe: error (if any)
 		, %r
 	)]%r
 	[footer()]
-
---
-
-&f.display.set #3341=[setq(m, [name(%qm)] (%qm))][header(+map/set/[lcstr(%qi)])] %r[iter(map:m layer:l section:s value_from:o value_to:v error:e, %b[ansi(h, titlestr(edit(first(%i0, :), _, %b)))]: [if(comp(r(rest(%i0, :)), ), r(rest(%i0, :)), ansi(xh, <null>))], , %r)]%r[footer([lcstr(%qi)])]
 
 
 --------------------------------------------------------------------------------
@@ -1190,71 +1125,3 @@ think [u(#3284/f.compile.map.overlap, packs default)]
 
 think u(western mainland/f.add.map-location, u(western mainland/f.compile.map, default), lt01)
 
-
-
-
-
-
--=-=-=-=-==--=-=
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-help translate()
-
-
-
----
-
-Munge: BETTER THAN HORRIBLE SORTS!
-
-    > &sort_alpha me=[sort(%0)]
-    > say [munge(sort_alpha,v(places),v(dbrefs))]
-    You say, "#9000 #20 #5000"
-
-
-
--=-=-=-=-=-=-=-=
-
-Find Anything:
-
-
-
-think [setq(w, NUM_COMMENT)][setq(c, yh)][list(search(eval=grepi(##, *, %qw)), [wheader([name(%i0)] %(%i0%))]%r[iter(grepi(%i0, *, %qw), [ansi(%qc, >> %i0 <<)]%r[edit(get(%i1/%i0), %qw, ansi(%qc, %qw))], , %r)])][wfooter()]
-
-
-
---=--=-=-==--==-
-* Pull locations to replace from the list of finalized
-
-e.g., &werewolf.values
-
-think [setq(l, ansi(g, cw95) ansi(b,cc22) ansi(rB,kk11))][strip(edit(regraballi(edit(edit(%ql, %,, %,%b), %), %b%)), \[a-zA-Z\]\[a-zA-Z\]\[0-9\]\[0-9\]),%r,%b))]
-
-
-crumple(edit(regraballi(edit(edit(%ql, %,, %,%b), %), %b%), \[a-zA-Z\]\[a-zA-Z\]\[0-9\]\[0-9\]),%r,%b))]
-
-
--==--=-=-==-
-
-*HOW WE WILL DO IT:
-m: map -- f: foo to edit
-
-think [setq(m, m12 -- m13 -- m14 -- m15)][setq(f, [ansi(r, m13)] [ansi(g, m14)])][set(%!, _test:edit(%qm, [iter(%qf, %i0%,%i0, ,%,)]))][u(_test)][set(%!, _test:)]
-
-We do it this way to create `edit(<map>, <item1>, <item1 ansi>, <item2>, <item2 ansi>)`.  We save it to an object to force the interpreter to read it as one block, instead of `edit(<map>, [iter(...)])` which is invalid.
