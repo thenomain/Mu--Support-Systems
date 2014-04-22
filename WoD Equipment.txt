@@ -1,0 +1,93 @@
+WOD EQUIPMENT COMPLETE REWRITE (perhaps)
+
+
+- Item
+	Name
+	Created
+	Modified (?)
+	Count
+	Size
+	Availability
+	Notes
+	- Weapon
+	- Weapon Mod
+		Damage
+		Initiative
+		Strength
+		- Ranged
+			Range
+			Capacity
+
+
+&fields.item: name count size availability notes
+&fields.item.weapon: damage initiative strength
+&fields.item.weapon.ranged: range capacity
+
+
+
+
+Inventory Templates:
+	Light Pistol
+		Damage: 1, Initiative: 0, Range: 20/40/80, Capacity: 17+1, Strength: 2, 
+		Size: 1, Availability: 3
+
+	Heavy Pistol
+		Damage: 2, Initiative: -2, Range: 30/60/120, Capacity: 7+1, Strength: 3, 
+		Size: 1, Availability: 3
+
+
+--==--=-=-=-=-=-=-=-=-=-=
+
+
+BASECONV()
+
+  FUNCTION: baseconv(<number>, <input radix>, <output radix>)
+
+  Converts <number>, which is in base <input radix> to base <output radix>.
+  The bases can be between 2 (binary) and 64, inclusive.  Positive and
+  negative numbers are supported except for bases 63 and base 64 where - is
+  not available. When converting from base 64, + and / have place value 62 and
+  63, respectively.
+
+  Bases 36 and under use the following symbols:
+
+    0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
+
+  Bases over 36 use base64 url string:
+
+    ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_
+
+  Related Topics: pack(), unpack()
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+PACK()
+
+  FUNCTION: pack(<number>[,<radix>[,<baseconv>]])
+
+  Returns the equivalent of the given number using the specified base.  The
+  default radix is 64.  Bases greater than 10 will be more compact than the
+  original number.  Bases less than 10 will be more expanded.
+
+  By default, this conversion is compatible with the codes used in Myrddin's
+  popular Bulletin Board, and they are also valid for an attribute name
+  (except for the first letter).  This set is:
+
+    0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$
+
+  This set is not the same as Unix-to-Unix copy (uuencode).  Optionally, with
+  boolean <baseconv>, the behavior changes to be compatible with baseconv().
+
+  Examples:
+    >think pack(629126998)
+    bVxTM
+    >think pack(629126998,16)
+    257FB756
+    >think pack(629126998,2)
+    100101011111111011011101010110
+    >think pack(-629126998)
+    -bVxTM
+
+  Related Topics: baseconv, unpack
+
