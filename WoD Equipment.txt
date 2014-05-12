@@ -1,5 +1,156 @@
 WOD EQUIPMENT COMPLETE REWRITE (perhaps)
 
+WISH LIST:
+	Merge command names ('+equip' on a player runs '+inv')
+	Item Counts
+	Link a +note to inventory
+	Search by multiple fields
+
+-=-=-=-=-=-==--==
+
+
+EQUIPMENT:
+	Add (w/comments)
+	Change
+	Census
+	Delete
+
+INVENTORY:
+	Add (w/comments) or Link Note
+	Change (non-note only)
+	Delete
+
+
+
+-==--=-==--=-==-=-
+
+Equipment Object Format:
+
+equip.<key>.<field>
+	<key>: Primary key, 0 - 99999
+	<field>: Type|Name|Notes|Book|Availability|Legality
+
+equip.<key>.Type:
+
+Ammunition
+Ammunition (Grenade)
+Armor and Shields
+Cameras
+Chemical
+Computers
+Drugs
+Explosives
+Explosives (Accessory)
+Explosives (Device)
+Explosives (Firework)
+Explosives (Grenade)
+Explosives (Other)
+Firearms (Accessory)
+Firearms (Assault Rifle)
+Firearms (Heavy Pistol)
+Firearms (Heavy Revolver)
+Firearms (Large SMG)
+Firearms (Light Pistol)
+Firearms (Light Revolver)
+Firearms (Light SMG)
+Firearms (Machine Gun)
+Firearms (Permit)
+Firearms (Rifle)
+Firearms (Shotgun)
+IDs
+Melee (Baton)
+Melee (Blunt)
+Melee (Brass Knuckles)
+Melee (Chain)
+Melee (Chainsaw)
+Melee (Crowbar)
+Melee (Fire Axe)
+Melee (Hatchet)
+Melee (Knife)
+Melee (Machete)
+Melee (Rapier)
+Melee (Sap)
+Melee (Spear)
+Melee (Stake)
+Melee (Tire Iron)
+Other Equipment
+Ranged
+Surveillance
+Survival and First Aid
+Tools
+Traps
+Vehicle
+Vehicle (Motor)
+Vehicles (Accessory)
+Vehicles (Aircraft)
+Vehicles (Aquatic)
+Vehicles (Boat)
+Vehicles (Commercial)
+Vehicles (Helicopter)
+Vehicles (Motor)
+Vehicles (Motorcycle)
+Vehicles (Other)
+Vehicles (Police)
+
+-=-=-=-=-=-==-
+
+Vehicles
+
+Vehicles/Motor
+Vehicles/Motor/Motorcycle
+Vehicles/Motor/Tank
+Vehicles/Motor/Truck
+Vehicles/Motor/Car
+Vehicles/Motor/Other
+Vehicles/Motor/Accessory
+
+Vehicles/Air
+Vehicles/Air/Helicoptor
+Vehicles/Air/Aeroplane
+Vehicles/Air/Other
+Vehicles/Air/Accessory
+
+Vehicles/Water
+Vehicles/Water/Boat
+Vehicles/Water/Ship
+Vehicles/Water/Other
+Vehicles/Water/Accessory
+
+
+Firearms
+
+Firearms/Accessory
+Firearms/Machine Gun
+Firearms/Shotgun
+Firearms/Rifle
+Firearms/Assault Rifle
+
+Firearms/Pistol
+Firearms/Pistol/Heavy
+Firearms/Pistol/Light
+
+Firearms/Revolver
+Firearms/Revolver/Heavy
+Firearms/Revolver/Light
+
+Firearms/SMG
+Firearms/SMG/Large
+Firearms/SMG/Small
+
+
+Melee
+Melee/Club
+Melee/Knife
+Melee/Sword
+Melee/Spear
+
+
+
+
+
+
+
+--=-=--=-=-=-=-=
 
 - Item
 	Name
@@ -9,8 +160,7 @@ WOD EQUIPMENT COMPLETE REWRITE (perhaps)
 	Size
 	Availability
 	Notes
-	- Weapon
-	- Weapon Mod
+	- Weapon/Weapon Mod
 		Damage
 		Initiative
 		Strength
@@ -19,7 +169,7 @@ WOD EQUIPMENT COMPLETE REWRITE (perhaps)
 			Capacity
 
 
-&fields.item: name count size availability notes
+&fields.item: name count size availability notes book
 &fields.item.weapon: damage initiative strength
 &fields.item.weapon.ranged: range capacity
 
@@ -38,56 +188,96 @@ Inventory Templates:
 
 --==--=-=-=-=-=-=-=-=-=-=
 
+=--==--=-==--=-=-=-==-=-=--=
+  
++equip/addcat <category/path>=<description>
+	- If buried, top level must exist
+	- optional later: if buried, higher level is created (recursive)
++equip/delcat <category/path>
+	- If has children, cannot delete
+	- If has equipment in category, cannot delete
 
-BASECONV()
-
-  FUNCTION: baseconv(<number>, <input radix>, <output radix>)
-
-  Converts <number>, which is in base <input radix> to base <output radix>.
-  The bases can be between 2 (binary) and 64, inclusive.  Positive and
-  negative numbers are supported except for bases 63 and base 64 where - is
-  not available. When converting from base 64, + and / have place value 62 and
-  63, respectively.
-
-  Bases 36 and under use the following symbols:
-
-    0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
-
-  Bases over 36 use base64 url string:
-
-    ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_
-
-  Related Topics: pack(), unpack()
++equip/set <item>/category=<category/path>
+	alias:
+		+equip/set <item>/type=<category/path>
 
 
--=-=-=-=-=-=-=-=-=-=-=-=-=-=
++equip/new <item>=<category/path>
 
-PACK()
+-==--=-=-==--=-==--=-=-=-=
 
-  FUNCTION: pack(<number>[,<radix>[,<baseconv>]])
+Storage Format isn't going to change much from the way it is currently:
+	equip.<field>.<primary key>
 
-  Returns the equivalent of the given number using the specified base.  The
-  default radix is 64.  Bases greater than 10 will be more compact than the
-  original number.  Bases less than 10 will be more expanded.
+Putting "primary key" at the end for the purposes of `edit()`: Rhost cannot do multiple edits in a single function, so when we go from `lattr()` -> <primary key>, keeping a single edit will be easier to process.
 
-  By default, this conversion is compatible with the codes used in Myrddin's
-  popular Bulletin Board, and they are also valid for an attribute name
-  (except for the first letter).  This set is:
+"equip.name.<primary key>" must exist for the item to be valid.
 
-    0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$
 
-  This set is not the same as Unix-to-Unix copy (uuencode).  Optionally, with
-  boolean <baseconv>, the behavior changes to be compatible with baseconv().
+--------------------------------------------------------------------------------
+-- DATA: Setup -----------------------------------------------------------------
 
-  Examples:
-    >think pack(629126998)
-    bVxTM
-    >think pack(629126998,16)
-    257FB756
-    >think pack(629126998,2)
-    100101011111111011011101010110
-    >think pack(-629126998)
-    -bVxTM
+&d.db: <equipment database dbref>
 
-  Related Topics: baseconv, unpack
+
+--------------------------------------------------------------------------------
+-- DATA: Fields ----------------------------------------------------------------
+
+&d.fields: name category count notes book
+
+&field.validation.name: valid( attrname, %0 )
+&field.validation.category: <has parent, does not exist, no dot >
+&field.validation.count: cor( isint( %0 ), strmatch( %0 , ))
+&field.validation.notes: 1
+&field.validation.book: 1
+
+
+--------------------------------------------------------------------------------
+-- DATA: Categories ------------------------------------------------------------
+
+&d.categories: <list; please keep sorted: major major.minor major.minor2, etc.>
+
+
+--------------------------------------------------------------------------------
+-- FUNCTIONS: Primary Key ------------------------------------------------------
+
+&f.primary-key.next: 
+	localize( 
+		first( 
+			setdiff( 
+				lnum( 
+					1, 
+					setr( m, u( f.primary-key.list ))
+				), 
+				%qm , , , n 
+			)
+		)
+	)
+
+--
+
+&f.primary-key.list:
+	sort( 
+		edit( 
+			lattr( v( d.db )/equip.name.* ), 
+			EQUIP.NAME., 
+		), 
+		n 
+	)
+
+
+--------------------------------------------------------------------------------
+-- FUNCTIONS: Category ---------------------------------------------------------
+
+&f.category.parent (???)
+&f.category.child (???)
+
+
+--------------------------------------------------------------------------------
+-- COMMAND: addcat -------------------------------------------------------------
+
+0: category to add
+
+--
+
 
