@@ -239,20 +239,30 @@ Putting "primary key" at the end for the purposes of `edit()`: Rhost cannot do m
 
 
 --------------------------------------------------------------------------------
+-- CROSS-PLATFORM FUNCTION: Next-Key -------------------------------------------
+
+Pass a sorted list of integers and determine the first integer not on that list
+e.g.
+	pass: 1 2 3 5 6 10 100
+	returns: 4
+	pass: 1 2 3 4 5
+	returns: 6
+
+--
+
+&.next-key:
+	first( 
+		setdiff( 
+			lnum( 1, inc( last( %0 ))), 
+			%0, , , n 
+		)
+	)
+
+--------------------------------------------------------------------------------
 -- FUNCTIONS: Primary Key ------------------------------------------------------
 
 &f.primary-key.next: 
-	localize( 
-		first( 
-			setdiff( 
-				lnum( 
-					1, 
-					setr( m, u( f.primary-key.list ))
-				), 
-				%qm , , , n 
-			)
-		)
-	)
+	u( .next-key, u( f.primary-key.list ))
 
 --
 
