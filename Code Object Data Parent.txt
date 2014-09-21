@@ -15,15 +15,17 @@ Because this object uses @descformat, you may @desc your object as normal.
 Requires:
 	header(<text>): Game's "pretty" output header.
 	footer(<text>): Game's "pretty" output footer.
+	vtable(): Chime's vertical table layout system
+
 
 --------------------------------------------------------------------------------
 -- Setup -----------------------------------------------------------------------
 
 @create Code Object Data Parent <codp>=10
 
-@set Code Object Data Parent <codp>=INHERIT
-@set Code Object Data Parent <codp>=PARENT_OK
-@set Code Object Data Parent <codp>=SAFE
+@set Code Object Data Parent <codp>=INHERIT PARENT_OK SAFE VISIBLE
+
+&ABOUT Code Object Data Parent <codp>=This object is for all other code objects to parent to. It will format the attributes without clobbering a useful @desc.
 
 
 --------------------------------------------------------------------------------
@@ -37,13 +39,20 @@ Requires:
 
 &PREFIX.FUNCTIONS Code Object Data Parent <codp>=f. fn. fnc. fct.
 
-&PREFIX.FILTERS Code Object Data Parent <codp>=fil.
-
-&PREFIX.SORTS Code Object Data Parent <codp>=sort. sortby.
+&PREFIX.FILTERS Code Object Data Parent <codp>=fil. filter.
 
 &PREFIX.TRIGGERS Code Object Data Parent <codp>=tr. trig.
 
-&PREFIX.USER_FUNCTIONS Code Object Data Parent <codp>=ufunc. ufunc-switch.
+&PREFIX.SORTS Code Object Data Parent <codp>=sort. sortby.
+
+&PREFIX.DISPLAYS Code Object Data Parent <codp>=display.
+
+&PREFIX.USER_FUNCTIONS Code Object Data Parent <codp>=
+	ufunc. ufunc-switch. ufunc/
+
+&PREFIX.SERVER_COMMANDS Code Object Data Parent <codp>=startup shutdown connect aconnect disconnect adisconnect listen ahear aahear amhear amove
+
+&PREFIX.@V_ATTRIBUTES Code Object Data Parent <codp>=VA VB VC VD VE VF VG VH VI VJ VK VL VM VN VO VP VQ VR VS VT VU VV VW VX VY VZ
 
 
 --------------------------------------------------------------------------------
@@ -55,80 +64,52 @@ qc: attribute count
 --
 
 @DescFormat Code Object Data Parent <codp>=
-
-[localize(
-	[setq(l, 
-		iter(
-			setunion(lattr(%!/prefix.*), lattrp(%!/prefix.*)), 
-			[rest(%i0, .)] [iter(get(%!/%i0), lattr(%!/%i0*))], 
-			, |
-		)
-	)]
-
-@@ >> count actual attributes
-	[setq(c, words(setunion(iter(%ql, rest(%i0), |), )))]
-	
-	[header(name(%!))]
-
-@@ >> only list headers if they have attributes to list
-	[iter(%ql, 
-		if(
-			t(words(setr(r, rest(%i0)))), 
-			%r[first(%i0)] on this object: 
-			%r[lcstr(columns(sort(%qr), 25, , 2))]
+localize( 
+	strcat( 
+		setq( l, 
+			iter( 
+				lattrp( %!/prefix.* ), 
+				cat( 
+					rest( %i0, . ), 
+					iter( 
+						get( %!/%i0 ), 
+						lcstr( lattr( %!/%i0* )))
+					), 
+				%b, 
+				| 
+			)
 		), 
-		|, @@
-	)]
-	[if(not(%qc), %r)]
-	[footer(%qc attributes listed)][if(t(%0), %r%0%r[footer()])]
-)]
-
---
-
-@DescFormat Code Object Data Parent <codp>=[localize([setq(l, iter(setunion(lattr(%!/prefix.*), lattrp(%!/prefix.*)), [rest(%i0, .)] [iter(get(%!/%i0), lattr(%!/%i0*))], , |))][setq(c, words(setunion(iter(%ql, rest(%i0), |), )))][header(name(%!))][iter(%ql, if(t(words(setr(r, rest(%i0)))), %r[first(%i0)] on this object: %r[lcstr(columns(sort(%qr), 25, , 2))]), |, @@)][if(not(%qc), %r)][footer(%qc attributes listed)][if(t(%0), %r%0%r[footer()])])]
-
-
---------------------------------------------------------------------------------
--- Non-TinyMUX Edits -----------------------------------------------------------
-
-Only Rhost for now.
-
---
-
-@switch version()=
-	RhostMUSH*, {
-		@edit codp/descformat=
-			{columns(sort(%qr), 25, , 2)}, 
-			{columns(sort(%qr), 25, 3, l, 0, 0, %b%b)}; 
-		@edit codp/descformat={%i0}, {itext(0)}; 
-		@edit codp/descformat={, @@)}, {, @@())}
-	}
-
---
-
-@switch version()=RhostMUSH*, {@edit codp/descformat={columns(sort(%qr), 25, , 2)}, {columns(sort(%qr), 25, 3, l, 0, 0, %b%b)}; @edit codp/descformat={%i0}, {itext(0)}; @edit codp/descformat={, @@)}, {, @@())}}
+@@ >> count actual attributes
+		setq( c, 
+			words( setunion( iter( %ql, rest( %i0 ), | ), ))
+		), 
+@@ >> Check for @Desc
+		header( name( %! ))%r, 
+		if( strlen( %0 ), 
+			%r%0%r%r, 
+			%rDesc is null for this code object.%r%r 
+		), 
+@@ >> only list headers if they have attributes to list
+		iter( %ql, 
+			if( words( rest( %i0 )), 
+				strcat( 
+					divider( titlestr( edit( first( %i0 ), _, %b )))%r, 
+					vtable( rest( %i0 ))%r 
+				)
+			), 
+			|, 
+			@@ 
+		), 
+		footer( cat( %qc, plural( %qc, attribute, attributes )))
+	)
+)
 
 
---------------------------------------------------------------------------------
--- Experimental: Startup -------------------------------------------------------
 
-TinyMUX Notes: his "startup" code does not propogate to the child object unless
-you add the "startup" flag, which is by default a) internal, b) locked to #1.
 
-It's not recommended, but the code is here in case it can be improved.
 
---
+--=-=-=-==--=-=
 
-@Startup Code Object Data Parent <codp>=
-	@dolist [lattr(%!/ufunc.*)]=
-		@fo me=
-			@function/preserve[get(%!/ufunc-switch.[setr(0, after(##, .))])] 
-			%q0=%!/##; 
-	
-	@@ That is, for "me", ufunc.<function name> holds the code to call it (good 
-	idea to reference actual code), ufunc-switch.<function name> for any 
-	function switches. /preserve (localize setq()s) is always set.
 
---
 
-@Startup Code Object Data Parent <codp>=@dolist [lattr(%!/ufunc.*)]=@fo me=@function/preserve[get(%!/ufunc-switch.[setr(0, after(##, .))])] %q0=%!/##; @@ That is, for "me", ufunc.<function name> holds the code to call it (good idea to reference actual code), ufunc-switch.<function name> for any function switches. /preserve (localize setq()s) is always set.
+
