@@ -20,29 +20,53 @@ p: pmatch() results
 --
 
 &f_lpmatch Global Function Object=
-[setq(e, 
-	case(1, 
-		or(not(strlen(%0)), strlen(%3)), #-1 FUNCTION (LPMATCH) EXPECTS BETWEEN 1 AND 3 ARGUMENTS, 
-		strmatch(%1, @@), #-1 NO ZERO WIDTH DELIMITERS, 
-		gte(strlen(%1), 5), #-1 DELIMITER TOO LONG, 
-		not(match(|allow|deny, %2*, |)), #-1 ERROR TYPE NOT FOUND, 
+[setq( e, 
+	case( 1, 
+		cor( not( strlen( %0 )), strlen( %3 )), 
+		#-1 FUNCTION (LPMATCH) EXPECTS BETWEEN 1 AND 3 ARGUMENTS, 
+
+		strmatch( %1, @@ ), #-1 NO ZERO WIDTH DELIMITERS, 
+
+		gte( strlen( %1 ), 5 ), #-1 DELIMITER TOO LONG, 
+
+		not( match( |allow|deny, %2*, | )), #-1 ERROR TYPE NOT FOUND, 
 
 @@ delim is ": 
-		strmatch(%1, "), 
-		
-		squish(trim(iter(%0, if(mod(inum(0), 2), iter(%i0, if(setr(p, pmatch(%i0)), %qp, #-1 %i0), , |), if(setr(p, pmatch(%i0)), %qp, #-1 %i0)), ", |), b, |), |), 
+		strmatch( %1, " ), 
+		squish( 
+			trim( 
+				iter( %0, 
+					if( mod( inum( 0 ), 2 ), 
+						iter( %i0, 
+							if( setr( p, pmatch( %i0 )), %qp, #-1 %i0 ), 
+							, | 
+						), 
+						if( setr( p, pmatch( %i0 )), %qp, #-1 %i0 )
+					), 
+					", | 
+				), 
+				b, | 
+			), 
+			| 
+		), 
 
 @@ delim is anything else
-		iter(%0, if(setr(p, pmatch(trim(%i0))), %qp, #-1 [trim(%i0)]), %1, |)
-	)
+		iter( %0, 
+			if( setr( p, pmatch( trim( %i0 )) ), %qp, #-1 [trim( %i0 )] ), 
+			%1, | 
+		)
+	 )
 )]
-[switch(1, 
-	not(t(%qe)), %qe, 
-	and(strmatch(%qe, *#-1*), strmatch(%2, d*)), #-1 NOT FOUND|[iter(graball(%qe, #-1 *, |), rest(%i0), |, |)], 
+
+[switch( 1, 
+	not( t( %qe )), 
+	%qe, 
+
+	cand( 
+		strmatch( %qe, *#-1* ), 
+		strmatch( %2, d* )
+	), 
+	#-1 NOT FOUND|[iter( graball( %qe, #-1 *, | ), rest( %i0 ), |, | )], 
+
 	%qe
-)]
-
-
---
-
-&f_lpmatch Global Function Object=[setq(e, case(1, or(not(strlen(%0)), strlen(%3)), #-1 FUNCTION (LPMATCH) EXPECTS BETWEEN 1 AND 3 ARGUMENTS, strmatch(%1, @@), #-1 NO ZERO WIDTH DELIMITERS, gte(strlen(%1), 5), #-1 DELIMITER TOO LONG, not(match(|allow|deny, %2*, |)), #-1 ERROR TYPE NOT FOUND, strmatch(%1, "), squish(trim(iter(%0, if(mod(inum(0), 2), iter(%i0, if(setr(p, pmatch(%i0)), %qp, #-1 %i0), , |), if(setr(p, pmatch(%i0)), %qp, #-1 %i0)), ", |), b, |), |), iter(%0, if(setr(p, pmatch(trim(%i0))), %qp, #-1 [trim(%i0)]), %1, |)))][switch(1, not(t(%qe)), %qe, and(strmatch(%qe, *#-1*), strmatch(%2, d*)), #-1 NOT FOUND|[iter(graball(%qe, #-1 *, |), rest(%i0), |, |)], %qe)]
+ )]
