@@ -1,7 +1,8 @@
 ################################################################################
 ## User-Definable Window Width #################################################
 
-This allows any player to manually set their width. I first coded this when trying out Windows Mu* clients which didn't always expand the visible window to 
+This allows any player to manually set their width. I first coded this when 
+trying out Windows Mu* clients which didn't always expand the visible window to 
 the full size of the screen, and even when it did the code on the game didn't 
 know how wide I had made my screen even if my client did.
 
@@ -18,6 +19,9 @@ Tested on:
 	MUX 2.12
 
 Usage: 
+	width( [<target>] )
+
+Preferences: 
 	&width me=<positive integer>
 
 
