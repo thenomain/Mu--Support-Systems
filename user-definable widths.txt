@@ -77,8 +77,28 @@ strcat(
 )
 
 
+================================================================================
+== Add with @function ==========================================================
+
+Many games use #1/startup as a way to add important functions, so none drop off 
+between restarts, crashes, reloads, and other situations. The raw command for 
+this would be:
+
+	@function/preserve/priviledged width=<user functions object>/UFUNC/PRIVILEGED.WIDTH
+
+There is no reason to run this command more than once, or at every restart. If 
+the new width code is changed, the function will reflect it immediately.
+
+
 
 ================================================================================
 == then @restart ===============================================================
 
-@restart
+Finally, @restart to re-load the '<gamename>.conf' file to reload:
+
+	@restart
+
+Once you have restarted, you will not have to restart again unless you remove 
+this function, in order to delete this function and restore the original 
+width().
+
