@@ -1,0 +1,91 @@
+################################################################################
+## User-Definable Window Width #################################################
+
+This allows any player to manually set their width. I first coded this when trying out Windows Mu* clients which didn't always expand the visible window to 
+the full size of the screen, and even when it did the code on the game didn't 
+know how wide I had made my screen even if my client did.
+
+That is, this is mainly for clients that don't report their NAWS correctly.
+
+About NAWS: 
+	Negotiate About Window Size, allows your client to report window 
+	width and height. This is hella useful.
+
+White Paper: 
+	http://tools.ietf.org/html/rfc1073
+
+Tested on: 
+	MUX 2.12
+
+Usage: 
+	&width me=<positive integer>
+
+
+
+================================================================================
+== <gamename>.CONF =============================================================
+
+function_name width width_old
+
+
+
+================================================================================
+== user-defined functions ======================================================
+
+Make sure every user-defined function is built with at least @function/preserve
+
+
+--------------------------------------------------------------------------------
+-- the new 'width()' function --------------------------------------------------
+
+&UFUNC/PRIVILEGED.WIDTH <user functions object>=
+strcat( 
+	setq( 0, if( t( %0 ), %0, %# )), 
+	if( 
+		cor( 
+			isstaff( %#, admin ), 
+			haspower( %#, see_all ), 
+			strmatch( %#, %q0 )
+		), 
+		strcat( 
+			setq( u, get( %0/width )), 
+			setq( w, width_old( %0 )), 
+
+@@ >> calculate the real width
+			case( 1, 
+
+@@ .. manually set and correct, so return it
+				cand( isint( %qu ), gt( %qu, 0 )), 
+				%qu, 
+
+@@ .. tinymux defaults to 78 if NAWS isn't passed; make it 79
+				eq( %qw, 78 ), 
+				79, 
+
+@@ .. else, return the NAWS width
+				%qw 
+			)
+		), 
+
+@@ >> fail if person without privs entered width( <someone not them> )
+		#-1 Permission Denied 
+	)
+)
+
+
+--------------------------------------------------------------------------------
+-- calculate the user's real width ---------------------------------------------
+
+&F.REAL_WIDTH <user functions object>=
+localize( 
+	[setq( u, get( %0/width ))]
+	[setq( w, width_old( %0 ))]
+	[case( 1, cand( isint( %qu ), gt( %qu, 0 )), %qu, eq( %qw, 78 ), 79, %qw )] 
+)
+
+
+
+================================================================================
+== then @restart ===============================================================
+
+@restart
