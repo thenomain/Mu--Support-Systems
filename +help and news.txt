@@ -1,0 +1,105 @@
+@@ 
+@@ A softcode help & news system for TinyMUX
+@@ 
+@@ UNPRETTIFIED - Just copy and paste
+@@
+
+@create Help/News Box=10
+
+@Desc Help/News Box=This box contains the code that drives the +help/+shelp system. The database(s) that are looked into are: [u( f.locations, parent( %! ))]
+
+&F.HEADER Help/News Box=wheader( %0 )
+
+&F.FOOTER Help/News Box=wfooter()
+
+&F.MIDDLE Help/News Box=%b[center( %b%0%b, sub( width( %# ), 2 ), %xr-%xn )]
+
+&F.TITLESTR Help/News Box=titlestr( %0 )
+
+&F.LOCATIONS Help/News Box=lcon( %0 )
+
+&F.FMT-CATEGORY-HEADER Help/News Box=u( f.footer, titlestr( edit( %0, _, %b )))
+
+&F.FMT-FOOTER-ADDL Help/News Box=ansi( c, ., h, %b %0%b, c, . )
+
+&F.FMT-FOOTER-BUILD Help/News Box=[left( %0, 5 )]%1[right( %0, add( sub( width( %# ), 5 ), -[strlen( %1 )], -[strlen( %2 )] ))]%2
+
+&F.LIST-TOPICS Help/News Box=trim( [setunion( iter( u( f.locations, parent( %! )), iter( lattr( %i0/%0~%1*~%2* ), %i0~%i1 )),  )] [if( comp( %2,  ), setunion( iter( u( f.locations, parent( %! )), iter( lattr( %i0/%0~%1*~+%2* ), %i0~%i1 )),  ))] )
+
+&F.SHOW-TOPICS Help/News Box=[wrap( trim( iter( u( f.locations, parent( %! )), u( %i0/description-%0 ))), sub( width( %# ), 4 ), left, %b%b )] %r %r[setq( 0, iter( %1, extract( %i0, 2, 2, ~ )))][setq( 1, first( %q0, ~ ))][u( f.fmt-category-header, %q1 )][iter( %q0, [ifelse( not( strmatch( first( %i0, ~ ), %q1 )), %r[columns( trim( revwords( %q2, | ), b, | ), 19, |, 2 )][setq( 2,  )][setq( 1, first( %i0, ~ ))][u( f.fmt-category-header, %q1 )],  )][setq( 2, insert( %q2, 1, left( titlestr( edit( rest( %i0, ~ ), _, %b )), 17 ), | ))] )]%r[columns( trim( revwords( %q2, | ), b, | ), 19, |, 2 )]
+
+@@ -- 
+
+&F.HELP-DEFAULT Help/News Box=[wheader( [mudname()] +[capstr( %0help )] )]%r %r[u( f.show-topics, %0help, u( f.list-topics, %0help ))][wfooter()]
+
+&F.HELP-SPECIFIC Help/News Box=[if( isnum( last( %0 )), [setq( p, last( %0 ))][setq( h, edit( setr( 0, ldelete( %0, words( %0 ))), %b, _ ))], [setq( p, 1 )][setq( h, edit( setr( 0, %0 ), %b, _ ))] )][setq( m, first( u( f.list-topics, %1help, , %qh )))][setq( f, u( [last( %qm, ~ )]/[extract( %qm, 1, 3, ~ )] ))][setq( c, dec( words( %qf, ~ )))][case( 0, strlen( %qm ), I don't know %1help topic '%q0'., gt( %qp, 0 ), Page number must be at least 1., lte( %qp, %qc ), Page number too high. Entry only has %qc pages., [u( f.header, first( %qf, ~ ))]%r %r[trim( wrap( extract( %qf, inc( %qp ), 1, ~ ), sub( width( %# ), 4 ), left, %b%b ), r )]%r %r[u( f.fmt-footer-build, u( f.footer ), if( lt( %qp, %qc ), u( f.fmt-footer-addl, continued in +%1help %q0 [inc( %qp )] )), if( gt( %qc, 1 ), u( f.fmt-footer-addl, page %qp of %qc )))] )]
+
+@@ -- 
+
+&F.NEWS-DEFAULT Help/News Box=[wheader( [mudname()] [capstr( %0news )] )]%r %r[u( f.show-topics, %0news, u( f.list-topics, %0news ))][wfooter()]
+
+&F.NEWS-SPECIFIC Help/News Box=[if( isnum( last( %0 )), [setq( p, last( %0 ))][setq( h, edit( setr( 0, ldelete( %0, words( %0 ))), %b, _ ))], [setq( p, 1 )][setq( h, edit( setr( 0, %0 ), %b, _ ))] )][setq( m, first( u( f.list-topics, %1news, , %qh )))][setq( f, u( [last( %qm, ~ )]/[extract( %qm, 1, 3, ~ )] ))][setq( c, dec( words( %qf, ~ )))][case( 0, strlen( %qm ), I don't know %1news topic '%q0'., gt( %qp, 0 ), Page number must be at least 1., lte( %qp, %qc ), Page number too high. Entry only has %qc pages., [u( f.header, first( %qf, ~ ))]%r %r[trim( wrap( extract( %qf, inc( %qp ), 1, ~ ), sub( width( %# ), 4 ), left, %b%b ), r )]%r %r[u( f.fmt-footer-build, u( f.footer ), if( lt( %qp, %qc ), u( f.fmt-footer-addl, continued in +%1news %q0 [inc( %qp )] )), if( gt( %qc, 1 ), u( f.fmt-footer-addl, page %qp of %qc )))] )]
+
+@set Help/News Box=INHERIT SAFE UNFINDABLE
+
+
+@@ --=--=-=-=-==-=--=-=
+
+
+@create Help/News System Object <HNSO>=10
+
+@Desc Help/News System Object <HNSO>=These are the commands that drive the help & news system. The bulk of the code is on [parent( me )].
+
+&C.HELP-REGEXP Help/News System Object <HNSO>=$^\+(s?)help(?!/search)(.*):@pemit %#=[setq( 0, secure( %2 ))][setq( s, lcstr( %1 ))][if( and( t( %qs ), not( isstaff( %# ))), Error: Must be staff to use +shelp, switch( %q0, , u( f.help-default, %qs ), /*, Error: +%qshelp does not have switches., %b*, u( f.help-specific, trim( %q0 ), %qs ), Error: +%qshelp's format is +%qshelp or +%qshelp <topic> ))]
+
+@set HNSO/C.HELP-REGEXP = regexp
+
+&C.HELP/SEARCH Help/News System Object <HNSO>=$+help/search *:@switch [null( iter( grepi( v( d.help_database ), HELP~*, %0 ), [setq( 0, get( [v( d.help_database )]/%i0 ))][iter( lnum( 1, words( rest( %q0, ~ ), ~ )), case( words( graball( extract( %q0, inc( %i0 ), 1, ~ ), *%0*, , | ), | ), 0, null( Do nothing. ), setq( r, update( %qr, [lcstr( last( %i1, ~ ))][ifelse( eq( %i0, 1 ), , %b%i0 )], #$ ))))] ))][gt( words( %qr, | ), 0 )]=0, {@pemit %#=No matches for your search.}, {@pemit %#=[u( f.header, +help search - %0 )];@pemit %#=[smartcol( iter( revwords( sort( iter( %qr, revwords( %i0, : ), |, | ), n, | ), | ), [edit( rest( %i0, : ), _, %b )] [ansi( hx, ( [first( %i0, : )] ))], |, | ), |, width( %# ), space( 2 ))];@pemit %#=[footer( [words( %qr, | )] file[if( gt( words( %qr, | ), 1 ), s )] match )]}
+
+@@ -- 
+
+&C.NEWS-REGEXP Help/News System Object <HNSO>=$^\+?(s?)news(?!/search)(.*):@pemit %#=[setq( 0, secure( %2 ))][setq( s, lcstr( %1 ))][if( and( t( %qs ), not( isstaff( %# ))), Error: Must be staff to use +snews, switch( %q0, , u( f.news-default, %qs ), /*, Error: +%qsnews does not have switches., %b*, u( f.news-specific, trim( %q0 ), %qs ), Error: +%qsnews's format is +%qsnews or +%qsnews <topic> ))]
+
+@set HNSO/C.NEWS-REGEXP = regexp
+
+&C.NEWS/SEARCH Help/News System Object <HNSO>=$^\+?news/search (.+):@switch [null( iter( grepi( v( d.news_database ), news~*, %1 ), [setq( 0, get( [v( d.news_database )]/%i0 ))][iter( lnum( 1, words( rest( %q0, ~ ), ~ )), case( words( graball( extract( %q0, inc( %i0 ), 1, ~ ), *%1*, , | ), | ), 0, null( Do nothing. ), setq( r, update( %qr, [lcstr( last( %i1, ~ ))][ifelse( eq( %i0, 1 ), , %b%i0 )], #$ ))))] ))][gt( words( %qr, | ), 0 )]=0, {@pemit %#=No matches for your search.}, {@pemit %#=[u( f.header, +news search - %1 )];@pemit %#=[smartcol( iter( revwords( sort( iter( %qr, revwords( %i0, : ), |, | ), n, | ), | ), [edit( rest( %i0, : ), _, %b )] [ansi( hx, ( [first( %i0, : )] ))], |, | ), |, width( %# ), space( 2 ))];@pemit %#=[footer( [words( %qr, | )] file[if( gt( words( %qr, | ), 1 ), s )] match )]}
+
+@set HNSO/C.NEWS/SEARCH = regexp
+
+@@ --
+
+@set Help/News System Object <HNSO>=INHERIT SAFE STICKY UNFINDABLE VISUAL
+
+@fo me=@parent Help/News System Object <HNSO>=[num( Help/News Box  )]
+
+@@ ==
+
+@create Help Database
+
+@Desc Help Database=To access any of these topics, simply type '+help <topic>'.
+
+&DESCRIPTION-HELP Help Database=To access any of these topics, simply type '+help <topic>'.
+
+&DESCRIPTION-SHELP Help Database=To access any of these topics, simply type '+shelp <topic>'. To add to this system, check '+shelp help 2'.%rHelp lives on: %! 
+
+&SHELP~STAFF_COMMANDS~HELP_&_NEWS Help Database=The Help System~+help: Lists the main help topics %r+help<page>: Lists that page of help topics %r+help <topic>: Lists the first page of that help topic %r+help <topic> <page num>: Lists the subsequent pages, if any %r %rThe help system will do its best to guess which help topic you mean through name-completion. If you type '+help th', it will match 'thing'. %r %rThe addition of a + is always optional. If you type '+help thing' and there is topic 'thing' and topic '+thing', it will match 'thing' first. If you type '+help +thing', it will only match '+thing'. %r %rThe help system allows spaces in topic names. Because of this, the help system always assumes the last word is a page number if it is a number! %r %rAlthough '+news' uses the same system as '+help', the leading '+' is optional. '+news' and 'news' are synonymous.~[center(--- Making a Help Topic ---, 73)]%r %rThe help system will read all objects located inside itself for help topics. %r %rAttributes are set up in the following manner: %r%b %b&help<page>`<category_name>`<topic_name>: <header>`<page 1>[`<page n>] %r %rThe ` character is a tilde (not shown here because the system would assume it's a new page). As long as the tilde character is not displayed, help topics follow every normal rule for displaying text in MUSH. %r %r<page>: In cases where there's so many topics that showing them all at once would be spamming, you can add a page number to allow people to type '+help<page>' and see the different lists. It's best practice not to create help1 entries. help and help1 are synonymous. %r %r<category_name>: Entered with underscores but displayed as a title, the system sorts and groups topics by their category. %r %r<topic_name>: Entered with underscores but displayed as a title, these are what people enter to view the help topic and are displayed on its page under its category in alphabetical order.%r %r<header>: This is displayed at the top of each page for the topic. %r %r<page n>: The system can handle as many pages as can fit on a single attribute, each separated by a tilde.%r%rTo set a staff-help topic, start with &shelp instead of &help.
+
+@fo me=&d.help_database Help/News Box=[num( help database  )]
+
+@tel Help Database=Help/News Box
+
+@@ ==
+
+@create News Database
+
+&DESCRIPTION-NEWS News Database=To access any of these topics, simply type 'snews <topic>'.
+
+&DESCRIPTION-SNEWS News Database=To access any of these topics, simply type 'snews <topic>'. To add to this system, check '+shelp help 2', but attributes start with &news and &snews instead of &help and &shelp.%rNews lives on: %! 
+
+@fo me=&d.news_database Help/News Box=[num( help database  )]
+
+@tel News Database=Help/News Box
+
+@@ ==
+
+@tel Help/News System Object <HNSO>=config( master_room )
