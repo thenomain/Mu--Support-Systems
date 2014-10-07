@@ -10,15 +10,15 @@
 
 &F.HEADER Help/News Box=wheader( %0 )
 
-&F.FOOTER Help/News Box=wfooter()
+&F.FOOTER Help/News Box=wfooter( %0 )
 
-&F.MIDDLE Help/News Box=%b[center( %b%0%b, sub( width( %# ), 2 ), %xr-%xn )]
+&F.MIDDLE Help/News Box=wdivider( %0 )
 
 &F.TITLESTR Help/News Box=titlestr( %0 )
 
 &F.LOCATIONS Help/News Box=lcon( %0 )
 
-&F.FMT-CATEGORY-HEADER Help/News Box=u( f.footer, titlestr( edit( %0, _, %b )))
+&F.FMT-CATEGORY-HEADER Help/News Box=u( f.middle, titlestr( edit( %0, _, %b )))
 
 &F.FMT-FOOTER-ADDL Help/News Box=ansi( c, ., h, %b %0%b, c, . )
 
