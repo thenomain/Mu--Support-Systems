@@ -13,7 +13,8 @@ KEY:
 
 COMMANDS:
 
-All switches are mutually exclusive unless noted otherwise.  Ignore all mutually exclusive switches except the first, in those cases.
+All switches are mutually exclusive unless noted otherwise. Ignore all mutually 
+exclusive switches except the first, in those cases.
 
 @@ basics (approval falls off using any of these): 
 	/new
@@ -54,7 +55,7 @@ All switches are mutually exclusive unless noted otherwise.  Ignore all mutually
 		staffnote -> 'hidden'
 		deleted -> 'archived'
 
-		Aliases chould assume permissions level.  e.g.:
+		Aliases chould assume permissions level. e.g.:
 			+view/new -> public
 			+bg/new> - private
 			+note/new -> private
@@ -71,12 +72,13 @@ think
 	s:[setr(s, elements(%qr, 3, |))] ==> 
 	[sql(u(notes/sql.primary_key.note_text, %qt, %qe, %qs))]
 
---
 
-Get a list of all orphaned UUIDs:
+================================================================================
+== ITEM SETUP ==================================================================
 
-think 
-	[setq(r, sql(SELECT DISTINCT concat('#', target) AS target FROM mush_notes;))][iter(%qr, %i0[setq(s, sql(u(notes/sql.one_dbref.unused_uuid, %i0)))] [if(t(%qs), Orphaned: %qs, : Valid)], , %b==>%b)]
+@create Notes System <ns>=10
+@set Notes System <ns>=INHERIT SAFE
+
 
 
 ================================================================================
@@ -85,36 +87,37 @@ think
 Mistress system again.
 
 n: name of the command for finding right attr
-   GLOBAL REGISTER - holds command/alias player is using
+  GLOBAL REGISTER - holds command/alias player is using
 
 --
 
-&c.notes Notes System=$`note*:@pemit %#=
-	[setq(n, notes)]
-	[switch(%0, 
-@@ Without 's' ending
-		, u(c.%qn.default), 
-		/*, u(c.%qn.switch, first(%0), rest(%0)), 
-		%b*, u(c.%qn.specific, trim(%0)), 
+&c.notes Notes System=$^\+?notes?(.*):@pemit %#=
+	[setq( n, notes )]
+	[switch( %1, 
+		, u( c.%qn.default ), 
+		/*, u( c.%qn.switch, first( %1 ), rest( %1 )), 
+		%b*, u( c.%qn.specific, trim( %1 )), 
 
-@@ With 's' ending
-		s, u(c.%qn.default), 
-		s/*, u(c.%qn.switch, /[first(after(%0, /))], rest(%0)), 
-		s%b*, u(c.%qn.specific, trim(rest(%0))), 
+		u( .notice, 
+			I don't know what you mean. Please see [ansi( h, +help %qn )] 
+		)
 
-@@ No match
-		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
 	)]
+
+--
+
+@set Notes System/c.notes=regex
 
 
 --------------------------------------------------------------------------------
--- notes/<switch> -------------------------------------------------------------
+-- notes/<switch> --------------------------------------------------------------
 
 Handles all /switches, which is to say it makes sure they exist and passes them on.
 
 Also handles pseudo-switches, passing them on as elements to any switched item.
 
-Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if %1 is empty.
+Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), 
+even if %1 is empty.
 
 --
 
@@ -131,26 +134,26 @@ p: /pseudo/switches/found, pass to c.<name>[/<switch>]
 --
 
 &c.notes.switch Notes System=
-	[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))]
-	[iter(rest(%0, /), 
-		if(
-			t(grab(%qa, c.%qn/%i0*)), 
-			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
-			setq(p, %qp/%i0)
+	[setq( s, )][setq( p, )][setq( a, lattr( %!/c.%qn/* ))]
+	[iter( rest( %0, / ), 
+		if( 
+			t( grab( %qa, c.%qn/%i0* )), 
+			setq( s, %qs/[rest( grab( %qa, c.%qn/%i0* ), / )] ), 
+			setq( p, %qp/%i0 )
 		), 
 		/, @@
 	)]
-	[if(t(%qs), 
-		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
-		if(t(%1), 
-			ulocal(c.%qn.specific, %1, %qp), 
-			ulocal(c.%qn.default, %1, %qp)
+	[if( t( %qs ), 
+		ulocal( c.%qn/[extract( %qs, 2, 1, / )], %1, %qp ), 
+		if( t( %1 ), 
+			ulocal( c.%qn.specific, %1, %qp ), 
+			ulocal( c.%qn.default, %1, %qp )
 		)
 	)]
 
 
 --------------------------------------------------------------------------------
--- notes (default) ------------------------------------------------------------
+-- notes (default) -------------------------------------------------------------
 
 Nothing for now.
 
@@ -169,7 +172,7 @@ l: location of %#
 
 
 --------------------------------------------------------------------------------
--- notes <stuff> (specific) ---------------------------------------------------
+-- notes <stuff> (specific) ----------------------------------------------------
 
 Show information about a particular note
 
@@ -184,6 +187,7 @@ qn: number of location, if name or #<num> passed
 --
 
 &c.notes.specific Notes System=>>> notes specific -- 0: %0 -- 1: %1
+
 
 
 ================================================================================
@@ -223,7 +227,7 @@ e: error, if any
 @@ .. if input '*/*' then <object>/<note>
 @@ .. (same for all instances)
 			strmatch( %0, */* ), 
-			strcat( setq( o, first( %0, / )), setq( t, rest(%0, / ))), 
+			strcat( setq( o, first( %0, / )), setq( t, rest( %0, / ))), 
 
 @@ .. else if input is object, then input is <object> & null <note>
 			or( t( setr( o, locate( %#, %0, *P ))), strmatch( %qo, #-2 )), 
@@ -243,21 +247,21 @@ e: error, if any
 		setq( d, num( %qo )), 
 
 @@ >> Error Checks
-		setq(e, 
+		setq( e, 
 			case( 0, 
 @@ .. object has too many matches
 				comp( %qo, #-2 ), 
-				[u( _notice, Object has too many matches )], 
+				[u( .notice, Object has too many matches )], 
 @@ .. object is dbref
 				t( %qd ), 
-				[u( _notice, Object not found )], 
+				[u( .notice, Object not found )], 
 @@ .. 
 				@@( more errors to follow )
 			)
 		), 
 
 @@ >> Error, List or Detail
-		case(1, 
+		case( 1, 
 			t( %qe ), %qe, 
 			t( %qt ), u( f.notes/view.detail, %qd, %qt ), 
 			u( f.notes/view.list, %qd )
@@ -270,8 +274,7 @@ e: error, if any
 
 0: object dbref
 
-n: command name (notes, views, etc.)
-
+n: command name ( notes, views, etc. )
 l: list of dbrefs
 
 --
@@ -279,15 +282,15 @@ l: list of dbrefs
 &f.notes/view.list Notes System=
 	u( display.list-notes, 
 		filter( 
-			filter.permission?,  
-			filter( filter.permissions,  
+			filter.permission?, 
+			filter( filter.permissions, 
 				sql( u( sql.one-dbref, %0 ), :, | ), :, :, 
 				u( f.lookup.permissions.for, %qn )
 			), 
 			:, :, %# 
 		), 
 		[capstr( %qn )] on [name( %0 )], 
-		No %qn on [name(%0)] 
+		No %qn on [name( %0 )] 
 	)
 
 
@@ -306,17 +309,17 @@ l: list of matching notes in the sql.one-dbref.title-lookup / sql.one-dbref fmt
 
 @@ >> No notes (also populates %ql)
 			words( 
-				setr( l, sql(u(sql.one-dbref.title-lookup, %0, %1 ), :, |)), 
+				setr( l, sql( u( sql.one-dbref.title-lookup, %0, %1 ), :, | )), 
 				: 
 			), 
-			u( _notice, No match ), 
+			u( .notice, No match ), 
 
-@@ >> Too many matches (display matches)
+@@ >> Too many matches ( display matches )
 			eq( words( %ql, : ), 1 ), 
-			u( _notice, 
+			u( .notice, 
 				I don't know which you mean: 
 				[itemize( 
-					iter( %ql, elements(%i0, 4, |), :, : ), 
+					iter( %ql, elements( %i0, 4, | ), :, : ), 
 					:, or 
 				)]
 			), 
@@ -324,6 +327,7 @@ l: list of matching notes in the sql.one-dbref.title-lookup / sql.one-dbref fmt
 @@ >> Good, display note
 			u( display.one-note, elements( %ql, 1 2 3, |, | ))
 		)
+
 
 
 ================================================================================
@@ -361,8 +365,8 @@ d: list of target dbrefs
 
 		setq( l, 
 			filter( 
-				filter.permission?,  
-				filter( filter.permissions,  
+				filter.permission?, 
+				filter( filter.permissions, 
 					sql( u( sql.one-dbref, %0 ), :, | ), :, :, 
 					u( f.lookup.permissions.for, %qn )
 				), 
@@ -374,7 +378,7 @@ d: list of target dbrefs
 			setunion( %#, 
 				case( 1, 
 					or( strmatch( %1, all ), strmatch( %1, here )), 
-					lcon( loc(%#) ), 
+					lcon( loc( %# )), 
 
 					filter( filter.pagable, 
 						iter( %1, locate( %#, %i0, amnP ))
@@ -388,12 +392,11 @@ d: list of target dbrefs
 		if( t( %qn ), 
 			u( display.list-notes, 
 				%qn, 
-				(From %N:) [capstr( %qn )] on [name( %0 )]
+				( From %N: ) [capstr( %qn )] on [name( %0 )]
 			), 
-			No %qn on [name(%0)] 
-		) 
+			No %qn on [name( %0 )] 
+		)
 	)
-
 
 
 --------------------------------------------------------------------------------
@@ -405,37 +408,39 @@ d: list of target dbrefs
 --
 
 &f.notes/show.detail Notes System=
-	u(f.notes/view.detail)	
-	
-	================================================================================
+	u( f.notes/view.detail )	
+
+
+
+================================================================================
 == ALIAS: +views ===============================================================
 
 Mistress system on "views" -- we'll be careful to alias back over to 'notes' with the proper input.
 
 --
 
-&c.views Notes System=$`view*:@pemit %#=
-	[setq(n, views)]
-	[switch(%0, 
+&c.views Notes System=$^\+?views?(.*):@pemit %#=
+	[setq( n, views )]
+	[switch( %0, 
 @@ Without 's' ending
-		, u(c.notes.default), 
-		/*, u(c.notes.switch, first(%0), rest(%0)), 
-		%b*, u(c.notes.specific, trim(%0)), 
-
-@@ With 's' ending
-		s, u(c.notes.default), 
-		s/*, u(c.notes.switch, /[first(after(%0, /))], rest(%0)), 
-		s%b*, u(c.notes.specific, trim(rest(%0))), 
+		, u( c.notes.default ), 
+		/*, u( c.notes.switch, first( %0 ), rest( %0 )), 
 
 @@ No match
-		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
+		u( .notice, 
+			Error: I don't know what you mean. Please see [ansi( h, +help %qn )] 
+		)
 	)]
 
 -- 
 
+@set Notes System/c.views=regex
+
+
 
 ================================================================================
 == FILTERS =====================================================================
+
 
 --------------------------------------------------------------------------------
 -- Filter: Permissions ---------------------------------------------------------
@@ -458,7 +463,7 @@ We're using softcode here to make it easier to read/update.
 &filter.permission? Notes System=
 	cor( 
 		strmatch( elements( %0, 5, | ), public ), 
-		u( _isstaff, %1 ), 
+		u( .isstaff, %1 ), 
 		and( 
 			strmatch( %1, elements( %0, 1, | )), 
 			not( match( hidden, elements( %0, 5, | )))
@@ -475,7 +480,6 @@ We're using softcode here to make it easier to read/update.
 --
 
 &filter.permissions Notes System=t( match( %1, elements( %0, 5, | )))
-
 
 
 --------------------------------------------------------------------------------
@@ -500,6 +504,7 @@ or(
 ================================================================================
 == SUPPORT FUNCTIONS ===========================================================
 
+
 --------------------------------------------------------------------------------
 -- Lookup Permissions For ------------------------------------------------------
 
@@ -513,7 +518,7 @@ output: full list of those permissions, unique & sorted via setunion()
 --
 
 &f.lookup.permissions.for Notes System=
-setunion(
+setunion( 
 	iter( %0, 
 		switch( %i0, 
 			views, public, 
@@ -530,6 +535,11 @@ setunion(
 ================================================================================
 == SQL =========================================================================
 
+(for CODP)
+&prefix.sql Notes System=sql.
+
+--
+
 Create a full history system, a la Wikipedia.
 
 Format:
@@ -538,20 +548,18 @@ Format:
 
 e.g.:
 	sql.one-dbref : Pull all information from that dbref
-	sql.one-dbref.title-lookup : Search title for a particilar dbref (player)
+	sql.one-dbref.title-lookup : Search title for a particilar dbref ( player )
 
 --
 
 SQL DD:
-	target'd debref (not null, to validate vs game dbref + _location_ID)
-	editor's dbref (primary key)
-	timestamp (primary key)
-	target's creation timestamp (not null)
-		- convtime(get(me/created), , 6)
-		- target dbref + creation date = UUID
+	target's guid (primary key)
+	editor's guid (primary key)
+	time (creation timestamp, primary key)
 	the complete new note, even if only edited (not null)
 	permissions (default: private)
-	approval dbref
+	approved by (guid)
+	locked by (guid)
 
 --
 
@@ -559,21 +567,19 @@ Table SQL:
 
 DROP TABLE IF EXISTS mush_notes; 
 CREATE TABLE IF NOT EXISTS mush_notes
-(
-	action           VARCHAR(255)    NOT NULL DEFAULT 'UNKNOWN', 
-    target           INT             NOT NULL, 
-    editor           INT             NOT NULL, 
-    time             TIMESTAMP       NOT NULL, 
-    target_created   TIMESTAMP       NOT NULL, 
-    title            VARCHAR(255)    NOT NULL, 
-    note             TEXT            NOT NULL, 
-    permission       VARCHAR(255)    NOT NULL DEFAULT 'private', 
-    approved_by      INT, 
-    locked_by        INT, 
+( 
+  action          VARCHAR(255)  NOT NULL DEFAULT 'UNKNOWN', 
+  target_guid     VARCHAR(255)  NOT NULL, 
+  editor_guid     VARCHAR(255)  NOT NULL, 
+  time            TIMESTAMP     NOT NULL DEFAULT NOW(), 
+  title           VARCHAR(255)  NOT NULL, 
+  note            TEXT          NOT NULL, 
+  permission      VARCHAR(255)  NOT NULL DEFAULT 'private', 
+  approved_by     VARCHAR(255), 
+  locked_by       VARCHAR(255), 
 
-    PRIMARY KEY (target, editor, time), 
-    INDEX target_UUID (target, target_created), 
-	UNIQUE INDEX (target, title)
+  PRIMARY KEY ( target_guid, editor_guid, time ), 
+  UNIQUE INDEX ( target_guid, title )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
@@ -581,7 +587,6 @@ CREATE TABLE IF NOT EXISTS mush_notes
 Valid actions:
 
 	NEW - first instance
-
 	MOVE - 
 
 Future possible actions:
@@ -589,28 +594,20 @@ Future possible actions:
 
 	/write/chown/chmod/move/copy
 
---
-
-Sample population: 
-
-think sql( u( notes/sql.insert, NEW, %#, %#, Testing, This is a test))
-think sql( u( notes/sql.insert, NEW, %#, %#, Wasting Away Again, In Margaritaville.))
-think sql( u( notes/sql.insert, NEW, %#, %#, Looking for that, Lost shaker of salt., public, 1, 1))
-
 
 --------------------------------------------------------------------------------
 -- SQL: Transaction Start/Commit -----------------------------------------------
 
-&f.transaction.start Notes System=
-	strcat(
+&sql.transaction.start Notes System=
+	strcat( 
 		sql( START TRANSACTION ), 
 		sql( SET autocommit = 0 )
 	)
 
 --
 
-&f.tranaction.commit Notes System=
-	strcat(
+&sql.tranaction.commit Notes System=
+	strcat( 
 		sql( COMMIT ), 
 		sql( SET autocommit = 1 )
 	)
@@ -621,25 +618,42 @@ think sql( u( notes/sql.insert, NEW, %#, %#, Looking for that, Lost shaker of sa
 
 Basic insert + optional approve + optional loc
 
-0: action -- 1: editor dbref -- 2: target dbref -- 3: title -- 4: note -- 
-5: permission -- 6: approved by this editor? -- 7: locked by this editor?
+0: action
+1: editor dbref
+2: target dbref
+3: title
+4: note
+5: permission
+6: approved by this editor?
+7: locked by this editor?
 
 --
 
 &sql.insert Notes System=
 	INSERT INTO mush_notes 
-	VALUES (
+	VALUES ( 
 		'%0', 
-		[rest(%2, #)], 
-		[rest(%1, #)], 
+		'[u( .guid, %2 )]', 
+		'[u( .guid, %1)]', 
 		NOW(), 
-		FROM_UNIXTIME('[convtime(get(%2/created), , 6)]'), 
 		'%3', 
 		'%4', 
-		'[if(t(%5), %5, private)]', 
-		[if(t(%6), rest(%1, #), NULL)], 
-		[if(t(%7), rest(%1, #), NULL)]
+		'[if( t( %5 ), %5, private )]', 
+		[if( t( %6 ), '[u( .guid, %1 )]', NULL )], 
+		[if( t( %7 ), '[u( .guid, %1 )]', NULL )]
 	);
+
+--
+
+Sample population: 
+
+think sql( u( notes/sql.insert, NEW, %#, %#, Testing, This is a test ))
+think sql( u( notes/sql.insert, NEW, %#, %#, Wasting Away Again, In Margaritaville. ))
+think sql( u( notes/sql.insert, NEW, %#, %#, Looking for that, Lost shaker of salt., public, 1, 1 ))
+
+sample abandoned GUID:
+
+think sql( INSERT INTO mush_notes VALUES ( 'NEW', '%#:[secs( , 6 )]', '%#:[secs( , 6 )]', NOW(), 'Orphaned note', 'This note should belong to an orphaned GUID OBJID.', 'private', NULL, NULL ))
 
 
 --------------------------------------------------------------------------------
@@ -648,29 +662,29 @@ Basic insert + optional approve + optional loc
 List of note titles from a specific person
 
 0: target dbref
-output: target (dbref), editor (dbref), time (secs), 
-        target_created (secs), title (text), 
-        permission (text), approved_by (dbref), locked_by (dbref)
+output: target (guid), editor (guid), time (secs), title (text), 
+        permission (text), approved_by (guid), locked_by guid
 
-(not the note text itself)
+(does not output the note text itself)
 
 --
 
 &sql.one-dbref Notes System=
 	SELECT 
-		concat('#', target) AS target, 
-		concat('#', editor) AS editor, 
-		UNIX_TIMESTAMP(time) AS time, 
+		target_guid, 
+		editor_guid, 
+		UNIX_TIMESTAMP( time ) AS time, 
 		title, 
 		permission, 
-		IF(IFNULL(approved_by, NULL), concat('#', approved_by), '') 
+		IF( IFNULL( approved_by, NULL ), approved_by, '' )
 			AS approved_by, 
-		IF(IFNULL(locked_by, NULL), concat('#', locked_by), '') AS locked_by 
+		IF( IFNULL( locked_by, NULL ), locked_by, '' ) AS locked_by 
 	FROM mush_notes 
-	WHERE 
-		target = [rest(%0, #)] AND 
-		target_created = 
-			FROM_UNIXTIME('[convtime(get(%0/created), , 6)]');
+	WHERE target_guid = '[u( .guid, %0 )]'; 
+
+--
+
+think sql( u( notes/sql.one-dbref, %# ), |, ~ )
 
 
 --------------------------------------------------------------------------------
@@ -680,30 +694,32 @@ List of a specific person's notes, found by title match
 
 0: target dbref
 1: title partial name
-output: target (dbref), editor (dbref), time (secs), 
-        target_created (secs), title (text), 
-        permission (text), approved_by (dbref), locked_by (dbref)
+output: target (dbref), editor (dbref), time (secs), title (text), 
+         permission (text), approved_by (dbref), locked_by (dbref)
 
-(not the note text itself)
+(does not output the note text itself)
 
 --
 
 &sql.one-dbref.title-lookup Notes System=
 	SELECT 
-		concat('#', target) AS target, 
-		concat('#', editor) AS editor, 
-		UNIX_TIMESTAMP(time) AS time, 
+		target_guid, 
+		editor_guid, 
+		UNIX_TIMESTAMP( time ) AS time, 
 		title, 
 		permission, 
-		IF(IFNULL(approved_by, NULL), concat('#', approved_by), '') AS approved_by, 
-		IF(IFNULL(locked_by, NULL), concat('#', locked_by), '') AS locked_by 
+		IF( IFNULL( approved_by, NULL ), approved_by, '' ) AS approved_by, 
+		IF( IFNULL( locked_by, NULL ), locked_by, '' ) AS locked_by 
 	FROM mush_notes 
 	WHERE 
-		target = [rest(%0, #)] AND 
-		target_created = 
-			FROM_UNIXTIME('[convtime(get(%0/created), , 6)]') AND 
+		target_guid = '[u( .guid, %0 )]' AND 
 		title LIKE '%1\\\%'
 	ORDER BY title ASC;
+
+--
+
+think sql( u( notes/sql.one-dbref.title-lookup , %#, Wasting ), |, ~ )
+think u( notes/sql.one-dbref.title-lookup , %#, Wasting )
 
 
 --------------------------------------------------------------------------------
@@ -711,7 +727,11 @@ output: target (dbref), editor (dbref), time (secs),
 
 Get the text of a specific note
 
-0: target dbref, 1: editor dbref, 2: timestamp (aka primary key)
+0: target dbref
+1: editor dbref
+2: timestamp
+(these are primary key)
+
 output: note text
 
 --
@@ -720,9 +740,13 @@ output: note text
 	SELECT note 
 	FROM mush_notes 
 	WHERE 
-		target = [rest(%0, #)] AND 
-		editor = [rest(%1, #)] AND 
-		time = FROM_UNIXTIME('%2'); 
+		target_guid = '[u( .guid, %0 )]' AND 
+		editor_guid = '[u( .guid, %1 )]' AND 
+		time = FROM_UNIXTIME( '%2' ); 
+
+--
+
+think sql( u( notes/sql.primary_key.note_text, %#, %#, 1412719601 ), |, ~ )
 
 
 --------------------------------------------------------------------------------
@@ -730,7 +754,10 @@ output: note text
 
 Get the text of a specific note
 
-0: target dbref, 1: editor dbref, 2: timestamp (aka primary key)
+0: target dbref
+1: editor dbref
+2: timestamp (aka primary key)
+
 output: target (dbref), editor (dbref), time (secs), 
         target_created (secs), title (text), note (text), 
         permission (text), approved_by (dbref), locked_by (dbref)
@@ -739,43 +766,47 @@ output: target (dbref), editor (dbref), time (secs),
 
 &sql.primary_key.everything Notes System=
 	SELECT 
-		concat('#', target) AS target, 
-		concat('#', editor) AS editor, 
-		UNIX_TIMESTAMP(time) AS time, 
+		target_guid, 
+		editor_guid, 
+		UNIX_TIMESTAMP( time ) AS time, 
 		title, 
 		note, 
 		permission, 
-		IF(IFNULL(approved_by, NULL), concat('#', approved_by), '') AS approved_by, 
-		IF(IFNULL(locked_by, NULL), concat('#', locked_by), '') AS locked_by 
+		IF( IFNULL( approved_by, NULL ), approved_by, '' ) AS approved_by, 
+		IF( IFNULL( locked_by, NULL ), locked_by, '' ) AS locked_by 
 	FROM mush_notes 
 	WHERE 
-		target = [rest(%0, #)] AND 
-		editor = [rest(%1, #)] AND 
-		time = FROM_UNIXTIME('%2'); 
+		target_guid = '[u( .guid, %0 )]' AND 
+		editor_guid = '[u( .guid, %1 )]' AND 
+		time = FROM_UNIXTIME( '%2' ); 
 
 --
 
-think sql(u(notes/sql.primary_key.everything, #1003, #1003, 1326420169), ~, |)
+think sql( u( notes/sql.primary_key.everything, %#, %#, 1412719601 ), ~, | )
 
 
 --------------------------------------------------------------------------------
--- SQL: Unused UUID ------------------------------------------------------------
+-- SQL: Orphaned GUID ----------------------------------------------------------
 
-List abandoned 'dbref + creation date' UUIDs based on a single dbref.
+List abandoned 'dbref + creation date' GUIDs based on a single dbref.
 
-0: player dbref
+0: target dbref
 
 --
 
-&sql.one_dbref.unused_uuid Notes System=
-	SELECT DISTINCT 
-		concat('#', target) AS target, 
-		UNIX_TIMESTAMP(target_created) AS target_created 
+&sql.one_dbref.orphaned_guid Notes System=
+	SELECT DISTINCT target_guid 
 	FROM mush_notes 
 	WHERE 
-		target = [rest(%0, #)] AND 
-		target_created != 
-			FROM_UNIXTIME('[convtime(get(%0/created), , 6)]');
+		target_guid LIKE '%0:\\\%' AND 
+		target_guid NOT LIKE '[u( .guid, %0 )]'; 
+
+--
+
+think sql( u( notes/sql.one_dbref.orphaned_guid, #7 ))
+
+think search( eval=t( sql( u( notes/sql.one_dbref.orphaned_guid, ## ))))
+
 
 
 ================================================================================
@@ -801,65 +832,77 @@ Various outputs.
 	if( t( %0 ), 
 
 @@ >> Display items
-		strcat(
-			list( 1, u( _header, %1 )), 
+		strcat( 
+			list( 1, u( .header, %1 )), 
 			list( 
 				%0, 
 				elements( %i0, 4, | ), 
 				:
 			), 
-			list( 1, u( _footer, words( %0, : )))
+			list( 1, u( .footer, words( %0, : )))
 		), 
 
 @@ >> Nothing to display (default msg)
-		u( _notice, if( t( %2 ), %2, Nothing to display ))
+		u( .notice, if( t( %2 ), %2, Nothing to display ))
 	)
 
 
 --------------------------------------------------------------------------------
 -- DISPLAY: One Note -----------------------------------------------------------
 
-	think u(notes/display.one-note, #1003|#1003|1326417155)
+	think u( notes/display.one-note, #1003|#1003|1326417155 )
 
 0: primary key (#target|#editor|time-in-secs)
-   (we do it like this so we can extract primary key from, say, keyword search)
-   (a cheap 'join')
+  (we do it like this so we can extract primary key from, say, keyword search)
+  (a cheap 'join')
 
 The | delimiter is for legibility only.
 
 --
 
 &display.one-note Notes System=
-	[setq(q, 
-		sql(
-			u(sql.primary_key.everything, 
-				elements(%0, 1, |), 
-				elements(%0, 2, |), 
-				elements(%0, 3, |)
+
+strcat( 
+	setq( q, 
+		sql( 
+			u( sql.primary_key.everything, 
+				elements( %0, 1, | ), 
+				elements( %0, 2, | ), 
+				elements( %0, 3, | )
 			), 
 			~, 
 			|
 		)
-	)]
+	), 
 
-	[case(0, 
-		eq(words(%qq, ~), 1), 
-		u(_notice, Primary key passed to 'display one note' was not unique.), 
+	case( 0, 
+		eq( words( %qq, ~ ), 1 ), 
+		u( .notice, Primary key passed to 'display one note' was not unique. ), 
 
 @@ Display!
-		[u(_header, [elements(%qq, 4, |)] (on [name(elements(%qq, 1, |))]))]%r
+		strcat( 
+			u( .header, 
+				[elements( %qq, 4, | )] 
+				(on [name( first( elements( %qq, 1, | ), : ))])
+			), %r, 
+
+			NAME:%b, elements( %qq, 4, | ), %r
+			EDITED BY:%b, name( first( elements( %qq, 2, | ), : )), %r, 
+			LAST EDIT:%b, convsecs( elements( %qq, 3, | )), %r, 
+			PERMISSIONS:%b, elements( %qq, 6, | ), %r, 
+			APPROVED BY:%b, elements( %qq, 7, | ), %r, 
+			LOCKED BY:%b, elements( %qq, 8, | ), %r, 
+			TEXT:%b, elements( %qq, 5, | ), %r, 
 		
-		NAME: [elements(%qq, 4, |)]%r
-		EDITED BY: [name(elements(%qq, 2, |))]%r
-		LAST EDIT: [convsecs(elements(%qq, 3, |))]%r
-		NOTE PERMISSIONS: [elements(%qq, 6, |)]%r
-		APPROVED BY: [elements(%qq, 7, |)]%r
-		LOCKED BY: [elements(%qq, 8, |)]%r
-		TEXT: [elements(%qq, 5, |)]%r
-		
-		[u(_footer, elements(%qq, 6, |))]
-		
-	)]
+			u( .footer, elements( %qq, 6, | ))
+		)
+	)
+)
+
+--
+
+think u( notes/display.one-note, %#|%#|1412719601 )
+
 
 
 ================================================================================
@@ -868,15 +911,19 @@ The | delimiter is for legibility only.
 Code which will probably be different from game to game.
 
 (for CODP)
-&prefix.cross_platform Notes System=_
+&prefix.cross_platform Notes System=.
 
 --
 
-&_header Notes System=wheader( %0 )
-&_footer Notes System=wfooter( %0 )
-&_divider Notes System=wdivider( %0 )
+&.header Notes System=wheader( %0 )
+&.footer Notes System=wfooter( %0 )
+&.divider Notes System=wdivider( %0 )
 
-&_notice Notes System=[ansi( xh, GAME: )] %0
-&_isstaff Notes System=isstaff( %0 )
+&.notice Notes System=[ansi( xh, notes: )] %0
+&.isstaff Notes System=isstaff( %0 )
+&.guid Notes System=strcat( num( %0 ), :, convtime( get( %0/created ), , 6 ))
 
+@@ guid == objid == <dbref>:<created timestamp in seconds>
+
+&f.validate.guid Notes System=strmatch( %1, u( .guid, %0 ))
 
