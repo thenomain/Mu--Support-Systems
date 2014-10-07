@@ -80,7 +80,7 @@
 
 &DESCRIPTION-HELP Help Database=To access any of these topics, simply type '+help <topic>'.
 
-&DESCRIPTION-SHELP Help Database=To access any of these topics, simply type '+shelp <topic>'. To add to this system, check '+shelp help 2'.%rHelp lives on: %! 
+&DESCRIPTION-SHELP Help Database=To access any of these topics, simply type '+shelp <topic>'.%rTo add to this system, check '+shelp help 2'.%rHelp lives on: %! 
 
 &SHELP~STAFF_COMMANDS~HELP_&_NEWS Help Database=The Help System~+help: Lists the main help topics %r+help<page>: Lists that page of help topics %r+help <topic>: Lists the first page of that help topic %r+help <topic> <page num>: Lists the subsequent pages, if any %r %rThe help system will do its best to guess which help topic you mean through name-completion. If you type '+help th', it will match 'thing'. %r %rThe addition of a + is always optional. If you type '+help thing' and there is topic 'thing' and topic '+thing', it will match 'thing' first. If you type '+help +thing', it will only match '+thing'. %r %rThe help system allows spaces in topic names. Because of this, the help system always assumes the last word is a page number if it is a number! %r %rAlthough '+news' uses the same system as '+help', the leading '+' is optional. '+news' and 'news' are synonymous.~[center(--- Making a Help Topic ---, 73)]%r %rThe help system will read all objects located inside itself for help topics. %r %rAttributes are set up in the following manner: %r%b %b&help<page>`<category_name>`<topic_name>: <header>`<page 1>[`<page n>] %r %rThe ` character is a tilde (not shown here because the system would assume it's a new page). As long as the tilde character is not displayed, help topics follow every normal rule for displaying text in MUSH. %r %r<page>: In cases where there's so many topics that showing them all at once would be spamming, you can add a page number to allow people to type '+help<page>' and see the different lists. It's best practice not to create help1 entries. help and help1 are synonymous. %r %r<category_name>: Entered with underscores but displayed as a title, the system sorts and groups topics by their category. %r %r<topic_name>: Entered with underscores but displayed as a title, these are what people enter to view the help topic and are displayed on its page under its category in alphabetical order.%r %r<header>: This is displayed at the top of each page for the topic. %r %r<page n>: The system can handle as many pages as can fit on a single attribute, each separated by a tilde.%r%rTo set a staff-help topic, start with &shelp instead of &help.
 
@@ -94,7 +94,7 @@
 
 &DESCRIPTION-NEWS News Database=To access any of these topics, simply type 'snews <topic>'.
 
-&DESCRIPTION-SNEWS News Database=To access any of these topics, simply type 'snews <topic>'. To add to this system, check '+shelp help 2', but attributes start with &news and &snews instead of &help and &shelp.%rNews lives on: %! 
+&DESCRIPTION-SNEWS News Database=To access any of these topics, simply type 'snews <topic>'.%rTo add to this system, check '+shelp help 2', but attributes start with &news and &snews instead of &help and &shelp.%rNews lives on: %! 
 
 @fo me=&d.news_database Help/News Box=[num( help database  )]
 
