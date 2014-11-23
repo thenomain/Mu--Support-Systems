@@ -1,4 +1,5 @@
-Take text use it to @trigger on an object with stuff to do.  Unlike my other code projects, <log type> must be precise.
+Take text use it to @trigger on an object with stuff to do.  Unlike my other 
+code projects, <log type> must be precise.
 
 Logtypes starting special.* are reserved for internal system use only.
 
@@ -21,18 +22,20 @@ And store a copy on:
 == SETUP =======================================================================
 
 @create logtext global function <lgf>
-@set lgf=inh
+@set lgf=inherit
 @set lgf=safe
 
 @create Errors Log
-@fo me=&dbref.special.errors lgf=[num(Errors Log)]
+@fo me=&dbref.special.errors lgf=[num( Errors Log )]
 @fo me=@tel Errors Log=lgf
+
 
 
 ================================================================================
 == LOG OBJECT FUNCTIONS ========================================================
 
-Each log is stored on its own object.  These functions are for information about the given object as a whole.
+Each log is stored on its own object.  These functions are for information about 
+the given object as a whole.
 
 Objects are all those who are stored on the main log code object (lgf) as:
 	&dbref.<log_name>: <object dbref>
@@ -45,11 +48,13 @@ Any names with a period '.' in them are considered special and will be avoided.
 
 We'll take the minimum as suggested by http://www.tinymux.com/limits.txt
 
-Initially set to 2666, system refused to process at 2667 attributes, backing down to 2600.
+Initially set to 2666, system refused to process at 2667 attributes, backing 
+down to 2600.
 
 "visual" is to hand the value directly off to a softcode news/help entry.
 
-This value is used to determine number of attribute groups (see below) so must be set first.
+This value is used to determine number of attribute groups (see below) so must 
+be set first.
 
 --
 
@@ -60,22 +65,19 @@ This value is used to determine number of attribute groups (see below) so must b
 --------------------------------------------------------------------------------
 -- Function: Get Log Object Dbref ----------------------------------------------
 
-Grab the dbref of the log object from log type passed. Logtypes starting special.* are reserved for internal system use only.
+Grab the dbref of the log object from log type passed. Logtypes starting 
+special.* are reserved for internal system use only.
 
 0: log type
 
 --
 
 &f.logobj.dbref lgf=
-	udefault(
+	udefault( 
 		dbref.
-		[if(not(strmatch(%0, special.*)), edit(%0, %b, _))], 
-		#-1 Log Name Not Found
+		[if( not( strmatch( %0, special.* )), edit( %0, %b, _ ))], 
+		#-1 Log Name Not Found 
 	)
-
---
-
-&f.logobj.dbref lgf=udefault(dbref.[if(not(strmatch(%0, special.*)), edit(%0, %b, _))], #-1 Log Name Not Found)
 
 
 --------------------------------------------------------------------------------
@@ -88,7 +90,7 @@ I don't know that I won't need this, so I have it.
 
 --
 
-&f.logobj.trigger lgf=trigger(%0/log.do, %1)
+&f.logobj.trigger lgf=trigger( %0/log.do, %1 )
 
 
 --------------------------------------------------------------------------------
@@ -99,63 +101,78 @@ returns: 1 if full, 0 if not
 
 --
 
-&f.logobj.isfull? lgf=gte(attrcnt(%0/?.*), v(d.max.records))
+&f.logobj.isfull? lgf=gte( attrcnt( %0/?.* ), v( d.max.records ))
+
 
 
 ================================================================================
 == GROUPING RECORDS ============================================================
 
-The lbuf limit of the game means that no more than 8k (tinymux) or 4k (others) can be processed.  This limits the number of log attributes (log.<secs>) that can be processed to around 500/250.
+The lbuf limit of the game means that no more than 8k (tinymux) or 4k (others) 
+can be processed.  This limits the number of log attributes (log.<secs>) that 
+can be processed to around 500/250.
 
 	log.<sec> = 14 characters + 1 space (delimiter)
 	(8000 / 15) - 1 = 532 (last item doesn't need a delimiter)
 	(4000 / 15) - 1 = 265
 
-To solve this, instead we will store logged entries with a simple prefix.  Code will then run on all available prefixes, and then again on the complete set, bypassing the limit by running to the edge of that limit multiple times.
+To solve this, instead we will store logged entries with a simple prefix.  Code 
+will then run on all available prefixes, and then again on the complete set, 
+bypassing the limit by running to the edge of that limit multiple times.
 
-The drawback is, of course, that you're running the same code <n+1> times (depending on the number of prefixes) but that should not run into any major limitations.
+The drawback is, of course, that you're running the same code <n+1> times 
+(depending on the number of prefixes) but that should not run into any major 
+limitations.
 
 
 --------------------------------------------------------------------------------
 -- Grouping: Data --------------------------------------------------------------
 
-Allow 500 per group on Mux, 250 for others.  With a limit of 2600 log entries, 6 groups for Mux (2600/500 = 5.2) 11 groups for others (2600/250=10.4) will work.
+Allow 500 per group on Mux, 250 for others.  With a limit of 2600 log entries, 6 
+groups for Mux (2600/500 = 5.2) 11 groups for others (2600/250=10.4) will work.
 
 (We use a formula to set it up anyway, in a "because we can" manner.)
 
 --
 
-@fo me=&d.group.size lgf=[case(first(version()), MUX, 500, 250)]
+@fo me=&d.group.size lgf=[case( first( version() ), MUX, 500, 250 )]
 @set lgf/d.group.size=visual
 
-@fo me=&d.group.prefixes lgf=[extract(A B C D E F G H I J K L M N O P Q R S T U V W X Y Z, 1, ceil(fdiv(get(lgf/d.max.records), get(lgf/d.group.size))))]
+@fo me=&d.group.prefixes lgf=[extract( A B C D E F G H I J K L M N O P Q R S T U V W X Y Z, 1, ceil( fdiv( get( lgf/d.max.records ), get( lgf/d.group.size ))))]
 
 
 --------------------------------------------------------------------------------
 -- Grouping: Current Prefix ----------------------------------------------------
 
-The current log group can be determined from an attribute on the (main?) log object in 'log.group'.  That's all it does, but in case we do allow logs to be split among objects in the future, this will be useful.
+The current log group can be determined from an attribute on the (main?) log 
+object in 'log.group'.  That's all it does, but in case we do allow logs to be 
+split among objects in the future, this will be useful.
 
 If an object does not have a 'current' set, use the first "group prefix".
 
-USAGE: When you need the most recent group, probably only useful for determining the last record.  "Next Prefix" uses this as a starting point.
+USAGE: When you need the most recent group, probably only useful for determining 
+the last record.  "Next Prefix" uses this as a starting point.
 
 --
 
 0: log object dbref
 returns: group prefix (a through f)
 
-&f.group.current lgf=udefault(%0/log.group, first(v(d.group.prefixes)))
+&f.group.current lgf=udefault( %0/log.group, first( v( d.group.prefixes )))
 
 
 --------------------------------------------------------------------------------
 -- Grouping: Next Prefix -------------------------------------------------------
 
-Returns the prefix to use.  If the prefix is "full" (already has 'd.group.size' attributes), the "next" prefix is fetched and the object's 'd.group' updated.
+Returns the prefix to use.  If the prefix is "full" (already has 'd.group.size' 
+attributes), the "next" prefix is fetched and the object's 'd.group' updated.
 
-Even if the prefix isn't used, we're only updating if the object if the prefix is full, so there's no harm done.
+Even if the prefix isn't used, we're only updating if the object if the prefix 
+is full, so there's no harm done.
 
-(The term "next" comes from how Oracle handles updating counters. Even if it doesn't change, it's still the "next" group you should use.  Sometimes the next is the same.  That's just how it goes.)
+(The term "next" comes from how Oracle handles updating counters. Even if it 
+doesn't change, it's still the "next" group you should use.  Sometimes the next 
+is the same.  That's just how it goes.)
 
 USAGE: Only when adding to the log.
 
@@ -170,32 +187,31 @@ qp: 'd.group.prefixes', which we might use a few times
 --
 
 &f.group.next lgf=
-	[setq(g, u(f.group.current, %0))]
-	[setq(s, attrcnt(%0/%qg.*))]
+	[setq( g, u( f.group.current, %0 ))]
+	[setq( s, attrcnt( %0/%qg.* ))]
 
 @@ .. if records in group > max group size, return current prefix, else next
-	[if(
-		lt(%qs, v(d.group.size)), 
+	[if( 
+		lt( %qs, v( d.group.size )), 
 		%qg, 
 @@ >> next group prefix
 @@ .. .. grab the next item in 'd.group.prefixes'
-		[setq(p, v(d.group.prefixes))]
-		[setq(g, extract(%qp, inc(match(%qp, %qg)), 1))]
+		[setq( p, v( d.group.prefixes ))]
+		[setq( g, extract( %qp, inc( match( %qp, %qg )), 1 ))]
 @@ .. .. if empty, return the first from the list (loop the list)
-		[setr(g, if(t(%qg), %qg, first(%qp)))]
+		[setr( g, if( t( %qg ), %qg, first( %qp )))]
 @@ .. .. now update the object with the new prefix
-		[set(%0, log.group:%qg)]
+		[set( %0, log.group:%qg )]
 	)]
 
---
-
-&f.group.next lgf=[setq(g, u(f.group.current, %0))][setq(s, attrcnt(%0/%qg.*))][if(lt(%qs, v(d.group.size)), %qg, [setq(p, v(d.group.prefixes))][setq(g, extract(%qp, inc(match(%qp, %qg)), 1))][setr(g, if(t(%qg), %qg, first(%qp)))][set(%0, log.group:%qg)])]
 
 
 ================================================================================
 == RECORDS =====================================================================
 
-The most recently record isn't that important to grab (tho it's the easiest), but we need to reliably grab the oldest record when we need to clear it out during the "add a record" process.
+The most recently record isn't that important to grab (tho it's the easiest), 
+but we need to reliably grab the oldest record when we need to clear it out 
+during the "add a record" process.
 
 
 --------------------------------------------------------------------------------
@@ -204,13 +220,14 @@ The most recently record isn't that important to grab (tho it's the easiest), bu
 0: dbref of log object
 returns: attribute name
 
-&f.record.newest lgf=last(sort(lattr(%0/[ulocal(f.group.current, %0)].*)))
+&f.record.newest lgf=last( sort( lattr(%0/[ulocal( f.group.current, %0 )].* )))
 
 
 --------------------------------------------------------------------------------
 -- Record: Oldest Record -------------------------------------------------------
 
-The oldest record per group is the first() in a sort on that group.  The oldest record of those is the first() on a sort by timestamp (ignoring the prefix).
+The oldest record per group is the first() in a sort on that group.  The oldest 
+record of those is the first() on a sort by timestamp (ignoring the prefix).
 
 --
 
@@ -218,44 +235,38 @@ The oldest record per group is the first() in a sort on that group.  The oldest 
 returns: attribute name
 
 &f.record.oldest lgf=
-	first(
-		sortby(sortby.timestamp, 
-			iter(
-				v(d.group.prefixes), 
-				first(sort(lattr(%0/%i0.*)))
+	first( 
+		sortby( sortby.timestamp, 
+			iter( 
+				v( d.group.prefixes ), 
+				first( sort( lattr( %0/%i0.* )))
 			)
 		)
 	)
-
---
-
-&f.record.oldest lgf=first(sortby(sortby.timestamp, iter(v(d.group.prefixes), first(sort(lattr(%0/%i0.*))))))
 
 
 --------------------------------------------------------------------------------
 -- Record: Sort By Timestamp ---------------------------------------------------
 
-This is a pure numeric comparison. (With second layer because > is int-only in mux.)
+This is a pure numeric comparison. (With second layer because > is int-only in 
+mux.)
 
 Still doesn't work perfectly, we'll see if it matters...
 
 --
 
 &sortby.timestamp lgf=
-	switch(rest(%0, .), 
-		>[rest(%1, .)], 1, 
-		<[rest(%1, .)], -1, 
-		switch(
-			last(%0, .), 
-			>[last(%1, .)], 1, 
-			<[last(%1, .)], -1, 
+	switch( rest( %0, . ), 
+		>[rest( %1, . )], 1, 
+		<[rest( %1, . )], -1, 
+		switch( 
+			last( %0, . ), 
+			>[last( %1, . )], 1, 
+			<[last( %1, . )], -1, 
 			0
 		)
 	)
 
---
-
-&sortby.timestamp lgf=switch(rest(%0, .), >[rest(%1, .)], 1, <[rest(%1, .)], -1, switch(last(%0, .), >[last(%1, .)], 1, <[last(%1, .)], -1, 0))
 
 
 --------------------------------------------------------------------------------
@@ -268,13 +279,14 @@ Remove the oldest record on demand.
 0: dbref of log object
 returns: nothing unless error (which would be generated by 'set()')
 
-&f.record.remove-oldest lgf=[set(%0, [u(f.record.oldest, %0)]:)]
+&f.record.remove-oldest lgf=[set( %0, [u( f.record.oldest, %0 )]: )]
 
 
 --------------------------------------------------------------------------------
 -- Record: Add New -------------------------------------------------------------
 
-Adds a new record.  Assume passed attributes and removing the oldest entry happened first, if needed.  Do collision detection, if neccesary.
+Adds a new record.  Assume passed attributes and removing the oldest entry 
+happened first, if needed.  Do collision detection, if neccesary.
 
 --
 
@@ -289,24 +301,22 @@ qm: matching attributes to %qa (if any)
 --
 
 &f.record.add-new lgf=
-	[setq(g, u(f.group.next, %0))]
-	[setq(a, %qg.[secs()])]
+	[setq( g, u( f.group.next, %0 ))]
+	[setq( a, %qg.[secs( )] )]
 
 @@ .. if an attribute of that name already exists ...
-	[if(hasattr(%0, %qa), 
-		[setq(m, lattr(%0/%qa*))]
+	[if( hasattr( %0, %qa ), 
+		[setq( m, lattr( %0/%qa* ))]
 @@ .. .. <group>.<secs> -> <group>.<secs>.1 -> <group>.<secs>.2
-		[setq(a, 
-			[extract(last(%qm), 1, 2, .)].[inc(extract(last(%qm), 3, 1, .))]
+		[setq( a, 
+			[extract( last( %qm ), 1, 2, . )].
+			[inc( extract( last( %qm ), 3, 1, . ))]
 		)]
 	)]
 
 @@ .. set the attribute
-	[set(%0, %qa:%1)]
+	[set( %0, %qa:%1 )]
 
---
-
-&f.record.add-new lgf=[setq(g, u(f.group.next, %0))][setq(a, %qg.[secs()])][if(hasattr(%0, %qa), [setq(m, lattr(%0/%qa*))][setq(a, [extract(last(%qm), 1, 2, .)].[inc(extract(last(%qm), 3, 1, .))])])][set(%0, %qa:%1)]
 
 
 ================================================================================
@@ -320,7 +330,7 @@ Support functions that don't currently have a grouping of their own.
 
 0: text
 
-&f.errors.add-new lgf=u(f.logobj.add-new, u(dbref.special.errors), %0)
+&f.errors.add-new lgf=u( f.logobj.add-new, u( dbref.special.errors ), %0 )
 
 
 --------------------------------------------------------------------------------
@@ -330,7 +340,9 @@ timestamp|text::timestamp|text
 
 Used by 'tail' and 'search', edit delimiter '::' to 'space' within <text>.
 
-Although it matters for sorting purposes (done before this step), we're going to drop the .xx from the timestamp, even if this makes a number of records appear to have happened in the same instant.
+Although it matters for sorting purposes (done before this step), we're going to 
+drop the .xx from the timestamp, even if this makes a number of records appear 
+to have happened in the same instant.
 
 This will be safe should we later use secs(<precision>).
 
@@ -345,15 +357,13 @@ qd: delimiter (actual)
 --
 
 &f.output.iteration lgf=
-	[setq(d, if(t(%2), %2, ::))]
-	[iter(%0, 
-		[extract(%i0, 2, 1, .)]|[edit(get(%1/%i0), %qd, space(strlen(%qd)))], 
+	[setq( d, if( t( %2 ), %2, :: ))]
+	[iter( %0, 
+		[extract( %i0, 2, 1, . )]|
+		[edit( get( %1/%i0 ), %qd, space( strlen( %qd )))], 
 		, %qd
 	)]
 
---
-
-&f.output.iteration lgf=[setq(d, if(t(%2), %2, ::))][iter(%0, [extract(%i0, 2, 1, .)]|[edit(get(%1/%i0), %qd, space(strlen(%qd)))], , %qd)]
 
 
 ================================================================================
@@ -370,19 +380,16 @@ Errors are sent to the special.errors log
 --
 
 &ufunc.logtext lgf=
-	case(0, 
-		isstaff(%@), #-1 Staff Only, 
+	case( 0, 
+		isstaff( %@ ), #-1 Staff Only, 
 
-		udefault(f.logtext.%0, #-1 Action Not Found, %1, %2, %3)
+		udefault( f.logtext.%0, #-1 Action Not Found, %1, %2, %3 )
 	)
 
 --
 
-&ufunc.logtext lgf=case(0, isstaff(%@), #-1 Staff Only, udefault(f.logtext.%0, #-1 Action Not Found, %1, %2, %3))
-
---
-
 @startup lgf=@function/preserve/privileged logtext=%!/ufunc.logtext
+
 
 
 ================================================================================
@@ -392,20 +399,20 @@ Errors are sent to the special.errors log
 returns: list of matches, or <null>
 
 &f.logtext.list lgf=
-	[setq(l, lattr(%!/dbref.%0*))]
-	[setq(s, lattr(%!/dbref.special.%0*))]
+	[setq( l, lattr( %!/dbref.%0* ))]
+	[setq( s, lattr( %!/dbref.special.%0* ))]
 
-	[trim(lcstr(
-		[iter(setdiff(%ql, lattr(%!/dbref.special.*)), 
-			[rest(%i0, .)]:[u(%i0)]
+	[trim( lcstr( 
+		[iter( setdiff( %ql, lattr( %!/dbref.special.* )), 
+			[rest( %i0, . )]:[u( %i0 )]
 		)] 
 
-		[iter(%qs, [rest(%i0, .)]:[u(%i0)])]
+		[iter( %qs, 
+			[rest( %i0, . )]:[u( %i0 )] 
+		)]
+
 	))]
 
---
-
-&f.logtext.list lgf=[setq(l, lattr(%!/dbref.%0*))][setq(s, lattr(%!/dbref.special.%0*))][trim(lcstr([iter(setdiff(%ql, lattr(%!/dbref.special.*)), [rest(%i0, .)]:[u(%i0)])] [iter(%qs, [rest(%i0, .)]:[u(%i0)])]))]
 
 
 ================================================================================
@@ -428,44 +435,45 @@ qa: return from 'add-new', if anything is in it report/record error
 
 &f.logtext.add lgf=
 
-	[setq(d, u(f.logobj.dbref, %0))]
-	[setq(f, u(f.logobj.isfull?, %qd))]
+	[setq( d, u( f.logobj.dbref, %0 ))]
+	[setq( f, u( f.logobj.isfull?, %qd ))]
 
-	[case(0, 
-		t(%qd), %qd, 
-		strlen(trim(%1)), #-1 No Text Passed, 
+	[case( 0, 
+		t( %qd ), %qd, 
+		strlen( trim( %1 )), #-1 No Text Passed, 
 
-@@ >> good to go - put both full/not full in if() to avoid timing issues
-		[if(%qf, 
+@@ >> good to go - put both full/not full in if(  ) to avoid timing issues
+		[if( %qf, 
 @@ .. full: remove oldest, add new, trigger
-			[ulocal(f.record.remove-oldest, %qd)]
-			[setq(a, ulocal(f.record.add-new, %qd, %1))]
-			[if(
-				comp(%qa, ), 
-				[u(f.errors.add-new, Enactor: %@ - Log: %0 (%qd) - Error: %qa)]
+			[ulocal( f.record.remove-oldest, %qd )]
+			[setq( a, ulocal( f.record.add-new, %qd, %1 ))]
+			[if( 
+				comp( %qa,  ), 
+				[u( f.errors.add-new, 
+					Enactor: %@ - Log: %0 ( %qd ) - Error: %qa 
+				)]
 				#-1 Error Adding Text - %qa
 			)]
-			[trigger(%qd/log.do, %1)], 
+			[trigger( %qd/log.do, %1 )], 
 @@ .. not full: add new, trigger
-			[setq(a, ulocal(f.record.add-new, %qd, %1))]
-			[if(
-				comp(%qa, ), 
-				[u(f.errors.add-new, Enactor: %@ - Log: %0 (%qd) - Error: %qa)]
+			[setq( a, ulocal( f.record.add-new, %qd, %1 ))]
+			[if( 
+				comp( %qa,  ), 
+				[u( f.errors.add-new, 
+					Enactor: %@ - Log: %0 ( %qd ) - Error: %qa 
+				)]
 				#-1 Error Adding Text - %qa
 			)]
-			[trigger(%qd/log.do, %1)]
+			[trigger( %qd/log.do, %1 )]
 		)]
 	)]
 
---
-
-&f.logtext.add lgf=[setq(d, u(f.logobj.dbref, %0))][setq(f, u(f.logobj.isfull?, %qd))][case(0, t(%qd), %qd, strlen(trim(%1)), #-1 No Text Passed, [if(%qf, [ulocal(f.record.remove-oldest, %qd)][setq(a, ulocal(f.record.add-new, %qd, %1))][if(comp(%qa, ), [u(f.errors.add-new, Enactor: %@ - Log: %0 (%qd) - Error: %qa)]#-1 Error Adding Text - %qa)][trigger(%qd/log.do, %1)], [setq(a, ulocal(f.record.add-new, %qd, %1))][if(comp(%qa, ), [u(f.errors.add-new, Enactor: %@ - Log: %0 (%qd) - Error: %qa)]#-1 Error Adding Text - %qa)][trigger(%qd/log.do, %1)])])]
 
 
 ================================================================================
 == LOGTEXT(): TAIL =============================================================
 
-	think logtext(tail, <channel>[, <records>[, <delimiter>]])
+	logtext( tail, <channel>[, <records>[, <delimiter>]] )
 
 Return "last x entries" in our timestamp|text format, oldest->newest.
 
@@ -483,32 +491,29 @@ ql: last %qn log attribtues
 
 &f.logtext.tail lgf=
 
-	[setq(d, u(f.logobj.dbref, %0))]
-	[setq(n, if(and(isint(%1), gt(%1, 0)), %1, 10))]
+	[setq( d, u( f.logobj.dbref, %0 ))]
+	[setq( n, if( and( isint( %1 ), gt( %1, 0 )), %1, 10 ))]
 
 @@ .. grab the last 'n' from each attribute group
-	[setq(l, 
-		iter(v(d.group.prefixes), 
-			extract(revwords(sort(lattr(%qd/%i0.*))), 1, %qn)
+	[setq( l, 
+		iter( v( d.group.prefixes ), 
+			extract( revwords( sort( lattr( %qd/%i0.* ))), 1, %qn )
 		)
 	)]
 
 @@ .. sort by timestamp and grab the last 'n' from the result
-	[setq(l, 
-		extract(revwords(sortby(sortby.timestamp, %ql)), 1, %qn)
+	[setq( l, 
+		extract( revwords( sortby( sortby.timestamp, %ql )), 1, %qn )
 	)]
 
 @@ .. report error if any happened
-	[case(0, 
-		t(%qd), %qd, 
+	[case( 0, 
+		t( %qd ), %qd, 
 
 @@ >> ok: iter away
-		u(f.output.iteration, revwords(%ql), %qd, %2)
+		u( f.output.iteration, revwords( %ql ), %qd, %2 )
 	)]
 
---
-
-&f.logtext.tail lgf=[setq(d, u(f.logobj.dbref, %0))][setq(n, if(and(isint(%1), gt(%1, 0)), %1, 10))][setq(l, iter(v(d.group.prefixes), extract(revwords(sort(lattr(%qd/%i0.*))), 1, %qn)))][setq(l, extract(revwords(sortby(sortby.timestamp, %ql)), 1, %qn))][case(0, t(%qd), %qd, u(f.output.iteration, revwords(%ql), %qd, %2))]
 
 
 ================================================================================
@@ -530,38 +535,35 @@ ql: last %qn log attribtues
 --
 
 &f.logtext.head lgf=
-	[setq(d, u(f.logobj.dbref, %0))]
-	[setq(n, if(and(isint(%1), gt(%1, 0)), %1, 10))]
+	[setq( d, u( f.logobj.dbref, %0 ))]
+	[setq( n, if( and( isint( %1 ), gt( %1, 0 )), %1, 10 ))]
 
 @@ .. grab the last 'n' from each attribute group
-	[setq(l, 
-		iter(v(d.group.prefixes), 
-			extract(sort(lattr(%qd/%i0.*)), 1, %qn)
+	[setq( l, 
+		iter( v( d.group.prefixes ), 
+			extract( sort( lattr( %qd/%i0.* )), 1, %qn )
 		)
 	)]
 
 @@ .. sort by timestamp and grab the last 'n' from the result
-	[setq(l, 
-		extract(sortby(sortby.timestamp, %ql), 1, %qn)
+	[setq( l, 
+		extract( sortby( sortby.timestamp, %ql ), 1, %qn )
 	)]
 
 @@ .. report error if any happened
-	[case(0, 
-		t(%qd), %qd, 
+	[case( 0, 
+		t( %qd ), %qd, 
 
 @@ >> ok: iter away
-		u(f.output.iteration, %ql, %qd, %2)
+		u( f.output.iteration, %ql, %qd, %2 )
 	)]
 
---
-
-&f.logtext.head lgf=[setq(d, u(f.logobj.dbref, %0))][setq(n, if(and(isint(%1), gt(%1, 0)), %1, 10))][setq(l, iter(v(d.group.prefixes), extract(sort(lattr(%qd/%i0.*)), 1, %qn)))][setq(l, extract(sortby(sortby.timestamp, %ql), 1, %qn))][case(0, t(%qd), %qd, u(f.output.iteration, %ql, %qd, %2))]
 
 
 ================================================================================
 == LOGTEXT(): SEARCH ===========================================================
 
-	think logtext(search, <log name>, <text>[, <output delimiter>])
+	logtext( search, <log name>, <text>[, <output delimiter>] )
 
 Return all matching entries matching *text* in the timestamp|text format.
 
@@ -576,25 +578,22 @@ qs: grepi results
 
 &f.logtext.search lgf=
 
-	[setq(d, u(f.logobj.dbref, %0))]
-	[setq(s, grepi(%qd, ?.*, %1))]
+	[setq( d, u( f.logobj.dbref, %0 ))]
+	[setq( s, grepi( %qd, ?.*, %1 ))]
 
-	[case(0, 
-		t(%qd), %qd, 
-		not(strmatch(%qs, #-*)), #-1 Must Search For Something, 
+	[case( 0, 
+		t( %qd ), %qd, 
+		not( strmatch( %qs, #-* )), #-1 Must Search For Something, 
 
-		ulocal(f.output.iteration, sort(%qs), %qd, %2)
+		ulocal( f.output.iteration, sort( %qs ), %qd, %2 )
 	)]
 
---
-
-&f.logtext.search lgf=[setq(d, u(f.logobj.dbref, %0))][setq(s, grepi(%qd, ?.*, %1))][case(0, t(%qd), %qd, not(strmatch(%qs, #-*)), #-1 Must Search For Something, ulocal(f.output.iteration, sort(%qs), %qd, %2))]
 
 
 ================================================================================
 == LOGTEXT(): STATS ============================================================
 
-	logtext(stats[, <channel>][, <output delimiter>])
+	logtext( stats[, <channel>][, <output delimiter>] )
 
 Interesting (possibly useful?) information about a channel
 
@@ -609,44 +608,40 @@ qg: current group
 --
 
 &f.logtext.stats lgf=
-	[setq(d, u(f.logobj.dbref, %0))]
-	[setq(g, u(f.group.current, %qd))]
+	[setq( d, u( f.logobj.dbref, %0 ))]
+	[setq( g, u( f.group.current, %qd ))]
 
-	[case(1, 
+	[case( 1, 
 @@ .. no log name entered, display general stats
-		or(strmatch(%0, logtext), not(t(%0))), 
-		iter(
+		or( strmatch( %0, logtext ), not( t( %0 ))), 
+		iter( 
 			Dbref:%! 
-			Logs:[attrcnt(%!/dbref.*)] 
-			Max_Records:[v(d.max.records)] 
-			Num_Groups:[words(v(d.group.prefixes))] 
-			Group_Size:[v(d.group.size)], 
+			Logs:[attrcnt( %!/dbref.* )] 
+			Max_Records:[v( d.max.records )] 
+			Num_Groups:[words( v( d.group.prefixes ))] 
+			Group_Size:[v( d.group.size )], 
 
 			%i0, 
-			, [if(t(%1), %1, ::)]
+			, [if( t( %1 ), %1, :: )]
 		), 
 
 @@ .. tried to get log object but couldn't be found
-		not(t(%qd)), %qd, 
+		not( t( %qd )), %qd, 
 
 @@ .. stats for log object
-		iter(
+		iter( 
 			Dbref:%qd 
-			Records:[attrcnt(%qd/?.*)] 
-			Oldest:[rest(u(f.record.oldest, %qd), .)] 
-			Newest:[rest(u(f.record.newest, %qd), .)] 
-			Group:[setr(g, u(f.group.current, %qd))] 
-			Group_Records:[attrcnt(%qd/%qg.*)], 
+			Records:[attrcnt( %qd/?.* )] 
+			Oldest:[rest( u( f.record.oldest, %qd ), . )] 
+			Newest:[rest( u( f.record.newest, %qd ), . )] 
+			Group:[setr( g, u( f.group.current, %qd ))] 
+			Group_Records:[attrcnt( %qd/%qg.* )], 
 
 			%i0, 
-			, [if(t(%1), %1, ::)]
+			, [if( t( %1 ), %1, :: )]
 		)
 	)]
 
-
---
-
-&f.logtext.stats lgf=[setq(d, u(f.logobj.dbref, %0))][setq(g, u(f.group.current, %qd))][case(1, or(strmatch(%0, logtext), not(t(%0))), iter(Dbref:%! Logs:[attrcnt(%!/dbref.*)] Max_Records:[v(d.max.records)] Num_Groups:[words(v(d.group.prefixes))] Group_Size:[v(d.group.size)], %i0, , [if(t(%1), %1, ::)]), not(t(%qd)), %qd, iter(Dbref:%qd Records:[attrcnt(%qd/?.*)] Oldest:[rest(u(f.record.oldest, %qd), .)] Newest:[rest(u(f.record.newest, %qd), .)] Group:[setr(g, u(f.group.current, %qd))] Group_Records:[attrcnt(%qd/%qg.*)], %i0, , [if(t(%1), %1, ::)]))]
 
 
 ================================================================================
@@ -654,26 +649,35 @@ qg: current group
 
 logtext(<action>[, <depends on action>])
 
-The logtext() function takes text and adds them to individual log objects.  This is a bare-bones framework.
+The logtext() function takes text and adds them to individual log objects.  This 
+is a bare-bones framework.
 
 <action>: Tells logtext() what you're trying to do.
-<log name>: The exact name of the log you're trying to act upon.  If the log name begins "special.", it is for internal use only.  You can read it, but you can't add to it.
+<log name>: The exact name of the log you're trying to act upon.  If the log 
+name begins "special.", it is for internal use only.  You can read it, but you 
+can't add to it.
 
 * logtext(list[, <partial name>])
 
-Returns a list of log names and the dbref of the object it's recording to.  There is no guarantee this object even exists!
+Returns a list of log names and the dbref of the object it's recording to.  
+There is no guarantee this object even exists!
 
 * logtext(add, <log name>, <text>)
 
-Add <text> to <log name>'s object and trigger that object's &log.do. This is used in case you want to, for example, process the input and send it to a channel.
+Add <text> to <log name>'s object and trigger that object's &log.do. This is 
+used in case you want to, for example, process the input and send it to a 
+channel.
 
-The system will start to drop the oldest log attributes when there are more than [get(#xxx/d.max.records)] total attributes on the object.
+The system will start to drop the oldest log attributes when there are more than 
+[get(#xxx/d.max.records)] total attributes on the object.
 
 * logtext(tail, <log name>[, <records>[, <output delimiter>]])
 
-See the last <lines> lines from the <log name>. Defaults to 10 lines. Output is in the format of <timestamp>|<text> with a default output delimiter of ::.
+See the last <lines> lines from the <log name>. Defaults to 10 lines. Output is 
+in the format of <timestamp>|<text> with a default output delimiter of ::.
 
-If the output delimiter occurrs in the log text, it is replaced with an equal number of spaces.
+If the output delimiter occurrs in the log text, it is replaced with an equal 
+number of spaces.
 
 * logtext(head, <log name>[, <records>[, <output delimiter>]])
 
@@ -685,7 +689,8 @@ Search for all entries with <text> in <log name>. Outputs the same as 'tail'.
 
 * logtext(stats[, <log name>|logtext][, <output delimiter>])
 
-Return some stats (possibly useful) about the system as a whole (if <log name> is left blank or 'logtext') or about a specific log object.
+Return some stats (possibly useful) about the system as a whole (if <log name> 
+is left blank or 'logtext') or about a specific log object.
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
