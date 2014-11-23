@@ -927,3 +927,4 @@ Code which will probably be different from game to game.
 
 &f.validate.guid Notes System=strmatch( %1, u( .guid, %0 ))
 
+&.sqlescape Notes System=edit( edit( edit( edit( %0, \\, \\\\ ), ', \\' ), ", \\" ), \%, \\\\\% )
