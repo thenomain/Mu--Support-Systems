@@ -1,9 +1,14 @@
 ================================================================================
 == PLANNING: Setting Up Places =================================================
 
-The owner of a location should be able to set up places there, but the concept of "owner" is sometimes an iffy one.  Some games prefer that staff own all public hangouts, for example, even though a noncharbit has administrative control over it.
+The owner of a location should be able to set up places there, but the concept 
+of "owner" is sometimes an iffy one.  Some games prefer that staff own all 
+public hangouts, for example, even though a noncharbit has administrative 
+control over it.
 
-We'll store everything, including this optional 'places owner' lock, on a set of room attributes prefixed &places.* & keep controlled information locked to the places object.
+We'll store everything, including this optional 'places owner' lock, on a set of 
+room attributes prefixed &places.* & keep controlled information locked to the 
+places object.
 
 	places.<num>.details: <name>|<spaces>|<description>
 	places.<num>.notices: 
@@ -37,7 +42,8 @@ User-defined commands we'll need:
 --------------------------------------------------------------------------------
 -- Validations -----------------------------------------------------------------
 
-The : and | characters are restricted as common output delimiters, and could mess up attribute setting.
+The : and | characters are restricted as common output delimiters, and could 
+mess up attribute setting.
 
 
 --------------------------------------------------------------------------------
@@ -45,7 +51,8 @@ The : and | characters are restricted as common output delimiters, and could mes
 
 *** As-Needed Places (LA's Gatherings) ***
 
-You could, essentially, 'go stand next to' someone and it'd make the place spontaneously and other people could join it.
+You could, essentially, 'go stand next to' someone and it'd make the place 
+spontaneously and other people could join it.
 
 And it ceases to be when all are gone.
 
@@ -82,15 +89,19 @@ notify the room.
 --------------------------------------------------------------------------------
 -- @adisconnect ----------------------------------------------------------------
 
-Because TinyMUX and PennMUSH, as of this writing, don't have rooms checking @adisconnect for their contents, allowing only zones to do this, we're forced to do some mental gymnastics.  We could override the room's @listen/@ahear, but I'd rather this clearner solution.
+Because TinyMUX and PennMUSH, as of this writing, don't have rooms checking 
+@adisconnect for their contents, allowing only zones to do this, we're forced to 
+do some mental gymnastics.  We could override the room's @listen/@ahear, but I'd 
+rather this clearner solution.
 
-Using @eval so it only hits the command queue once, in unlikely fringe timing cases.
+Using @eval so it only hits the command queue once, in unlikely fringe timing 
+cases.
 
 Using iter() to catch all rooms needing cleaned.  Again unlikely, but there.
 
 -
 
-@adisconnect pgo=@eval iter(search(eroom=grep(##, places.*.occupancy, %#)), ulocal(ufunc.places, depart, ##, %#))
+@adisconnect pgo=@eval iter( search( eroom=grep( ##, places.*.occupancy, %# )), ulocal( ufunc.places, depart, ##, %# ))
 
 
 ================================================================================
@@ -102,7 +113,8 @@ Commands:
 	tt[ooc] - tabletalk - : ; | "
 	join & depart - there we go
 
-NOTE TO SELF: I think the 'mutter' commands try to integrate with the places systems.  Remember to check and fix accordingly.
+NOTE TO SELF: I think the 'mutter' commands try to integrate with the places 
+systems.  Remember to check and fix accordingly.
 
 
 ================================================================================
@@ -612,7 +624,10 @@ qf: places() function results
 
 &c.depart Places Global Object=$^depart( for #?(.*))?$:
 
-	@assert t(ulocal(ufunc.places, whichplace, loc(%#), %#))={@pemit %#=[u(f.alert, places)] You're not at a place. Please 'join' first.}; 
+	@assert t( ulocal( ufunc.places, whichplace, loc( %# ), %# ))={ 
+		@pemit %#=
+			[u( f.alert, places )] You're not at a place. Please 'join' first. 
+	}; 
 
 	@pemit %#=case(0, 
 		t(setr(f, ulocal(ufunc.places, depart, loc(%#), %#))), 
@@ -719,10 +734,10 @@ It's separated out for the ease of adding other types of rooms and locations, e.
 For +temprooms permission (temprooms dbref hardcoded in for The Reach):
 
 &f.permission.room_owner Places Global Object=
-	cor(
-		strmatch(%0, owner(%1)), 
-		u(f.isstaff, %0), 
-		strmatch(%0, elements(get(#1224/room.%1), 5, .))
+	cor( 
+		strmatch( %0, owner( %1 )), 
+		u( f.isstaff, %0 ), 
+		strmatch( %0, elements( get( #1224/room.%1 ), 5, . ))
 	)
 
 
@@ -732,8 +747,8 @@ For +temprooms permission (temprooms dbref hardcoded in for The Reach):
 
 A bunch of functions to get specific information.  An easy way to get information for current and future coding.
 
-	u(f.get, <loc>, <placenum>, <list|of|elements>)
-	u(f.get.<element>, <loc>, <placenum>, <element>)
+	u( f.get, <loc>, <placenum>, <list|of|elements> )
+	u( f.get.<element>, <loc>, <placenum>, <element> )
 
 --
 
@@ -826,7 +841,7 @@ Pulls the numbers of all locations a particular dbref is at.
 
 --
 
-think filter(#4619/fil.player-at-place, lattr(here/places.*.occupancy), , , %L, #5)
+think filter( pgo/fil.player-at-place, lattr( here/places.*.occupancy ), , , %L, %! )
 
 
 ================================================================================
@@ -834,7 +849,7 @@ think filter(#4619/fil.player-at-place, lattr(here/places.*.occupancy), , , %L, 
 
 Replaces elements entirely.  No checking first; using this on a place that hasn't been set up first will cause the information to not be written, due to the nature of replace() on TinyMUX (does not create, only replaces).
 
-	u(f.set.<element>, <loc>, <placenum>, <item>)
+	u( f.set.<element>, <loc>, <placenum>, <item> )
 
 --
 
@@ -873,7 +888,7 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 
 Used primarially with &f.set.*, and should relate 1:1
 
-	u(f.validate.<element>, <item>)
+	u( f.validate.<element>, <item> )
 
 --
 
@@ -1042,7 +1057,9 @@ Almost all the triggers on the object.
 
 Keep Your Room Tidy.
 
-&tr.chown pgo=@chown %0/%1=[owner(%0)]
+--
+
+&tr.chown pgo=@chown %0/%1=[owner( %0 )]
 
 
 --------------------------------------------------------------------------------
@@ -1151,21 +1168,22 @@ Some functions used for various different aspects of the system.
 For cross-game compatability.  Default message formatting goes here.
 
 
-&f.isstaff pgo=isstaff(%0)
-&f.lmin pgo=lmin(%0, %1)
-&f.crumple pgo=crumple(%0)
-&f.plural pgo=plural(%0, %1, %2)
+&f.isstaff pgo=isstaff( %0 )
+&f.lmin pgo=lmin( %0, %1 )
+&f.lmax pgo=lmax( %0, %1 )
+&f.crumple pgo=crumple( %0 )
+&f.plural pgo=plural( %0, %1, %2 )
 
 -
 
-&f.notify pgo=trim(msg(h, %0))
-&f.alert pgo=alert(%0)
+&f.notify pgo=trim( msg( h, %0 ))
+&f.alert pgo=alert( %0 )
 
 -
 
-&f.header pgo=wheader(%0)
-&f.footer pgo=wfooter(%0)
-&f.divider pgo=wdivider(%0)
+&f.header pgo=wheader( %0 )
+&f.footer pgo=wfooter( %0 )
+&f.divider pgo=wdivider( %0 )
 
 
 --------------------------------------------------------------------------------
@@ -1175,7 +1193,7 @@ Passed a list of integers, it will return the lowest available positive integer.
 
 0: list of values
 
-&f.lowest-available-number pgo=u(f.lmin, setdiff(lnum(1, inc(lmax(%0))), %0))
+&f.lowest-available-number pgo=u( f.lmin, setdiff(lnum(1, inc( u( f.lmax, %0 ))), %0 ))
 
 
 ================================================================================
@@ -1189,15 +1207,15 @@ REMEMBER TO HOOK THIS INTO WHATEVER YOUR USER-DEFINED FUNCTION SETUP IS!
 
 Rather than have one function per item, let's just have one function.
 
-	places(<action>, <room> [, <other>])
+	places( <action>, <room> [, <other>] )
 
 --
 
 &ufunc/privileged.places Places Global Object=
-	[setq(l, locate(%#, %1, ahR))]
-	[if(cand(t(%ql), hastype(%ql, ROOM)), 
-		udefault(@@PLACES@@/action.%0, #-1 ACTION NOT FOUND, %ql, %2, %3, %4), 
-		#-1 ROOM NOT FOUND
+	[setq( l, locate( %#, %1, ahR ))]
+	[if( cand( t( %ql ), hastype( %ql, ROOM )), 
+		udefault( @@PLACES@@/action.%0, #-1 ACTION NOT FOUND, %ql, %2, %3, %4 ), 
+		#-1 ROOM NOT FOUND 
 	)]
 
 --
@@ -1594,7 +1612,7 @@ Which place# is someone in?  Only available to person in that location. Returns 
 
 Be Careful: Whichplace has its own validation check.  (If we check for dark players, here's where it should go.)
 
-	places(whichplace, <loc>, <person>)
+	places( whichplace, <loc>, <person> )
 
 qn: place number (localized)
 
@@ -1619,7 +1637,7 @@ localize(
 
 Returns the place number of a place's name, the name -> num version of 'whichplace', but returns the place number of all matching places.
 
-	places(nameplace, <loc>, <name>)
+	places( nameplace, <loc>, <name> )
 
 qn: place numbers (localized)
 
@@ -1644,7 +1662,7 @@ localize(
 
 If I'm going to make this a function-based system, I might as well go all the way.
 
-	places(depart, <room>, <player name or dbref>)
+	places( depart, <room>, <player name or dbref> )
 
 qp: dbref from pmatch()
 qn: current place number
@@ -1700,7 +1718,7 @@ localize(
 --------------------------------------------------------------------------------
 -- places(): tt ----------------------------------------------------------------
 
-	places(tt, <loc>, <person>, <msg>, ooc)
+	places( tt, <loc>, <person>, <msg>[, ooc] )
 
 qp: dbref of target from pmatch()
 qn: current place number
