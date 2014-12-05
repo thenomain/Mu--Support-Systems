@@ -31,7 +31,7 @@ Requires:
 --------------------------------------------------------------------------------
 -- Default Prefixes ------------------------------------------------------------
 
-&PREFIX.SERVER_COMMANDS Code Object Data Parent <codp>=startup shutdown aconnect adisconnect
+&PREFIX.SERVER_COMMANDS Code Object Data Parent <codp>=startup shutdown connect aconnect disconnect adisconnect listen ahear aahear amhear amove
 
 &PREFIX.DATA Code Object Data Parent <codp>=d. data.
 
@@ -47,12 +47,11 @@ Requires:
 
 &PREFIX.DISPLAYS Code Object Data Parent <codp>=display.
 
-&PREFIX.USER_FUNCTIONS Code Object Data Parent <codp>=
-	ufunc. ufunc-switch. ufunc/
-
-&PREFIX.SERVER_COMMANDS Code Object Data Parent <codp>=startup shutdown connect aconnect disconnect adisconnect listen ahear aahear amhear amove
+&PREFIX.USER_FUNCTIONS Code Object Data Parent <codp>=ufunc. ufunc-switch. ufunc/
 
 &PREFIX.@V_ATTRIBUTES Code Object Data Parent <codp>=VA VB VC VD VE VF VG VH VI VJ VK VL VM VN VO VP VQ VR VS VT VU VV VW VX VY VZ
+
+&PREFIX.DOT_ATTRS Code Object Data Parent <codp>=.
 
 
 --------------------------------------------------------------------------------
