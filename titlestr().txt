@@ -1,8 +1,11 @@
 @@ &f_titlestr #107=iter(lcstr(%0), capstr(%i0))
 
-You will notice that u(#107/xxx) features promanently.  Because %!, for some reason, will not work on the data list calls.  Suffice it to say, edit the #107 to your function-holding object before adding it.
+You will notice that u(#107/xxx) features promanently.  Because %!, for some 
+reason, will not work on the data list calls.  Suffice it to say, edit the #107 
+to your function-holding object before adding it.
 
-Also note this uses registers, so use the /preserve switch when adding it to your user-defined functions.
+Also note this uses registers, so use the /preserve switch when adding it to 
+your user-defined functions.
 
 Called as: titlestr(<text>[, <exception words>])
 
