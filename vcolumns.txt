@@ -177,3 +177,14 @@ think [header( vcolumns test )]%r[vcolumns( 14:this is a really kind of annoying
 think [header( vcolumns test )]%r[vcolumns( 14:this is a really kind of annoying test bla bla bla, 10:help I am a small rodent!, `, %b|%b )]%r[footer( vcolumns )]
 
 think [header( vcolumns test )]%r[vcolumns( 14:this is a really kind of annoying test bla bla bla, 10:help%rI%ram%ra%rsmall%rrodent!, `, %b|%b )]%r[footer( vcolumns )]
+
+
+
+================================================================================
+== COMPILED VERSION ============================================================
+
+Since this is probably what you came here for.
+
+--
+
+&f_vcolumns @@functions object@@=[iter( lnum( 9 ), if( and( isint( before( v( %i0 ), : )), strmatch( v( %i0 ), *:* )), setq( c, inc( %i0 )) ), , @@ )][setq( d, if( t( comp( v( %qc ), )), v( %qc ), %b ))][setq( v, v( inc( %qc )))][setq( l, v( add( %qc, 2 )))][setq( r, v( add( %qc, 3 )))][iter( lnum( %qc ), setq( %i0, [setr( w, first( v( %i0 ), : ))]:[iter( rest( v( %i0 ), : ), wrap( %i0, %qw, left, , , , %qd ), %qd, %qd )] ), , @@ )][iter( lnum( %qc ), setq( h, max( %qh, words( rest( r( %i0 ), : ), %qd ))), , @@ )][iter( lnum( 1, %qh ), %ql[iter( lnum( %qc ), if( t( setr( z, extract( rest( r( %i0 ), : ), inum( 1 ), 1, %qd ))), %qz, space( first( r( %i0 ), : )) ), , %qv )]%qr, , %r )]
