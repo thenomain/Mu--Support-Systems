@@ -1211,7 +1211,7 @@ Rather than have one function per item, let's just have one function.
 
 --
 
-&ufunc/privileged.places Places Global Object=
+&ufunc.places Places Global Object=
 	[setq( l, locate( %#, %1, ahR ))]
 	[if( cand( t( %ql ), hastype( %ql, ROOM )), 
 		udefault( @@PLACES@@/action.%0, #-1 ACTION NOT FOUND, %ql, %2, %3, %4 ), 
@@ -1220,7 +1220,16 @@ Rather than have one function per item, let's just have one function.
 
 --
 
-@force me=@edit pgo/ufunc/privileged.places=@@PLACES@@, [num( pgo )]
+@startup Places Global Object=@function/privileged/preserve places=
+	@@PLACES@@/ufunc.places
+
+--
+
+@force me=@edit pgo/ufunc.places=@@PLACES@@, [num( pgo )]
+@force me=@edit pgo/startup=@@PLACES@@, [num( pgo )]
+
+@@ @force me=@edit [search( object=Places Global Object <pgo> )]/ufunc.places=@@PLACES@@, [search( object=Places Global Object <pgo> )]
+@@ @force me=@edit [search( object=Places Global Object <pgo> )]/startup=@@PLACES@@, [num[search( object=Places Global Object <pgo> )]]
 
 
 --------------------------------------------------------------------------------
