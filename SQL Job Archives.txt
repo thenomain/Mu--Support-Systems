@@ -1,0 +1,421 @@
+Anomaly Jobs v6 archiving to mySQL
+----------------------------------
+
+This code builds upon Chime's aj6 archival system, which turns a completed job 
+into a bb post on a properly configured phpBB system. This system is found here:
+
+	https://github.com/lashtear/jobs-archive
+
+The purpose of this system is to bypass phpBB. It assumes several things:
+
+* You have the base Anomaly Jobs v6 system installed. (tested with v6.5)
+  https://code.google.com/p/anomalyjobs/
+* You are running TinyMUX 2.10 or later with base sql() compiled in.
+  https://code.google.com/p/tinymux/
+* You have access to the mySQL database and data-definition commands.
+  (You could create tables from within the Mux, but not recommended.)
+
+As of this writing, MUSHpark uses a database structure where everyone can access 
+the contents of one another's database, and this kind of archiving is not 
+recommended.
+
+
+################################################################################
+## INSTALLATION INSTRUCTIONS ###################################################
+
+Do the following in order.
+
+
+################################################################################
+## THE SQL #####################################################################
+
+DROP TABLE IF EXISTS aj6_archive_comment;
+DROP TABLE IF EXISTS aj6_archive_summary; 
+
+--
+
+CREATE TABLE IF NOT EXISTS aj6_archive_summary ( 
+	archive_id INT NOT NULL AUTO_INCREMENT, 
+
+	title VARCHAR(255) NOT NULL, 
+	bucket VARCHAR(255), 
+	priority VARCHAR(9), 
+	status VARCHAR(255), 
+
+	opened_by VARCHAR(255), 
+	assigned_to VARCHAR(255), 
+	tagged_for VARCHAR(255), 
+
+	INDEX (title), 
+	INDEX (bucket), 
+	PRIMARY KEY (archive_id) 
+) ENGINE=INNODB; 
+
+--
+
+CREATE TABLE IF NOT EXISTS aj6_archive_comment (
+	archive_id INT NOT NULL, 
+	comment_num INT NOT NULL, 
+
+	published BOOL, 
+
+	action VARCHAR(3), 
+	post_time TIMESTAMP, 
+	by_whom VARCHAR(255), 
+	txt TEXT, 
+	readers VARCHAR(255), 
+
+	PRIMARY KEY (archive_id, comment_num), 
+	FOREIGN KEY (archive_id) REFERENCES aj6_archive_summary(archive_id)
+) ENGINE=INNODB; 
+
+--
+-- the following checks for the foreign key
+--
+
+SELECT 
+	table_name, column_name, constraint_name, referenced_table_name, 
+	referenced_column_name 
+FROM information_schema.key_column_usage 
+WHERE referenced_table_name = 'aj6_archive_summary';
+
+
+
+
+################################################################################
+## THE OBJECT ##################################################################
+
+This object does not need to be in the master room, as it holds no commands.
+
+
+================================================================================
+== Setup =======================================================================
+
+@create SQL Jobs Archival <sja>
+@fo me=&d.sja me=num( SQL Jobs Archival <sja> )
+@set sja=INHERIT SAFE
+
+@parent sja=codp
+&prefix.sql sja=sql.
+&prefix.get_info sja=get.
+
+
+
+================================================================================
+== Functions ===================================================================
+
+
+--------------------------------------------------------------------------------
+-- SQL Escape ------------------------------------------------------------------
+
+I removed the nested edits, here. Rhost and TinyMUSH will choke here.
+
+(... should ; also be escaped?)
+
+--
+
+&f.sql.escape sja=edit( %0, \\, \\\\\\, ', \\\\', ", \\\\", \%, \\\\\\\% )
+
+--
+
+think u( sja/f.sql.escape, lit(She said, "Oh my god!". \\ I said, "Relax; It's only a test."))
+
+
+--------------------------------------------------------------------------------
+-- HTML Escape -----------------------------------------------------------------
+
+@@ not needed at this time
+
+&f.html.escape sja=
+	edit( edit( edit( edit( %0, &, &amp; ), %%, &#37; ), <, &lt; ), >, &gt; )
+
+
+--------------------------------------------------------------------------------
+-- HTML Unescape ---------------------------------------------------------------
+
+@@ not needed at this time
+
+&f.html.unescape sja=
+	edit( edit( edit( edit( %0, &#37;, %% ), &lt;, < ), &gt;, > ), &amp;, & )
+
+
+--------------------------------------------------------------------------------
+-- Time: unix2sql --------------------------------------------------------------
+
+0: secs.
+
+--
+
+&f.time.unix2sql sja=if( %0, timefmt( $Y-$m-$d $H:$M:$S $z, %0 ), none )
+
+--
+
+think u( sja/f.time.unix2sql, secs())
+
+think sql( SELECT FROM_UNIXTIME( [secs()] ))
+think timefmt( $Y-$m-$d $H:$M:$S $z, secs())
+
+
+--------------------------------------------------------------------------------
+-- Time: sql2unix --------------------------------------------------------------
+
+0: SQL Datetime, string output.
+
+--
+
+&f.time.sql2unix sja=sql( SELECT UNIX_TIMESTAMP( '%0' ))
+
+--
+
+think u( sja/f.time.sql2unix, u( sja/f.time.unix2sql, secs() ))
+
+think sql( SELECT UNIX_TIMESTAMP( '[u( sja/f.time.unix2sql, secs() )]' ))
+think secs()
+
+
+--------------------------------------------------------------------------------
+-- List Names from Dbrefs ------------------------------------------------------
+
+0: #list #of #dbrefs
+output: name (dbref), name (dbref), etc.
+
+--	
+
+&f.list.name-dbref sja=
+	iter( %0, 
+		cat( u( f.sql.escape, name( %i0 )), %(%i0%) ), 
+		, %,%b 
+	)
+
+--
+
+think u( sja/f.list.name-dbref, %# [v( d.sja )] )
+
+
+--------------------------------------------------------------------------------
+-- Transaction Begin/End -------------------------------------------------------
+
+Technically an sql.* function, but easier to do this way.
+
+--
+
+&f.transaction.begin sja=
+	strcat( 
+		sql( START TRANSACTION ), 
+		sql( SET autocommit = 0 )
+	)
+
+--
+
+&f.transaction.end sja=
+	strcat( 
+		sql( COMMIT ), 
+		sql( SET autocommit = 1 )
+	)
+
+
+
+================================================================================
+== GET & MASSAGE DATA FROM AJ6 =================================================
+
+
+--------------------------------------------------------------------------------
+-- Get Summary Info ------------------------------------------------------------
+
+0: job object dbref
+
+--
+	
+&get.summary.title sja=u( %0/title )
+
+&get.summary.bucket sja=u( f.sql.escape, name( parent( %0 )))
+
+&get.summary.priority sja=
+	switch( get( %0/priority ), 
+			1, 1:Green, 
+			2, 2:Yellow, 
+			3, 3:Red, 
+			?:Unknown 
+	)
+
+&get.summary.status sja=
+	u( f.sql.escape, 
+		rest( 
+			xget( get( %0/va ), strcat( status_, get( %0/status ))), 
+			| 
+		)
+	)
+
+&get.summary.opened_by sja=u( f.list.name-dbref, get( %0/opened_by ))
+
+&get.summary.assigned_to sja=u( f.list.name-dbref, get( %0/assigned_to ))
+
+&get.summary.tagged_for sja=u( f.list.name-dbref, get( %0/tagged_for ))
+
+
+--------------------------------------------------------------------------------
+-- Get Comment Info ------------------------------------------------------------
+
+0: job object dbref
+1: comment num
+
+--
+
+&get.comment.published sja=hasflag( %0/comment_%1, NO_INHERIT )
+
+&get.comment.action sja=elements( %0, 1, | )
+
+&get.comment.post_time sja=u( f.time.unix2sql, elements( %0, 2, | ))
+
+&get.comment.by_whom sja=u( f.list.name-dbref, elements( %0, 3, | ))
+
+&get.comment.txt sja=u( f.sql.escape, edit( translate( last( %0, | ), p ), @@PIPE@@, | ))
+
+&get.comment.readers sja=
+	u( f.list.name-dbref, 
+		edit( 
+			graball( get( %0/list_readers ), *|%1 ), 
+			|%1, 
+		)
+	)
+
+
+
+================================================================================
+== SQL CALLS ===================================================================
+
+--------------------------------------------------------------------------------
+-- Get Last Auto_Incremented ID ------------------------------------------------
+
+&sql.last_insert_id sja=SELECT LAST_INSERT_ID()
+
+
+--------------------------------------------------------------------------------
+-- Insert into AJ6_Archive_Summary ---------------------------------------------
+
+0: job object dbref
+
+--
+
+&sql.insert.summary sja=
+INSERT INTO aj6_archive_summary 
+	SET 
+		archive_id=NULL, 
+		title='[u( get.summary.title, %0 )]', 
+		bucket='[u( get.summary.bucket, %0 )]', 
+		priority='[u( get.summary.priority, %0 )]', 
+		status='[u( get.summary.status, %0 )]', 
+		opened_by='[u( get.summary.opened_by, %0 )]', 
+		assigned_to='[u( get.summary.assigned_to, %0 )]', 
+		tagged_for='[u( get.summary.tagged_for, %0 )]'
+
+
+--------------------------------------------------------------------------------
+-- Insert into AJ6_Archive_Comment ---------------------------------------------
+
+0: <arvhive_id>: LAST_INSERT_ID()
+1: <comment num>
+2: <obj>
+3: <comment line>: <obj>/comment_<comment num>
+
+--
+
+&sql.insert.comment sja=
+
+INSERT INTO aj6_archive_comment 
+	SET 
+		archive_id=%0, 
+		comment_num=%1, 
+		published=[u( get.comment.published, %2, %1 )], 
+		action='[u( get.comment.action, %3 )]', 
+		post_time='[u( get.comment.post_time, %3 )]', 
+		by_whom='[u( get.comment.by_whom, %3 )]', 
+		txt='[u( get.comment.txt, %3 )]', 
+		readers='[u( get.comment.readers, %2, %1 )]'
+
+
+
+================================================================================
+== Trigger: Post Job ===========================================================
+
+This comes straight from aj6's hooks, below
+
+0: Job dbref 
+
+--
+
+&trig.post_job sja=
+
+	@eval 
+		strcat( 
+@@ .. begin transaction
+			u( f.transaction.begin ), 
+
+@@ .. insert summary
+			sql( u( sql.insert.summary, %0 )), 
+
+@@ .. get archive_id
+			setq( i, sql( v( sql.last_insert_id ))), 
+
+@@ .. insert comments
+			iter( edit( lattr( %0/comment_* ), COMMENT_, ), 
+				sql( 
+					u( sql.insert.comment, 
+						%qi, 
+						%i0, 
+						%0, 
+						get( %0/comment_%i0 )
+					)
+				)
+			), 
+
+@@ .. commit
+			u( f.transaction.end )
+		); 
+
+
+
+
+################################################################################
+## AJ6 HOOKS ###################################################################
+
+This is stuff that needs hooked into the AJ6 system to make this work
+
+--
+
+QUIT
+
+@force me=&d.jpo me=search( object=Job Parent Object <JPO> )
+@force me=@vz v( d.jpo )=v( d.sja )
+
+&hook_apr [v( d.jpo )]=@trigger %vz/trig.post_job=%0; 
+&hook_dny [v( d.jpo )]=@trigger %vz/trig.post_job=%0; 
+&hook_com [v( d.jpo )]=@trigger %vz/trig.post_job=%0; 
+
+
+
+
+################################################################################
+## REMOVE BBOARD INTEGRATION ###################################################
+
+@@ Turn off bbposting:
+
+@force me=&d.jgo me=search( object=Job Global Object <JGO> )
+@force me=&d.jt me=locate( v( d.jgo ), Job Tracker, i )
+
+@edit [v( d.jt )]/trig_post={+bbpost %0/%1=%2;},{}
+@edit [v( d.jt )]/trig_post={+bbpost %0/%1=%2},{}
+ 
+&TRIG_POST [v(JOB_VB)]=+bbpost %0/%1=%2
+
+--
+
+@@ Be careful before doing this!!!
+@@ These are the bbgroups that Anomaly Jobs 6 adds.
+@@ CHECK FIRST that bb 2 and bb 3 are the boards to remove
+
++bbcleargroup 3
++bbconfirm 3
++bbcleargroup 2
++bbconfirm 2
+
