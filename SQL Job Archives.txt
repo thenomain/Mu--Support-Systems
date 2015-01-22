@@ -16,7 +16,7 @@ The purpose of this system is to bypass phpBB. It assumes several things:
   (You could create tables from within the Mux, but not recommended.)
 
 As of this writing, MUSHpark uses a database structure where everyone can access 
-the contents of one another's database, and this kind of archiving is not 
+the contents of one another's tables, and this kind of archiving is not 
 recommended.
 
 
