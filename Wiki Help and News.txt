@@ -1,0 +1,709 @@
+/*
+Originally coded by Chime (lucca@accela.net)
+Rewritten and slightly ruined by Thenomain (thenomain@gmail.com)
+Commented for Muxify (http://muxify.serverglitch.net/editor.html)
+
+Released as-is without copyright.
+
+Tested for: 
+	TinyMUX 2.10 or later (hopefully)
+	MediaWiki 1.20
+
+Requires:
+	A game with In-Line/Synchronous SQL enabled
+	* see the `SQL` readme in your game folder
+	wheader(), wfooter(), wdivider()
+	Myrrdin's MUSHCron
+
+* PLEASE READ THE SETUP HELP AT THE END *
+
+
+================================================================================
+== SETUP =======================================================================
+*/
+
+@set me=quiet
+
+@create Wiki News and Help <wnh>=10
+@set wnh=INHERIT SAFE
+
+@Desc Wiki News and Help <wnh>=
+	Code for retrieving +news and +help from the mediawiki db. 
+	This is intended for MediaWiki 1.20 and is probably not portable for newer 
+	versions.
+
+@fo me=@parent wnh=[search( object=Code Object Data Parent )]
+&prefix.queries wnh=query.
+&prefix.wiki_formatters wnh=wiki.
+&prefix.displays wnh=display.
+&prefix.namespaces wnh=namespace.
+&prefix.commands wnh=c. cmd.
+
+@if strmatch( sql( SELECT 1 ), lit( sql( SELECT 1 )))=
+	think ansi( r, SQL was not compiled! Please re-compile the game with SQL. )
+
+
+
+/*
+================================================================================
+== MUSHCRON SETUP ==============================================================
+
+Rather than making a cron with all 60 minutes on it, instead we make one with no 
+minutes on it; this will guarantee that it's triggered every minute. 
+
+*/
+
+@fo me=&d.mushcron me=[search( object=CRON - Myrddin's mushcron )]
+@if not( isdbref( v( d.mushcron )))=
+	think ansi( 
+		r, Mushcron not found%; install will fail!, 
+		n, %(Please type '&d.mushcron me=<dbref>' 
+		   and run the rest of this script.%) 
+	)
+
+&cron_job_1minute v( d.mushcron )=@dol v( jobs_1minute )=@trigger ##
+
+@fo me=&jobs_1minute [v( d.mushcron )]=[setunion( [v( d.mushcron )]/trigger_sql [num( wnh )]/tr.post.changes, [get( v( d.mushcron )/jobs_1minute )] )]
+
+&trigger_sql v( d.mushcron )=@assert sql( select 1 )=@cemit Staff=Alert: SQL Connection down. Please @restart.
+
+
+
+/* 
+================================================================================
+== DATA ========================================================================
+*/
+
+&d.channel.recent_changes wnh=WikiRecentChanges
+
+&d.months Wiki News and Help <wnh>=
+	Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
+
+
+
+/* 
+================================================================================
+== FUNCTIONS ===================================================================
+*/
+
+// -----------------------------------------------------------------------------
+// -- Simple/Cross-Platform Functions ------------------------------------------
+
+&.msg wnh=ansi( h, <%0>, n, %b%1 )
+&.wheader wnh=wheader( %0 )
+&.wfooter wnh=wfooter( %0 )
+&.wdivider wnh=wdivider( %0 )
+
+
+// -----------------------------------------------------------------------------
+// -- Clean the Query ----------------------------------------------------------
+// 0: namespace id
+// 1: entry name
+
+&f.clean.query Wiki News and Help <wnh>=
+	edit( 
+		sql( u( query.newshelp, %0, %1 ), %r, ^ ), 
+		\[\[News:, \%xhnews%b, 
+		\[\[Help:, \%xh+help%b, 
+		\[\[Category:, Category:%b,
+		\]\], \%xn, 
+		\[, \\\[, 
+		\], \\\] 
+	)
+
+// --
+// think u( wnh/f.clean.query, 3022, vitae )
+
+
+// -----------------------------------------------------------------------------
+// -- Encode & Decode Time -----------------------------------------------------
+
+&f.encode.time Wiki News and Help <wnh>=
+	strcat( 
+		setq( 0, convsecs( %0, utc )), 
+		mid( %q0, 20, 4 ), 
+		rjust( match( v( d.months ), mid( %q0, 4, 3 )), 2, 0 ), 
+		rjust( trim( mid( %q0, 8, 2 )), 2, 0 ), 
+		rjust( trim( mid( %q0, 11, 2 )), 2, 0 ), 
+		mid( %q0, 14, 2 ), 
+		mid( %q0, 17, 2 )
+	)
+
+// --
+
+&f.decode.time Wiki News and Help <wnh>=
+	convtime( 
+		catstr( 
+			mid( %0, 0, 4 ), -, 
+			mid( %0, 4, 2 ), -, 
+			mid( %0, 6, 2 ), %b, 
+			mid( %0, 8, 6 )
+		), 
+		utc 
+	)
+
+
+
+/*
+================================================================================
+== QUERIES: THE SQL STATEMENTS =================================================
+*/
+
+
+// -----------------------------------------------------------------------------
+// -- All categories used in a namespace ---------------------------------------
+// 
+// 0: Namespace number
+
+&query.categories-in-namespace Wiki News and Help <wnh>=
+	SELECT DISTINCT cat_title 
+	FROM wiki_category 
+	INNER JOIN wiki_categorylinks 
+		ON cat_title = cl_to 
+	INNER JOIN wiki_page 
+		ON cl_from = page_id 
+	WHERE page_namespace = %0; 
+
+// --
+// 
+// think sql( u( wnh/query.categories-in-namespace, 3022 ))
+// think sql( u( wnh/query.categories-in-namespace, 3020 ))
+
+
+// -----------------------------------------------------------------------------
+// -- All pages in a namespace with a specific category ------------------------
+// 
+// 0: Namespace number
+// 1: Category_Name (must be exact)
+
+&query.pages-in-category Wiki News and Help <wnh>=
+	SELECT page_title 
+	FROM wiki_page 
+	INNER JOIN wiki_categorylinks 
+		ON cl_from = page_id 
+	WHERE page_namespace = %0 
+		AND cl_to='%1';
+
+// --
+// 
+// think sql( u( wnh/query.pages-in-category, 3022, Game_Policy ))
+// think sql( u( wnh/query.pages-in-category, 3022, News ))
+
+
+// -----------------------------------------------------------------------------
+// -- Get a wiki page & text ---------------------------------------------------
+// 
+// http://stackoverflow.com/questions/2876789/case-insensitive-for-sql-like-wildcard-statement
+// SELECT  *
+// FROM    trees
+// WHERE   trees.`title` COLLATE UTF8_GENERAL_CI LIKE '%elm%'
+// 
+// 0: Namespace number
+// 1: Page Title
+
+&query.newshelp Wiki News and Help <wnh>=
+	SELECT page_title, page_touched, old_text 
+	FROM wiki_page 
+		INNER JOIN wiki_revision ON page_latest=rev_id 
+		INNER JOIN wiki_text ON rev_text_id=old_id 
+	WHERE page_namespace=%0 
+		AND page_title COLLATE UTF8_GENERAL_CI LIKE '%1'
+
+// --
+// 
+// think first( sql( u( wnh/query.newshelp, 3022, viTAe ), | ), | )
+
+
+// -----------------------------------------------------------------------------
+// -- Get information about a recent change to post to a channel ---------------
+// 
+// 0: seconds, one minute ago (usually)
+
+&query.post Wiki News and Help <wnh>=
+	SELECT rc_timestamp, rc_user_text, rc_namespace, rc_title, rc_comment 
+	FROM wiki_recentchanges 
+	WHERE rc_timestamp >= '[u( f.encode.time, %0 )]' 
+	ORDER BY rc_id DESC 
+	LIMIT 0,10
+
+
+// -----------------------------------------------------------------------------
+// -- Get ten most recent wiki page edits --------------------------------------
+
+&query.recent Wiki News and Help <wnh>=
+	SELECT rc_timestamp, rc_user_text, rc_namespace, rc_title, rc_comment 
+	FROM wiki_recentchanges 
+	GROUP BY rc_user_text, rc_namespace, rc_title 
+	ORDER BY rc_id desc 
+	LIMIT 0,10
+
+
+// -----------------------------------------------------------------------------
+// -- Find a Page --------------------------------------------------------------
+// 0: list all pages from a namespace
+
+&query.findpage Wiki News and Help <wnh>=
+	SELECT * FROM(
+		SELECT 
+			page_title AS old_title, 
+			IF(page_is_redirect, rd_title, page_title) AS new_title, 
+			page_namespace AS old_namespace, 
+			IF(page_is_redirect, rd_namespace, page_namespace) AS new_namespace 
+		FROM wiki_page 
+		LEFT JOIN wiki_redirect ON page_id=rd_from 
+		WHERE page_namespace=%0
+	) 
+	INNER JOIN wiki_page ON new_title=page_title 
+		AND new_namespace=page_namespace
+
+// --
+
+// think sql( u( wnh/query.findpage, 3022 ))
+// think sql( u( wnh/query.findpage, 3020 ))
+// this doesn't work << is this the part I broke? >>
+
+
+
+/* 
+================================================================================
+== FILTERS =====================================================================
+*/
+
+// -----------------------------------------------------------------------------
+// -- Filter out text ending in _<number> --------------------------------------
+// 
+// Sometimes we don't want to list the other pages of a help or news file.
+// 0: list
+// --
+
+&filter.no-_num Wiki News and Help <wnh>=not( isint( last( %0, _ )))
+
+
+
+/*
+================================================================================
+== COMMANDS ====================================================================
+*/
+
+
+// -----------------------------------------------------------------------------
+// -- News/Help ----------------------------------------------------------------
+// 
+// This needs cleaned up desperately.
+// 
+// 1: news or +help?
+// 2: garbage giving option for no %3
+// 3: which file, if any, to look up
+// 
+// q1: wiki page contents: <title>^<timestamp>^<content>
+// q2: wikipage title
+// 
+// n: namespace
+// z: garbage
+// a: first character in a line
+// b: rest of the line
+// -- 
+
+&CMD.WIKI.NEWSHELP Wiki News and Help <wnh>=
+	$^(\+?news|\+help)( ([- !(),./;?_A-Za-z0-9]+))?$:
+
+	@break eq( strlen( %3 ), 0 )={ 
+		@pemit %#=u( display.index, trim( %1, l, + ))
+	}; 
+
+	think strcat( 
+		qn:%b, setr( n, v( namespace.[trim( %1, l, + )] )), %r, 
+		q1:%b, setr( 1, u( f.clean.query, %qn, %3 )), %r, 
+		qt:%b, setr( t, edit( first( %q1, ^ ), _, %b )), %r, 
+		qm:%b, setr( m, elements( %q1, 2, ^ )), %r, 
+		qc:%b, setr( c, elements( %q1, 3, ^ )), %r, 
+		wdivider(), %r, 
+	); 
+
+	@assert t( %q1 )={ 
+		@pemit %#=u( .msg, lcstr( %1 ), Unknown page. ) 
+	}; 
+
+	@pemit %#=
+		[u( .wheader, cat( capstr( lcstr( trim( %1, l, + ))), for %qt ))]%r; 
+
+	@pemit %#=
+		s( 
+			iter( 
+				trim( 
+					translate( s( %qc ), p ), 
+					b, 
+					lit( %r )
+				), 
+				[setq( z, regmatchi( %i0, (.)(.*), z a b ))]
+				[setq( b, s( %qb ))]
+				[case( %qa, 
+					:, 
+					translate( u( wiki.block-quote, %qb ), p ), 
+
+					%b, 
+					translate( u( wiki.block-quote, trim( %qb )), p ), 
+
+					%;, 
+					translate( u( wiki.definition-block, %qb ), p ), 
+
+					*, 
+					translate( u( wiki.bullet-point, %qb ), p ), 
+
+					-, 
+					if( 
+						strmatch( %i0, ---- ), 
+						u( wiki.horizontal-rule ), 
+						%i0 
+					), 
+
+					=, 
+					if( 
+						regmatch( %i0, (=+)(.*?)(=+), z y x w ), 
+						strcat( 
+							translate( 
+								udefault( 
+									wiki.h[strlen( %qy )], 
+									u( wiki.h5, trim( %qx )), 
+									trim( %qx )), 
+								p 
+							), 
+							%qn 
+						)
+					), 
+
+					', 
+					if( 
+						regmatch( %i0, (''+)(.*?)(\\1)(.*), z y x w v ), 
+						switch( strlen( %qy ), 
+							<3, 
+							[translate( u( wiki.italics, %qx ), p )]
+							%xn%qv, 
+
+							<5, 
+							[translate( u( wiki.bold, %qx ), p )]
+							%xn%qv, 
+
+							<6, 
+							[translate( u( wiki.bold-italics, %qx ), p )]
+							%xn%qv, 
+
+							%i0 
+						), 
+						%i0 
+					), 
+					
+					, %%b, 
+					%i0 
+				)]
+				%%xn, 
+
+				lit( %r ), 
+				lit( %r )
+
+			)
+		); 
+
+	@pemit %#={%r[u( .wfooter, u( display.footer, %qm ))]}; 
+
+// --
+
+@set Wiki News and Help <wnh>/CMD.WIKI.NEWSHELP = regexp
+
+
+// -----------------------------------------------------------------------------
+// -- Recent Changes -----------------------------------------------------------
+
+&CMD.WIKI.WIKIRECENT Wiki News and Help <wnh>=$^\+?wikirecent$:
+	@pemit %#=
+		strcat( 
+			u( .wheader, Wiki Recent Changes ), %r, 
+			ansi( h, u( display.line.recent, Time, User, Title, Comment )), %r, 
+			u( .wdivider, ), %r, 
+			iter( 
+				sql( v( query.recent ), ^, | ), 
+				u( display.line.recent, 
+					u( display.time, 
+						u( f.decode.time, 
+							index( %i0, |, 1, 1 )
+						)
+					), 
+					index( %i0, |, 2, 1 ), 
+					strcat( 
+						setq( i, index( %i0, |, 3, 1 )), 
+						if( %qi, v( namespace.%qi ): ), 
+						index( %i0, |, 4, 1 )
+					), 
+					index( %i0, |, 5, 100 )
+				), 
+				^, 
+				%r 
+			),  %r, 
+			u( .wfooter, )
+		)
+
+// - 
+
+@set Wiki News and Help <wnh>/CMD.WIKI.WIKIRECENT = regexp
+
+
+/*
+=============================================================================
+== TRIGGERS =================================================================
+
+
+-----------------------------------------------------------------------------
+-- Announce wiki changes from the past minute -------------------------------
+
+To be triggered by mushcron each minute. */
+
+// --
+
+&TR.POST.CHANGES Wiki News and Help <wnh>=
+	think 
+		iter( 
+			sql( u( query.post, sub( secs( ), 60 )), ^, | ), 
+			cemit( 
+				v( d.channel.recent_changes ), 
+				strcat( 
+					Wiki edit by, %b,  
+					index( %i0, |, 2, 1 ), %b, 
+					on, %b, 
+					setq( i, index( %i0, |, 3, 1 )), %b, 
+					if( %qi, v( namespace.%qi ): ), 
+					index( %i0, |, 4, 1 ), :%b, 
+					index( %i0, |, 5, 100 )
+				)
+			), 
+			^, @@ 
+	)
+
+
+
+/*
+================================================================================
+== DISPLAYS ====================================================================
+*/
+
+// -----------------------------------------------------------------------------
+// -- Display Time -------------------------------------------------------------
+
+&display.time Wiki News and Help <wnh>=
+	strcat( 
+		mid( convsecs( %0 ), 4, 12 ), 
+		%b, %(, 
+		extract( exptime( sub( secs( ), %0 )), 1, 2 ), 
+		%) 
+	)
+
+
+// -----------------------------------------------------------------------------
+// -- Display Title ------------------------------------------------------------
+
+&display.title Wiki News and Help <wnh>=edit( capstr( lcstr( %0 )), %b, _ )
+
+// -----------------------------------------------------------------------------
+// -- Display Line for Recent Edits --------------------------------------------
+// 
+// 0: <time>
+// 1: <user>
+// 2: <title>
+// 3: <content>
+
+&display.line.recent Wiki News and Help <wnh>=
+	trim( 
+		strtrunc( 
+			cat( 
+				ljust( %0, 22 ), 
+				ljust( %1, 18 ), 
+				ljust( %2, 29 ), 
+				%3 
+			), 
+			width( %# )
+		), 
+		r 
+	)
+
+
+// -----------------------------------------------------------------------------
+// -- Display 'Last Modified' for Footer ---------------------------------------
+// 
+// 0: modified, in seconds
+
+&display.footer Wiki News and Help <wnh>=
+	strcat( 
+		convsecs( setr( 0, u( f.decode.time, %0 ))), %b, 
+		Eastern %(, 
+		extract( writetime( isub( secs( ), %q0 )), 1, 4 ), %b, 
+		ago%) 
+	)
+
+
+// -----------------------------------------------------------------------------
+// -- Display Index ------------------------------------------------------------
+// 
+// 0: namespace
+// 
+// t: total number of entries found
+// n: namespace id
+// c: categories in namespace
+// p: pages in category 
+
+&display.index wnh=
+	localize( strcat( 
+		setq( t, 0 ), 
+		setq( n, v( namespace.[trim( %0, l, + )] )), 
+		setq( c, sort( sql( u( query.categories-in-namespace, %qn )))), 
+		u( .wheader, ucstr( %0 )), %r, 
+		iter( %qc, 
+			strcat( 
+				setq( p, 
+					sort( sql( u( query.pages-in-category, %qn, %i0 )))
+				), 
+				setq( t, add( %qt, words( %qp ))), 
+				iter( %qp, setq( m, max( strlen( %i0 ), %qm )), , @@ ), 
+				u( .wdivider, edit( %i0, _, %b )), %r, 
+				edit( 
+					table( 
+						%qp, 
+						inc( %qm ), 
+						width( %# )
+					), 
+					_, %b 
+				)
+			), 
+			, %r 
+		), %r, 
+		u( .wfooter, %qt entries )
+	))
+
+// --
+// think u( wnh/display.index, v( namespace.[trim( %0, l, + )] ) )
+// think u( wnh/display.index, help )
+
+
+
+
+/*
+================================================================================
+== NAMESPACES ==================================================================
+*/
+
+&namespace.1 Wiki News and Help <wnh>=Talk
+&namespace.2 Wiki News and Help <wnh>=User
+&namespace.3 Wiki News and Help <wnh>=User talk
+&namespace.4 Wiki News and Help <wnh>=ReachWiki
+&namespace.5 Wiki News and Help <wnh>=ReachWiki talk
+&namespace.6 Wiki News and Help <wnh>=File
+&namespace.7 Wiki News and Help <wnh>=File talk
+&namespace.8 Wiki News and Help <wnh>=MediaWiki
+&namespace.9 Wiki News and Help <wnh>=MediaWiki talk
+&namespace.10 Wiki News and Help <wnh>=Template
+&namespace.11 Wiki News and Help <wnh>=Template talk
+// &namespace.12 Wiki News and Help <wnh>=Help
+// &namespace.13 Wiki News and Help <wnh>=Help talk
+&namespace.14 Wiki News and Help <wnh>=Category
+&namespace.15 Wiki News and Help <wnh>=Category talk
+&namespace.3000 Wiki News and Help <wnh>=Logs
+&namespace.3001 Wiki News and Help <wnh>=Logs talk
+&namespace.3020 Wiki News and Help <wnh>=Help
+&namespace.3021 Wiki News and Help <wnh>=Help talk
+&namespace.3022 Wiki News and Help <wnh>=News
+&namespace.3023 Wiki News and Help <wnh>=News talk
+&namespace.HELP Wiki News and Help <wnh>=3020
+&namespace.NEWS Wiki News and Help <wnh>=3022
+
+
+
+/*
+================================================================================
+== WIKI FORMATTING =============================================================
+*/
+
+// Bold & Italics must be the first thing on the line, 
+// else it will be ignored.
+
+&wiki.block-quote Wiki News and Help <wnh>=wrap( %0, sub( width( %# ), 8 ), left, space( 4 ))
+&wiki.H1 Wiki News and Help <wnh>=center( ansi( h, ucstr( %0 )), width( %# ))
+&wiki.H2 Wiki News and Help <wnh>=center( ansi( h, %0 ), width( %# ))
+&wiki.H3 Wiki News and Help <wnh>=center( ansi( h, %0 ), width( %# ))
+&wiki.H4 Wiki News and Help <wnh>=ansi( h, %0 )
+&wiki.H5 Wiki News and Help <wnh>=ansi( h, %0 )
+&wiki.definition-block Wiki News and Help <wnh>=wrap( [ansi( h, trim( first( %0, : )))] [if( strlen( trim( rest( %0, : ))), %r[trim( rest( %0, : ))] )], sub( width( %# ), 8 ), left, , , 4 )
+&wiki.bullet-point Wiki News and Help <wnh>=wrap( * [trim( %0 )], sub( width( %# ), 8 ), left, , , 2 )
+&wiki.bold Wiki News and Help <wnh>=ansi( h, %0 )
+&wiki.italics Wiki News and Help <wnh>=ansi( u, %0 )
+&wiki.bold-italics Wiki News and Help <wnh>=u( wiki.italics, u( wiki.bold, %0 ))
+
+
+
+/*
+================================================================================
+== HEY, THIS IS PRETTY OLD CODE OF CHIME'S! ====================================
+*/
+
+// &CMD.WIKI.NEWSHELP.OLD Wiki News and Help <wnh>=$^\+(news|help)( ([- !(),./;?_A-Za-z0-9]+))?$:@assert setr( 1, u( f.clean.query, v( namespace.%1 ), u( display.TITLE, setr( 2, if( %3, %3, Contents )))))={@pemit %#={%xh<+[lcstr( %1 )]>%xn Unknown page.}};@pemit %#={[wheader( capstr( lcstr( %1 )) for [r( 2 )] )]%r};@pemit %#={[s( extract( r( 1 ), 2, 1, ^ ))]};@pemit %#={%r[wfooter( u( .footer, r( 1 )))]}
+
+
+
+/*
+================================================================================
+== CLEANUP =====================================================================
+*/
+
+@set me=!quiet 
+
+
+
+/* 
+================================================================================
+== SETUP HELP ==================================================================
+
+You must be able to change, or access, the MediaWiki `LocalSettings.php` file
+and make the following additions. You may notice that I have turned off 
+talk/discussion pages for help and news.
+
+The namespace IDs are already in the code above, so if you change them you 
+MUST change &namespace.news and &namespace.help.
+
+Once LocalSettings.php is changed, nothing else needs to be done.
+
+
+--------------------------------------------------------------------------------
+-- LocalSettings.php -----------------------------------------------------------
+
+# ########################################################################
+# Custom Namespace: Game Help
+define("NS_GAMEHELP", 3020);
+$wgExtraNamespaces[NS_GAMEHELP] = "Gamehelp";
+# define("NS_GAMEHELP_TALK", 3021);
+# $wgExtraNamespaces[NS_GAMEHELP_TALK] = "Gamehelp_talk";
+$wgContentNamespaces[] = 3020;
+$wgNamespacesToBeSearchedDefault[NS_GAMEHELP] = true;
+
+
+# ########################################################################
+# Custom Namespace: Game News
+define( "NS_GAMENEWS", 3022 );
+$wgExtraNamespaces[NS_GAMENEWS] = "News";
+# define( "NS_GAMENEWS_TALK", 3023 );
+# $wgExtraNamespaces[NS_GAMENEWS_TALK] = "News_talk";
+$wgContentNamespaces[] = 3022;
+$wgNamespacesToBeSearchedDefault[NS_GAMENEWS] = true;
+
+
+
+================================================================================
+== USAGE HELP ==================================================================
+
+	+help
+	+help <entry>
+	news
+	news <entry>
+
+You may also use '+news' if you are used to that, but the system will report 
+and encourage you to use 'news' instead.
+
+Currently you must type the entire help or news entry name in order to read it.
+
+If the wiki entry doesn't have a [[Category:...]], it won't be listed.
