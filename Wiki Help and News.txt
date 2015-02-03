@@ -133,7 +133,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 &f.decode.time Wiki News and Help <wnh>=
 	convtime( 
-		catstr( 
+		strcat( 
 			mid( %0, 0, 4 ), -, 
 			mid( %0, 4, 2 ), -, 
 			mid( %0, 6, 2 ), %b, 
