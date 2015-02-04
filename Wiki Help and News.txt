@@ -313,7 +313,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 	think strcat( 
 		qn:%b, setr( n, v( namespace.[trim( %1, l, + )] )), %r, 
-		q1:%b, setr( 1, u( f.clean.query, %qn, %3 )), %r, 
+		q1:%b, setr( 1, u( f.clean.query, %qn, edit( %3, %b, _ ))), %r, 
 		qt:%b, setr( t, edit( first( %q1, ^ ), _, %b )), %r, 
 		qm:%b, setr( m, elements( %q1, 2, ^ )), %r, 
 		qc:%b, setr( c, elements( %q1, 3, ^ )), %r, 
