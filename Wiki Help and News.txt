@@ -685,9 +685,9 @@ $wgNamespacesToBeSearchedDefault[NS_GAMEHELP] = true;
 # ########################################################################
 # Custom Namespace: Game News
 define( "NS_GAMENEWS", 3022 );
-$wgExtraNamespaces[NS_GAMENEWS] = "News";
+$wgExtraNamespaces[NS_GAMENEWS] = "Gamenews";
 # define( "NS_GAMENEWS_TALK", 3023 );
-# $wgExtraNamespaces[NS_GAMENEWS_TALK] = "News_talk";
+# $wgExtraNamespaces[NS_GAMENEWS_TALK] = "Gamenews_talk";
 $wgContentNamespaces[] = 3022;
 $wgNamespacesToBeSearchedDefault[NS_GAMENEWS] = true;
 
