@@ -4,6 +4,8 @@ Create a temporary room anywhere people want it.  By default, players can only b
 
 We use a "Digger" object because MUX doesn't have a dig() side-effect function.
 
+(Note to self: create() for 'r'ooms and 'e'xits, link() for exits.)
+
 
 ================================================================================
 == THE TEMPROOM ZMO ============================================================
@@ -38,7 +40,7 @@ Temporary Rooms In Use:
 
 --
 
-@desc trm=Temporary Rooms In Use: %r[if(t(setr(r, lattr(%!/room.*))), columns(iter(sort(%qr), %([rest(%i0, .)]%) [before(name(rest(%i0, .)), <)][setq(0, if(hasflag(rest(%i0, .), safe), perm))][if(t(%q0), %b<%q0>)], , `), 38, `, 2), %b No rooms in use.%r)][footer([words(%qr)] rooms)]
+@desc trm=Temporary Rooms In Use: %r[if( t( setr( r, lattr( %!/room.* ))), columns( iter( sort( %qr ), %( [rest( %i0, . )]%) [before( name( rest( %i0, . )), < )][setq( 0, if( hasflag( rest( %i0, . ), safe ), perm ))][if( t( %q0 ), %b<%q0> )], , ` ), 38, `, 2 ), %b No rooms in use.%r )][footer( [words( %qr )] rooms )]
 
 
 --------------------------------------------------------------------------------
@@ -48,14 +50,11 @@ Temporary Rooms In Use:
 &d.flags.entrance trm=!DARK
 &d.flags.exit trm=!DARK
 
-&f.scrub_name trm=strip(%0, %%%,;<>%[%])
+&f.scrub_name trm=strip( %0, %%%,;<>%[%] )
 
 @fo me=@chzone trm=Temproom ZMO
-
-		&d.parent trm=#355 <-- This is the 'temp room parent'
-		&d.temproom-zmo trm=#396 <-- 'temp room zone' object again
-
-The above dbrefs mainly won't be set until you're done, which is why these all get their own attributes
+@fo me=&d.temproom-zmo trm=[num( Temproom ZMO )]
+@tel Temproom ZMO=trm
 
 
 ================================================================================
@@ -79,31 +78,64 @@ qx: exit name
 
 --
 
-&c.temproom trm=$+temproom *:
-	@assert [or(isstaff(%#), u(f.valid-room?, loc(%#)))]=
-		{@pemit %#=You're not in a location that can take a temp room.}; 
+&c.temproom trm=$^\+?temproom (.*)$:
+	@assert [or( isstaff( %# ), u( f.valid-room?, loc( %# )))]={ 
+		@pemit %#=You're not in a location that can take a temproom. 
+	}; 
 
-	think >> [setr(s, u(f.scrub_name, %0))] %r
-		  >> [setr(n, u(f.format.roomname, %qs))] %r
-		  >> [setr(e, u(f.format.entrance, %qs))] %r
-		  >> [setr(x, u(f.format.exit, %qs))];
-	
-	@switch/first 0=
-		[valid(roomname, %qn)], 
-		{@pemit %#=I can't take that name for a temproom.}, 
-		
-		[valid(exitname, %qn)], 
-		{@pemit %#=I can't make that name into a good exit name.}, 
-		
-		{
-			@trigger [v(d.digger)]/tr.dig-room=loc(%#), %qn, %qe, %qx, %#; 
-@@ .. .. hit the room on the monitor() 
-			@eval monitor(+temproom: [name(%#)] creates "%qs" off [name(loc(%#))] ([loc(%#)]))
-		}
+	think >> [setr( s, u( f.scrub_name, %1 ))] %r
+		  >> [setr( n, u( f.format.roomname, %qs ))] %r
+		  >> [setr( e, u( f.format.entrance, %qs ))] %r
+		  >> [setr( x, u( f.format.exit, %qs ))];
+
+@@ -- name validity checks --
+	@assert valid( roomname, %qn )={
+		@pemit %#=u( .msg, temproom, I can't take that name for a temproom. ) 
+	}; 
+
+	@assert valid( exitname, %qn )={ 
+		@pemit %#=u( .msg, temproom, I can't make that name into a good 
+		exit name. ) 
+	}; 
+
+
+@@ -- exit collision checks --
+	@assert t( match( elements( %qe, 2, %; ), v( d.illegal-anagrams )))={ 
+		@pemit %#=u( .msg, temproom, The exit name would be too close to 
+		commonly used commands. ) 
+	}; 
+
+	@assert 
+		cor( 
+			t( locate( %#, elements( %qe, 2, %; ), E )), 
+			t( locate( %#, elements( %qe, 3, %; ), E ))
+		)={ 
+			@pemit %#=u( .msg, temproom, That would create an exit with 
+			an identical name as an exit in that room. )
+		}; 
+
+@@ -- go for it --
+	@trigger tr.dig-room=loc( %# ), %qn, %qe, %qx, %#; 
+
+	@eval 
+		u( f.monitor, 
+			temproom: [name( %# )] creates "%qs" off 
+			[name( loc( %# ))] ([loc( %# )])
+		); 
 
 --
 
-&c.temproom trm=$+temproom *:@assert [or(isstaff(%#), u(f.valid-room?, loc(%#)))]={@pemit %#=You're not in a location that can take a temp room.}; think >> [setr(s, u(f.scrub_name, %0))] %r  >> [setr(n, u(f.format.roomname, %qs))] %r  >> [setr(e, u(f.format.entrance, %qs))] %r  >> [setr(x, u(f.format.exit, %qs))];@switch/first 0=[valid(roomname, %qn)], {@pemit %#=I can't take that name for a temproom.}, [valid(exitname, %qn)], {@pemit %#=I can't make that name into a good exit name.}, {@trigger [v(d.digger)]/tr.dig-room=loc(%#), %qn, %qe, %qx, %#; @eval monitor(+temproom: [name(%#)] creates "%qs" off [name(loc(%#))] ([loc(%#)]))}
+@set trm/c.temproom=regex
+
+&d.illegal-anagrams trm=i p o out 
+&.msg trm=ansi( h, <%0>, n, %b%1 )
+&f.monitor trm=cemit( monitor, %0 )
+
+--
+
+&c.temproom trm=$^\+?temproom (.*)$:@assert [or( isstaff( %# ), u( f.valid-room?, loc( %# )))]={ @pemit %#=You're not in a location that can take a temproom. }; think >> [setr( s, u( f.scrub_name, %1 ))] %r  >> [setr( n, u( f.format.roomname, %qs ))] %r  >> [setr( e, u( f.format.entrance, %qs ))] %r  >> [setr( x, u( f.format.exit, %qs ))];@assert valid( roomname, %qn )={@pemit %#=u( .msg, temproom, I can't take that name for a temproom. ) }; @assert valid( exitname, %qn )={ @pemit %#=u( .msg, temproom, I can't make that name into a good exit name. ) }; @assert t( match( elements( %qe, 2, %; ), v( d.illegal-anagrams )))={ @pemit %#=u( .msg, temproom, The exit name would be too close to commonly used commands. ) }; @assert cor( t( locate( %#, elements( %qe, 2, %; ), E )), t( locate( %#, elements( %qe, 3, %; ), E )))={ @pemit %#=u( .msg, temproom, That would create an exit with an identical name as an exit in that room. )}; @trigger tr.dig-room=loc( %# ), %qn, %qe, %qx, %#; @eval u( f.monitor, temproom: [name( %# )] creates "%qs" off [name( loc( %# ))] ([loc( %# )])); 
+@set trm/c.temproom=regex
+
 
 
 ================================================================================
@@ -117,41 +149,41 @@ qc: creator's dbref
 
 --
 
-&c.temproom/destroy trm=$+temproom/destroy*:
-	@eval 
-		[setq(l, loc(%#))]
-		[setq(r, v(room.%ql))]
-		[setq(c, extract(%qr, 5, 1, .))]; 
+&c.temproom/destroy trm=$^\+?temproom/destroy(.*)?$:
+	think >> [setq( l, loc( %# ))] %r
+		  >> [setq( r, v( room.%ql ))]%r
+		  >> [setq( c, extract( %qr, 5, 1, . ))]; 
 
-	@switch/first 0=
+	@assert t( %qr )={
+		@pemit %#=u( .msg, temproom, You're not in a temproom. ) 
+	}; 
 
-@@ .. not in a temproom
-	[t(%qr)], 
-	{@pemit %#=[alert(temproom)] You're not in a temproom.}, 
+	@assert cor( isstaff( %# ), strmatch( %#, %qc ))={
+		@pemit %#=u( .msg, temproom, Room may only be undone by staff 
+		or creator. ) 
+	}; 
 
-@@ .. not staff or room's creator
-	[or(isstaff(%#), strmatch(%#, %qc))], 
-	{@pemit %#=[alert(temproom)] Room may only be undone by staff or creator.}, 
+	@assert orflags( %ql, !s )={
+		@pemit %#=u( .msg, temproom, Room is set permanent%; unset then undo. ) 
+	}; 
 
-@@ .. room is set permanent
-	[orflags(%ql, !s)], 
-	{@pemit %#=[alert(temproom)] Room is set permanent%, unset then undo.}, 
+	@assert eq( 1, words( lcon( %ql, connect )))={
+		@pemit %#=u( .msg, temproom, Room must have no other connected 
+		players before you may destroy it. ) 
+	}; 
 
-@@ .. room has connected players besides invoker
-	[eq(1, words(lcon(%ql, connect)))], 
-	{@pemit %#=[alert(temproom)] Room must have no other connected players before you may undo it.}, 
-
-@@ .. OK!
-@@ .. Because the child room doesn't have permission to @trigger, we @pemit
-@@ .. (we validate on the "Temp Room Maker" side as well to prevent spoofing)
-	{
-		@pemit %#=You bid the shadows reclaim this place...; 
-		@trig %!/tr.destroy-a-room=%ql
-	}
+	@pemit %#=You bid the shadows reclaim this place...; 
+	@trig tr.destroy-a-room=%ql; 
 
 --
 
-&c.temproom/destroy trm=$+temproom/destroy*:@eval [setq(l, loc(%#))][setq(r, v(room.%ql))][setq(c, extract(%qr, 5, 1, .))]; @switch/first 0=[t(%qr)], {@pemit %#=[alert(temproom)] You're not in a temproom.}, [or(isstaff(%#), strmatch(%#, %qc))], {@pemit %#=[alert(temproom)] Room may only be undone by staff or creator.}, [orflags(%ql, !s)], {@pemit %#=[alert(temproom)] Room is set permanent%, unset then undo.}, [eq(1, words(lcon(%ql, connect)))], {@pemit %#=[alert(temproom)] Room must have no other connected players before you may undo it.}, {@pemit %#=You bid the shadows reclaim this place...; @trig %!/tr.destroy-a-room=%ql}
+@set trm/c.temproom/destroy=regex
+
+--
+
+&c.temproom/destroy trm=$^\+?temproom/destroy( .* )?$:think >> [setq( l, loc( %# ))] %r  >> [setq( r, v( room.%ql ))]%r  >> [setq( c, extract( %qr, 5, 1, . ))]; @assert t( %qr )={@pemit %#=u( .msg, temproom, You're not in a temproom. ) }; @assert cor( isstaff( %# ), strmatch( %#, %qc ))={@pemit %#=u( .msg, temproom, Room may only be undone by staff or creator. ) }; @assert orflags( %ql, !s )={@pemit %#=u( .msg, temproom, Room is set permanent%; unset then undo. ) }; @assert eq( 1, words( lcon( %ql, connect )))={@pemit %#=u( .msg, temproom, Room must have no other connected players before you may destroy it. ) }; @pemit %#=You bid the shadows reclaim this place...; @trig tr.destroy-a-room=%ql; 
+@set trm/c.temproom/destroy=regex
+
 
 
 ================================================================================
@@ -163,11 +195,14 @@ l: lost rooms -- belong to temproom ZMO, but aren't registered
 
 --
 
-@desc trm=u(f.display.temproom-usage)
+@desc trm=u( f.display.temproom-usage )
 
-&c.temproom/list trm=$+temproom/list:@pemit %#=u(f.display.temproom-usage)
+&c.temproom/list trm=$^\+?temproom/list$:@pemit %#=u( f.display.temproom-usage )
 
-&c.temprooms-null trm=$+temprooms:@pemit %#=u(f.display.temproom-usage)
+&c.temprooms-null trm=$^\+?temprooms?$:@pemit %#=u( f.display.temproom-usage )
+
+@set trm/c.temproom/list=regex
+@set trm/c.temprooms-null=regex
 
 
 --------------------------------------------------------------------------------
@@ -229,9 +264,9 @@ Here are some functions it calls:
 
 &f.format.roomname trm=%0
 
-&f.format.entrance trm=%0 <[u(f.first_letters, %0)]> [ansi(hx, %(temp%))];%0;[u(f.first_letters, %0)]
+&f.format.entrance trm=%0 [ansi(hx, %(temp%))];[u(f.first_letters, %0)];%0
 
-&f.format.exit trm=Out <O>; out; o
+&f.format.exit trm=Out;o;out;exit;leave
 
 --
 
@@ -487,6 +522,9 @@ Remember to @dig the room and set it Floating.
 
 @dig/teleport Temporary Room Parent
 @set here=float
+
+@fo me=&d.parent trm=[loc( %# )]
+
 
 
 --------------------------------------------------------------------------------
