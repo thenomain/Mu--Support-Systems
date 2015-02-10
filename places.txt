@@ -101,7 +101,7 @@ Using iter() to catch all rooms needing cleaned.  Again unlikely, but there.
 
 -
 
-@adisconnect pgo=@eval iter( search( eroom=grep( ##, places.*.occupancy, %# )), ulocal( ufunc.places, depart, ##, %# ))
+@adisconnect pgo=@eval iter( search( eroom=grep( ##, places.*.occupancy, %# )), ulocal( ufunc/privileged.places, depart, ##, %# ))
 
 
 ================================================================================
@@ -312,7 +312,7 @@ qn: number of places the player wants configured (always 1)
 		[before(%0, =)]=YES)], 
 
 		t(setr(f, 
-			ulocal(ufunc.places, 
+			ulocal(ufunc/privileged.places, 
 				configure, 
 				before(before(%0, =), /), 
 				YES, 
@@ -343,7 +343,7 @@ qf: places() function results
 		If you are alright with this%, please type: 
 		[ansi(h, places/breakdown <location>=YES)], 
 
-		t(setr(f, ulocal(ufunc.places, breakdown, first(%0, =), YES))), 
+		t(setr(f, ulocal(ufunc/privileged.places, breakdown, first(%0, =), YES))), 
 		[u(f.alert, places/breakdown)] [titlestr(rest(%qf))], 
 
 		[u(f.notify, places/breakdown)] Breakdown Complete!
@@ -362,7 +362,7 @@ qf: places() function results
 &c.places/newplace Places Global Object=
 	case(0, 
 		t(setr(f, 
-			ulocal(ufunc.places, 
+			ulocal(ufunc/privileged.places, 
 				newplace, 
 @@ .. find location
 				case(1, 
@@ -396,7 +396,7 @@ qf: places() function results
 &c.places/delplace Places Global Object=
 	case(0, 
 		t(setr(f, 
-			ulocal(ufunc.places, 
+			ulocal(ufunc/privileged.places, 
 				delplace, 
 				if(strmatch(%0, *=*), trim(first(%0, =)), loc(%#)), 
 				if(strmatch(%0, *=*), trim(rest(%0, =)), %0)
@@ -441,7 +441,7 @@ qo: output from
 @@ .. set the oldkey:newkey list
 		[setq(n, 
 			iter(
-				ulocal(ufunc.places, list, %ql), 
+				ulocal(ufunc/privileged.places, list, %ql), 
 				[first(%i0, :)]:[inum()], 
 				|
 			)
@@ -470,7 +470,7 @@ qo: output from
 
 &c.places/cleanup Places Global Object=
 	case(0, 
-		t(setr(f, ulocal(ufunc.places, cleanup, if(t(%0), %0, loc(%#))))), 
+		t(setr(f, ulocal(ufunc/privileged.places, cleanup, if(t(%0), %0, loc(%#))))), 
 		[u(f.alert, places/cleanup)] [titlestr(rest(%qf))], 
 
 		[u(f.notify, places/cleanup)] Cleaned.
@@ -509,7 +509,7 @@ qf: function result
 		[u(f.alert, places/set)] 
 		Please use 'places/cleanup [first(first(%0), /)]'., 
 
-		t(setr(f, ulocal(ufunc.places, set, %ql, %qp, %qe, %qi))), 
+		t(setr(f, ulocal(ufunc/privileged.places, set, %ql, %qp, %qe, %qi))), 
 		[u(f.alert, places/set)] [rest(titlestr(%qf))], 
 
 		[u(f.notify, places/set)] Set #%qp '[lcstr(%qe)]' to '[%qi]'.
@@ -547,7 +547,7 @@ qf: places() function results
 &c.join Places Global Object=$^join( at| with)?( #?(.*))?$:
 @@ >> if nothing but 'join', fail
 	@assert t(%3)={@pemit %#=[u(f.alert, places)] Join where?}; 
-	@assert not(ulocal(ufunc.places, whichplace, loc(%#), %#))={
+	@assert not(ulocal(ufunc/privileged.places, whichplace, loc(%#), %#))={
 		@pemit %#=[u(f.alert, places)] 
 		You're already at a place. Please 'depart' first.
 	}; 
@@ -598,7 +598,7 @@ qf: places() function results
 			[u(f.alert, places)] 
 			[case(%qt, a, No such place, w, Not at a place)]., 
 
-			t(setr(f, ulocal(ufunc.places, join, loc(%#), r(%qt), %#))), 
+			t(setr(f, ulocal(ufunc/privileged.places, join, loc(%#), r(%qt), %#))), 
 			[u(f.alert, places)] [rest(titlestr(%qf))], 
 
 			@@(If things go well places() will notify everyone)
@@ -624,13 +624,13 @@ qf: places() function results
 
 &c.depart Places Global Object=$^depart( for #?(.*))?$:
 
-	@assert t( ulocal( ufunc.places, whichplace, loc( %# ), %# ))={ 
+	@assert t( ulocal( ufunc/privileged.places, whichplace, loc( %# ), %# ))={ 
 		@pemit %#=
 			[u( f.alert, places )] You're not at a place. Please 'join' first. 
 	}; 
 
 	@pemit %#=case(0, 
-		t(setr(f, ulocal(ufunc.places, depart, loc(%#), %#))), 
+		t(setr(f, ulocal(ufunc/privileged.places, depart, loc(%#), %#))), 
 		[u(f.alert, places)] [rest(titlestr(%qf))], 
 
 		@@(If things go well places() will notify everyone)
@@ -668,7 +668,7 @@ qf: places() function results
 		[u(f.alert, places)] You need to 'tt <something>'. 
 	}; 
 
-	@assert t(ulocal(ufunc.places, whichplace, loc(%#), %#))={ 
+	@assert t(ulocal(ufunc/privileged.places, whichplace, loc(%#), %#))={ 
 		@pemit %#=
 		[u(f.alert, places)] You're not at a place. Please 'join' first. 
 		}; 
@@ -676,7 +676,7 @@ qf: places() function results
 	@pemit %#=
 		case(0, 
 			t(setr(f, 
-				ulocal(ufunc.places, tt, loc(%#), %#, trim(%3), if(t(%1), ooc))
+				ulocal(ufunc/privileged.places, tt, loc(%#), %#, trim(%3), if(t(%1), ooc))
 			)), 
 			[u(f.alert, places)] [rest(titlestr(%qf))], 
 
@@ -1211,7 +1211,7 @@ Rather than have one function per item, let's just have one function.
 
 --
 
-&ufunc.places Places Global Object=
+&ufunc/privileged.places Places Global Object=
 	[setq( l, locate( %#, %1, ahR ))]
 	[if( cand( t( %ql ), hastype( %ql, ROOM )), 
 		udefault( @@PLACES@@/action.%0, #-1 ACTION NOT FOUND, %ql, %2, %3, %4 ), 
@@ -1221,14 +1221,14 @@ Rather than have one function per item, let's just have one function.
 --
 
 @startup Places Global Object=@function/privileged/preserve places=
-	@@PLACES@@/ufunc.places
+	@@PLACES@@/ufunc/privileged.places
 
 --
 
-@force me=@edit pgo/ufunc.places=@@PLACES@@, [num( pgo )]
+@force me=@edit pgo/ufunc/privileged.places=@@PLACES@@, [num( pgo )]
 @force me=@edit pgo/startup=@@PLACES@@, [num( pgo )]
 
-@@ @force me=@edit [search( object=Places Global Object <pgo> )]/ufunc.places=@@PLACES@@, [search( object=Places Global Object <pgo> )]
+@@ @force me=@edit [search( object=Places Global Object <pgo> )]/ufunc/privileged.places=@@PLACES@@, [search( object=Places Global Object <pgo> )]
 @@ @force me=@edit [search( object=Places Global Object <pgo> )]/startup=@@PLACES@@, [num[search( object=Places Global Object <pgo> )]]
 
 
