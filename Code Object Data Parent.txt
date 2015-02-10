@@ -1,9 +1,10 @@
+/*
 CODE OBJECT DATA PARENT
 
 The purpose of this is to @parent any code object to in order to give you a rundown of its attributes in an organized manner.
 
 Usage:
-	@parent <object>=codp
+  @parent <object>=codp
 
 Configuration:
 	&prefix.<header_name> <object>=<a list of attribute prefixes>
@@ -15,21 +16,24 @@ Because this object uses @descformat, you may @desc your object as normal.
 Requires:
 	header(<text>): Game's "pretty" output header.
 	footer(<text>): Game's "pretty" output footer.
+        divider(<text>): Game's "pretty" output divider.
 	vtable(): Chime's vertical table layout system
-
+	titlestr(): String edit.
+        plural(<count>, <singular>, <plural>)
 
 --------------------------------------------------------------------------------
 -- Setup -----------------------------------------------------------------------
-
+*/
 @create Code Object Data Parent <codp>=10
 
 @set Code Object Data Parent <codp>=INHERIT PARENT_OK SAFE VISIBLE
 
 &ABOUT Code Object Data Parent <codp>=This object is for all other code objects to parent to. It will format the attributes without clobbering a useful @desc.
 
-
+/*
 --------------------------------------------------------------------------------
 -- Default Prefixes ------------------------------------------------------------
+*/
 
 &PREFIX.SERVER_COMMANDS Code Object Data Parent <codp>=startup shutdown connect aconnect disconnect adisconnect listen ahear aahear amhear amove
 
@@ -53,7 +57,7 @@ Requires:
 
 &PREFIX.DOT_ATTRS Code Object Data Parent <codp>=.
 
-
+/*
 --------------------------------------------------------------------------------
 -- Descformat ------------------------------------------------------------------
 
@@ -61,54 +65,45 @@ ql: list of 'prefix_title prefix prefix prefix', |-delimited
 qc: attribute count
 
 --
+*/
 
 @DescFormat Code Object Data Parent <codp>=
-localize( 
-	strcat( 
-		setq( l, 
-			iter( 
-				lattrp( %!/prefix.* ), 
-				cat( 
-					rest( %i0, . ), 
-					iter( 
-						get( %!/%i0 ), 
-						lcstr( lattr( %!/%i0* )))
-					), 
-				%b, 
-				| 
-			)
-		), 
-@@ >> count actual attributes
-		setq( c, 
-			words( setunion( iter( %ql, rest( %i0 ), | ), ))
-		), 
-@@ >> Check for @Desc
-		header( name( %! ))%r, 
-		if( strlen( %0 ), 
-			%r%0%r%r, 
-			%rDesc is null for this code object.%r%r 
-		), 
-@@ >> only list headers if they have attributes to list
-		iter( %ql, 
-			if( words( rest( %i0 )), 
-				strcat( 
-					divider( titlestr( edit( first( %i0 ), _, %b )))%r, 
-					vtable( rest( %i0 ))%r 
-				)
-			), 
-			|, 
-			@@ 
-		), 
-		footer( cat( %qc, plural( %qc, attribute, attributes )))
-	)
-)
-
-
-
-
-
---=-=-=-==--=-=
-
-
-
-
+  localize( 
+  	strcat( 
+  		setq( l, 
+  			iter( 
+  				lattrp( %!/prefix.* ), 
+  				cat( 
+  					rest( %i0, . ), 
+  					iter( 
+  						get( %!/%i0 ), 
+  						lcstr( lattr( %!/%i0* )))
+  					), 
+  				%b, 
+  				| 
+  			)
+  		), 
+  // >> count actual attributes
+  		setq( c, 
+  			words( setunion( iter( %ql, rest( %i0 ), | ), ))
+  		), 
+  // >> Check for @Desc
+  		header( name( %! ))%r, 
+  		if( strlen( %0 ), 
+  			%r%0%r%r, 
+  			%rDesc is null for this code object.%r%r 
+  		), 
+  // >> only list headers if they have attributes to list
+  		iter( %ql, 
+  			if( words( rest( %i0 )), 
+  				strcat( 
+  					divider( titlestr( edit( first( %i0 ), _, %b )))%r, 
+  					vtable( rest( %i0 ))%r 
+  				)
+  			), 
+  			|, 
+  			@@ 
+  		), 
+  		footer( cat( %qc, plural( %qc, attribute, attributes )))
+  	)
+  )
