@@ -368,7 +368,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 									trim( %qx )), 
 								p 
 							), 
-							%qn 
+							%xn 
 						)
 					), 
 
