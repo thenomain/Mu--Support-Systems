@@ -157,8 +157,6 @@ vs.
 
 	); 
 
-//	@pemit %#=>> 0: %0 --- 1: %1 --- 2: %2 --- 3: %3 --- a: %qa --- b: %qb --- i: %qi --- j: %qj; 
-
 	@assert t( %qb )={ 
 		@pemit %1=u( .msg, req/%0, I can't find the '%qa' bucket for this. )
 	}; 
@@ -171,14 +169,14 @@ vs.
 
 	@trigger %va/TRIG_CREATE=
 		%1, 
-		u( %va/FN_FIND-BUCKET, ucstr( u( f.get.bucket, %0 ))), 
+		%qb, 
 		u( f.get.level, %0 ), 
 		[if( strlen( u( f.get.prefix, %0 )), [u( f.get.prefix, %0 )]:%b )]
 		[u( %va/FN_STRTRUNC, trim( %2 ), 30 )], 
 		%r[u( %va/FN_STRTRUNC, trim( %3 ), get( %va/BUFFER ))], 
 		, 
-		[u( %va/FN_FIND-JGROUP, lcstr( u( f.get.jgroup, %0 )))], 
-		[u( f.get.level, %0 )]
+		%qj, 
+		2
 
 
 
