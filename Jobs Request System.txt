@@ -1,0 +1,323 @@
+/*
+REQUEST SYSTEM: The easier way to add and sort jobs.
+
+	req <title>=<contents>
+	req/<type> <title>=<contents>
+
+Request from staff. Different types have different outcomes, which can be 
+fairly easily modified with the "request types" section, at the end.
+
+It is also simple to create a specialty command, such as:
+
+	$+request *:@trigger %!/trig.command.request=/request %0, %#
+	$+beat *:@trigger %!/trig.command.request=/beat [moniker( %# )]=%0, %#
+
+... and so forth.
+
+I've also put a single return (%r) before the contents, because it's always 
+driven me batty that the content starts right after a spammy timestamp. e.g.: 
+
+	[1+] Thenomain added on Wed Feb 11 19:20:37 2015: 
+	content
+
+vs.
+
+	[1+] Thenomain added on Wed Feb 11 19:20:37 2015: content
+
+*/
+
+
+
+// =============================================================================
+// == SETUP ====================================================================
+
+@create Jobs Request System <jrs>=10
+@set jrs=inherit safe
+
+
+// links to the Anomaly Jobs setup 
+
+@fo me=&d.jgo me=[search( name=Job Global Object <JGO> )]
+@fo me=@va jrs=[get( v( d.jgo )/va )]
+@fo me=@vb jrs=[get( v( d.jgo )/vb )]
+@fo me=@vc jrs=[get( v( d.jgo )/vc )]
+
+@if not( isdbref( v( d.jgo )))=think ansi( 
+		rh, 
+		HEY! HEY!, 
+		n, 
+		%bI didn't find the `Jobs Global Object <JGO>`. 
+		The jobs request system isn't going to work. 
+	)
+
+
+// Create an '+allstaff' generic group when one isn't set or valid
+
+@if not( search( eobject=cand( strmatch( name( ## ), +allstaff ), strmatch( loc( ## ), get( jrs/vb )))))=
+	{
+	    +jgroup/create +allstaff=All staff belong to this group.
+	}; 
+
+@wait 3=&ismember [search( eobject=cand( strmatch( name( ## ), +allstaff ), strmatch( loc( ## ), get( jrs/vb ))))]=isstaff%( %%0 %); 
+
+
+// Link to the Code Object Data Parent
+
+@fo me=@parent jrs=[search( name=Code Object Data Parent <codp> )]
+
+
+
+// =============================================================================
+// == COMMANDS =================================================================
+
+// +req/<switch>, if no <switch> then default switch is 'request':
+
+&c.request jrs=$req*:@trig %!/trig.command.request=%0, %#
+
+&c.+request jrs=$+req*:@trig %!/trig.command.request=%0, %#
+
+
+
+// =============================================================================
+// == TRIGGERS =================================================================
+
+
+// -----------------------------------------------------------------------------
+// -- Run the Command ----------------------------------------------------------
+// 0: input
+// 1: enactor (%#)
+
+// s: switch
+// t: title
+// c: contents
+// m: matches
+
+&trig.command.request jrs=
+	@break u( %va/FN_GUEST, %1 )={ 
+		@pemit %1=u( .msg, %qr, This command is not available to guests. ) 
+	}; 
+
+	think strcat( 
+		s:%b, setr( s, trim( rest( before( %0 ), / ))), %r, 
+
+		0:%b, setr( 0, trim( if( strlen( %qs ), rest( %0 ), %0 ))), %r, 
+		t:%b, setr( t, first( %q0, = )), %r, 
+		c:%b, setr( c, rest( %q0, = )), %r, 
+
+		s:%b, setr( s, if( strlen( %qs ), %qs, request )), %r, 
+		m:%b, setr( m, lattr( %!/d.%qs*.bucket )), %r, 
+		m:%b, setr( m, if( words( %qm ), %qm, lattr( %!/d.*.bucket ))), %r, 
+	); 
+
+	@assert hasattr( %!, d.%qs.bucket )={ 
+		@pemit %1=u( .msg, req/%qs, 
+			strcat( 
+				Request type not found., %b, 
+				It could have been:, %b, 
+				lcstr( itemize( edit( %qm, D., , .BUCKET, ), , or ))
+			)
+		) 
+	}; 
+
+	@assert u( f.validate.access, %qs, %1 )={ 
+		@pemit %1=u( .msg, req/%qs, This request type is staff-only. ) 
+	}; 
+
+	@assert strlen( %qt )={ 
+		@pemit %1=u( .msg, req/%qs, Your request needs a title. ) 
+	}; 
+
+	@assert strlen( %qc )={ 
+		@pemit %1=u( .msg, req/%qs, Your request needs some content. ) 
+	}; 
+
+	@trig %!/trig.create.request=%qs, %1, %qt, %qc; 
+
+
+// -----------------------------------------------------------------------------
+// -- Create the job -----------------------------------------------------------
+
+// 0: switch (validated)
+// 1: enactor (%#)
+// 2: title
+// 3: contents
+
+// a: bucket name
+// b: bucket dbref
+// i: +jgroup name
+// j: +jgroup dbref
+
+&trig.create.request jrs=
+	think strcat( 
+		a:%b, setr( a, ucstr( u( f.get.bucket, %0 ))), %r, 
+		b:%b, setr( b, u( %va/FN_FIND-BUCKET, %qa )), %r, 
+
+		i:%b, setr( i, lcstr( u( f.get.jgroup, %0 ))), %r, 
+		j:%b, setr( j, u( %va/FN_FIND-JGROUP, %qi )), %r, 
+
+	); 
+
+//	@pemit %#=>> 0: %0 --- 1: %1 --- 2: %2 --- 3: %3 --- a: %qa --- b: %qb --- i: %qi --- j: %qj; 
+
+	@assert t( %qb )={ 
+		@pemit %1=u( .msg, req/%0, I can't find the '%qa' bucket for this. )
+	}; 
+
+	@assert t( %qj )={ 
+		@pemit %1=u( .msg, req/%0, I can't find the '%qi' jgroup for this. )
+	}; 
+
+	@pemit %1=u( .msg, req/%0, u( f.get.msg, %0, %2, %3 )); 
+
+	@trigger %va/TRIG_CREATE=
+		%1, 
+		u( %va/FN_FIND-BUCKET, ucstr( u( f.get.bucket, %0 ))), 
+		u( f.get.level, %0 ), 
+		[if( strlen( u( f.get.prefix, %0 )), [u( f.get.prefix, %0 )]:%b )]
+		[u( %va/FN_STRTRUNC, trim( %2 ), 30 )], 
+		%r[u( %va/FN_STRTRUNC, trim( %3 ), get( %va/BUFFER ))], 
+		, 
+		[u( %va/FN_FIND-JGROUP, lcstr( u( f.get.jgroup, %0 )))], 
+		[u( f.get.level, %0 )]
+
+
+
+// =============================================================================
+// == FUNCTIONS ================================================================
+
+&.msg jrs=ansi( h, <%0>, n, %b%1 )
+
+
+// -----------------------------------------------------------------------------
+// -- Function: Validations ----------------------------------------------------
+// (used in most, but not all, cases)
+
+&f.validate.access jrs=cand( isstaff( %1 ), not( udefault( f.%0.staff-only, 0 )))
+
+
+// -----------------------------------------------------------------------------
+// -- Functions: Get information for job creation ------------------------------
+// 0: switch
+// 1: input (if any; msg gets the title, isstaff is enactor)
+// returns: what is needed for trig.request.create
+
+
+&f.get.bucket jrs=udefault( d.%0.bucket, REQ )
+&f.get.jgroup jrs=udefault( d.%0.assign, +allstaff )
+&f.get.prefix jrs=udefault( d.%0.prefix, @@( none ))
+&f.get.level jrs=udefault( d.%0.level, 1 )
+
+&f.get.msg jrs=udefault( 
+		d.%0.msg, 
+		You have requested 
+		[u( display.msg.job_title, %0 )] 
+		from staff. Please allow for some time to process it., 
+		%1, %2 
+	)
+
+
+
+// =============================================================================
+// == DISPLAYS & FORMATTING ====================================================
+
+
+&display.msg.job_title jrs=
+	ansi( h, secure( u( %va/FN_STRTRUNC, trim( %0 ), 30 )))
+
+&display.generic_msg jrs=
+	You have requested [u( display.msg.job_title, %0 )] 
+	as a '%1' request from staff. Please allow for some time to process it. 
+
+
+
+// =============================================================================
+// == REQUEST TYPES ============================================================
+
+/*
+
+&d.<type>.<info>
+	<type>
+		Does what you probably think. 
+		`+req/foo` will look for information from `d.foo.<info>`.
+	<info>
+		bucket: <bucket> [required]
+		assign: <+jgroup> [required]
+		msg: <message> to send to enactor [required]
+		prefix: <prefix to message, e.g. 'BUG'> [optional]
+		level: <alert level, default to '2', '3' for bugs> [optional]
+		staff-only: '1' if staff-only
+*/
+
+
+
+// =============================================================================
+// == REQUEST TYPES (game infrastructure) ======================================
+
+/*
+	request (generic)
+
+	bug
+	code
+	build
+
+	equip
+	xp
+*/
+
+
+// -----------------------------------------------------------------------------
+// -- Switch: Request ----------------------------------------------------------
+
+&d.request.bucket jrs=REQ
+&d.request.jgroup jrs=+allstaff
+
+
+// -----------------------------------------------------------------------------
+// -- Switch: Bug --------------------------------------------------------------
+
+&d.bug.bucket jrs=CODE
+&d.bug.jgroup jrs=+code
+&d.bug.prefix jrs=BUG
+&d.bug.level jrs=3
+
+&d.bug.msg jrs=
+	You have notified production staff of the 
+	[u( display.msg.job_title, %0 )] bug with the details 
+	'[secure( u( %va/FN_STRTRUNC, trim( %1 ), get( %va/BUFFER )))]'. 
+	Staff will need the EXACT command(s) used to create this bug and, 
+	if possible, how the result differs from what you were expecting to happen. 
+	If you did not enter this information, please do so now.
+
+
+// -----------------------------------------------------------------------------
+// -- Switch: Code -------------------------------------------------------------
+
+&d.code.bucket jrs=CODE
+&d.code.jgroup jrs=+code
+
+&d.code.msg jrs=u( display.generic_msg, %0, code )
+
+
+// -----------------------------------------------------------------------------
+// -- Switch: Build ------------------------------------------------------------
+
+&d.code.bucket jrs=CODE
+&d.code.jgroup jrs=+code
+
+&d.build.msg jrs=u( display.generic_msg, %0, build )
+
+
+
+// =============================================================================
+// == SWITCHES (roleplay administration) =======================================
+
+/*
+	vampire
+	demon
+	werewolf
+	
+	city
+	society
+	law
+	
+*/
