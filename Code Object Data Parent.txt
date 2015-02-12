@@ -1,7 +1,8 @@
 /*
 CODE OBJECT DATA PARENT
 
-The purpose of this is to @parent any code object to in order to give you a rundown of its attributes in an organized manner.
+The purpose of this is to @parent any code object to in order to give you a 
+rundown of its attributes in an organized manner.
 
 Usage:
 	@parent <object>=codp
