@@ -4,22 +4,23 @@ CODE OBJECT DATA PARENT
 The purpose of this is to @parent any code object to in order to give you a rundown of its attributes in an organized manner.
 
 Usage:
-  @parent <object>=codp
+	@parent <object>=codp
 
 Configuration:
 	&prefix.<header_name> <object>=<a list of attribute prefixes>
 
-If you use a <header_name> that is on the Code Object Data Parent, it will override its prefixes.
+If you use a <header_name> that is by default on the Code Object Data Parent, 
+it will override its prefixes.
 
 Because this object uses @descformat, you may @desc your object as normal.
 
 Requires:
-	header(<text>): Game's "pretty" output header.
-	footer(<text>): Game's "pretty" output footer.
-        divider(<text>): Game's "pretty" output divider.
+	header(<text>): Game's "pretty" output header
+	footer(<text>): Game's "pretty" output footer
+	divider(<text>): Game's "pretty" output divider
 	vtable(): Chime's vertical table layout system
-	titlestr(): String edit.
-        plural(<count>, <singular>, <plural>)
+	titlestr(): String edit to prettify a title
+
 
 --------------------------------------------------------------------------------
 -- Setup -----------------------------------------------------------------------
@@ -28,14 +29,18 @@ Requires:
 
 @set Code Object Data Parent <codp>=INHERIT PARENT_OK SAFE VISIBLE
 
-&ABOUT Code Object Data Parent <codp>=This object is for all other code objects to parent to. It will format the attributes without clobbering a useful @desc.
+&ABOUT Code Object Data Parent <codp>=This object is for all other code objects 
+	to parent to. It will format the attributes without clobbering a useful 
+	@desc.
 
 /*
 --------------------------------------------------------------------------------
 -- Default Prefixes ------------------------------------------------------------
 */
 
-&PREFIX.SERVER_COMMANDS Code Object Data Parent <codp>=startup shutdown connect aconnect disconnect adisconnect listen ahear aahear amhear amove
+&PREFIX.SERVER_COMMANDS Code Object Data Parent <codp>=
+	startup shutdown connect aconnect disconnect adisconnect listen ahear aahear 
+	amhear amove
 
 &PREFIX.DATA Code Object Data Parent <codp>=d. data.
 
@@ -49,17 +54,23 @@ Requires:
 
 &PREFIX.SORTS Code Object Data Parent <codp>=sort. sortby.
 
-&PREFIX.DISPLAYS Code Object Data Parent <codp>=display.
+&PREFIX.DISPLAYS Code Object Data Parent <codp>=display. format.
 
-&PREFIX.USER_FUNCTIONS Code Object Data Parent <codp>=ufunc. ufunc-switch. ufunc/
+&PREFIX.USER_FUNCTIONS Code Object Data Parent <codp>=
+	ufunc. ufunc-switch. ufunc/
 
-&PREFIX.@V_ATTRIBUTES Code Object Data Parent <codp>=VA VB VC VD VE VF VG VH VI VJ VK VL VM VN VO VP VQ VR VS VT VU VV VW VX VY VZ
+&PREFIX.@V_ATTRIBUTES Code Object Data Parent <codp>=
+	VA VB VC VD VE VF VG VH VI VJ VK VL VM VN VO VP VQ VR VS VT VU VV VW VX 
+	VY VZ
 
 &PREFIX.DOT_ATTRS Code Object Data Parent <codp>=.
+
 
 /*
 --------------------------------------------------------------------------------
 -- Descformat ------------------------------------------------------------------
+
+0: @desc 
 
 ql: list of 'prefix_title prefix prefix prefix', |-delimited 
 qc: attribute count
@@ -104,6 +115,6 @@ qc: attribute count
   			|, 
   			@@ 
   		), 
-  		footer( cat( %qc, plural( %qc, attribute, attributes )))
+  		footer( cat( %qc, if( eq( words( %qc ), 1 ), attribute, attributes )))
   	)
   )
