@@ -1,0 +1,244 @@
+****** NOT YET CONVERTED ******
+   ****** DO NOT USE ******
+
+
+
+/* 
+================================================================================
+== SWITCH /PERSONAL ============================================================
+
+	+hangouts/personal
+	+hangouts/personal [!]<room dbref>
+
+Add or remove a hangout from your private list. Made to be backwards-compatable 
+with some hangouts system we had on The Reach at the time.
+
+Alternatively, list all personal hangouts.
+
+q0: room dbref to add/remove
+q2: will contain '!' if we're deleting the personal hangout
+
+*/
+
+&c.directory/personal Directory and Hangouts <dah>=
+	strcat( 
+		setq( 0, before( %0, = )), 
+		if( 
+			t( rest( %q0, ! )), 
+			strcat( 
+				setq( 2, ! ), 
+				setq( 0, rest( %q0, ! ))
+			)
+		), 
+		setq( 0, if( strmatch( %q0, here ), loc( %# ), %q0 )), 
+
+		case( 0, 
+			comp( %0, ), 
+			u( display.locations.personal, 
+				u( f.population.rank.personal, %#, 1 ), 
+				1 
+			), 
+	
+			t( hastype( %q0, room )), 
+			u( .msg, hangout/personal, 
+				You must enter a valid main room dbref. 
+			), 
+	
+			cor( t( %q2 ), u( f.personal.hangout.ok, %q0 )), 
+			u( .msg, hangout/personal, 
+				Personal hangouts must be 'jump_ok' and not 'unfindable'. 
+			), 
+
+// .. add
+			t( %q2 ), 
+			strcat( 
+				set( %#, 
+					_hangouts.list:
+					[setunion( get( %#/_hangouts.list ), %q0 )] 
+				), 
+				u( .msg, hangout/personal, 
+					'[name( %q0 )]' (%q0) was added to your personal hangouts.
+				)
+			), 
+
+// .. remove
+			strcat( 
+				set( %#, 
+					_hangouts.list:
+					[setdiff( get( %#/_hangouts.list ), %q0 )] 
+				), 
+				u( .msg, hangout/personal, 
+					'[name( %q0 )]' (%q0) was removed from your 
+					personal hangouts. 
+				)
+			)
+		)
+	)
+
+/* 
+================================================================================
+== RANK PERSONAL HANGOUTS ======================================================
+
+Subsystem that lists pop:hangout for player's &_loc.list list
+
+It's possible that the hangout is no longer publically accessable (j_ok & !unfind), in which case the population will be 'xxx' and relegated to the end of the list for proper display later.
+
+0: player dbref
+1: '1' for 'all', '0' for 'only those with people in it'
+returns: Sorted list in the following format:
+	<population>:<main dbref>
+
+q0: private hangouts list (list of dbrefs)
+q1: viewable hangouts list (list of dbrefs)
+q2: unavailable hangouts list (list of dbrefs)
+
+*/
+
+&f.population.rank.personal Directory and Hangouts <dah>=
+	strcat( 
+		setq( 0, get( %0/_hangouts.list )), 
+		setq( 1, filter( f.personal.hangout.ok, %q0 )), 
+		setq( 2, setdiff( %q0, %q1 )), 
+
+		trim( 
+			strcat( 
+				revwords( sort( 
+					case( 1, 
+						cand( t( %1 ), t( %q1 )), 
+						u( f.population.calculate, %q1 ), 
+	
+						t( %q1 ), 
+						filter( 
+							filter.location.occupied, 
+							u( f.population.calculate, %q1 )
+						)
+					), 
+					n 
+				)), 
+				if( t( %1 ), 
+					%b[iter( %q2, xxx:%i0 )] 
+				)
+			)
+		)
+	)
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Personal Hangouts Okay ------------------------------------------------------
+
+Return '1' if room is okay to set or show as a personal hangout.
+That is, both 'jump_ok' and not 'unfindable'.
+
+0: room dbref
+
+*/
+
+&f.personal.hangout.ok Directory and Hangouts <dah>=
+	andflags( %0, J!U )
+
+
+/* 
+================================================================================
+== DISPLAY PERSONAL HANGOUTS ===================================================
+
+The only time we'll get this is a list of dbrefs from someone's &hangouts_list attribute. Otherwise works exactly like 'display.locations', above.
+
+
+         1111111111          3333333333          5555555555          7777777777 
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+       Name                                                        Pop.
+(xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx) 999 
+(xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx) 999  <Night>
+(xxxx) xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx) 999  <Day>
+
+
+0: personal hangouts to show, from 
+	u( f.population.rank.personal, get( %#/_hangout.list ), 1 )
+	<pop>:<dbref> <pop>:<dbref>, etc.
+
+*/
+
+&display.locations.personal Directory and Hangouts <dah>=
+
+	[setq( l, v( d.len.maploc ))]
+
+// .. header
+	[u( .header, +hangouts/personal )] %r
+	[ansi( 
+		n, space( add( 3, %ql )), 
+		%vc, Name, 
+		n, space( sub( 60, %ql )), 
+		%vc, Pop. 
+	)]%r
+
+	[u( display.locations.personal.guts, %0 )]%r
+	
+	[u( .footer, [words( %0 )] personal hangouts listed )]
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Guts of the 'Display Personal Hangouts' -------------------------------------
+
+Because 'display.locations' will also be calling this, we separate out the 
+header/footer (above) with the line-by-line.
+
+0: <pop>:<dbref> <pop>:<dbref>, etc.
+
+ql: maploc length
+qp: room population
+qd: room dbref
+
+*/
+
+&display.locations.personal.guts Directory and Hangouts <dah>=
+	[setq( l, v( d.len.maploc ))]
+
+// .. for each hangout ..
+	[iter( 
+		%0, 
+
+		[setq( p, first( %i0, : ))]
+		[setq( d, rest( %i0, : ))]
+// .. map loc
+		[ljust( 
+			ucstr( u( display.map-loc, u( f.get.maploc, %qd ))), 
+			add( %ql, 2 )
+		)] 
+// .. name, unless the personal hangout conditions are not met
+		[ljust( 
+			if( 
+				isint( %qp ), 
+				name( %qd ), 
+				<< cannot view this personal hangout >>
+			), 
+			sub( 53, %ql )
+		)] 
+
+// .. always show dbref
+		[ljust( 
+			%(%qd%), 
+			11
+		)]
+
+// .. population, unless the personal hangout conditions are not met
+		[center( 
+			if( 
+				isint( %qp ), 
+				%qp, 
+				@@(null)
+			), 
+			3 
+		)] 
+
+// .. night/day zone, unless the personal hangout conditions are not met
+		[if( 
+			%qo, 
+			u( display.daynight, %q0 ), 
+			@@(null)
+		)],  
+
+		%b, 
+		%r 
+	)]

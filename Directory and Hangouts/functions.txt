@@ -1,0 +1,445 @@
+/* 
+================================================================================
+== RANK HANGOUTS ===============================================================
+
+Subsystem that lists pop:hangout for overall hangout list
+
+0: 1 means "all", 0 (default) means "only those with people in it"
+Returns: Sorted list in following format:
+	<population>:<main dbref> <population>:<main dbref> 
+
+*/
+
+&f.population.rank Directory and Hangouts <dah>=
+	revwords( sort( 
+		ifelse( %0, 
+
+// 1: give me all of it
+			u( f.population.calculate ), 
+
+// 0: give me only locations with people in them (default)
+			filter( 
+				filter.location.occupied, 
+				u( f.population.calculate )
+			)
+		), 
+		n 
+	))
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Calculate Location Population -----------------------------------------------
+
+List all hangouts in the rank-hangouts format:
+
+	<population>:<main dbref> <population>:<main dbref> 
+
+0: optional list of dbrefs, used to output in this format
+
+*/
+
+&f.population.calculate Directory and Hangouts <dah>=
+	iter( 
+		if( strlen( %0 ), 
+			%0, 
+			iter( lattr( v( d.data )/loc.*.info ), u( .attr2dbref, %i0 ))
+		), 
+		[u( f.get.population, %i0 )]:%i0 
+	)
+
+
+
+/* 
+--------------------------------------------------------------------------------
+-- People in One Hangout -------------------------------------------------------
+
+Returns the total population of a single hangout
+
+This is '&f.get.occupants' without filtering findable, and reporting the total
+
+0: dbref of main room
+1: dbref of viewer (usually %#)
+r: list of 'rooms' for hangout
+w: lwho(), from viewer's perspective
+u: un-dark, from viewer's perspective
+returns: population across all rooms
+
+*/
+
+&f.get.population Directory and Hangouts <dah>=
+	localize( strcat( 
+		setq( r, 
+			if( t( u( f.get.element, %0, rooms )), 
+				%qr, 
+				%0 
+			)
+		), 
+		setq( w, objeval( %#, lwho( ))), 
+		setq( u, 
+			iter( %qr, 
+				setinter( 
+					lcon( %i0, CONNECT ), 
+					%qw 
+				)
+			)
+		), 
+		words( %qu )
+	))
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Get Occupants Across Rooms --------------------------------------------------
+
+0: dbref of main room
+1: dbref of viewer (usually %#)
+r: list of 'rooms' for hangout
+w: lwho(), from viewer's perspective
+u: un-dark, from viewer's perspective
+returns: 
+
+*/
+
+&f.get.occupants Directory and Hangouts <dah>=
+	localize( strcat( 
+		setq( r, 
+			if( t( u( f.get.element, %0, rooms )), 
+				%qr, 
+				%0 
+			)
+		), 
+		setq( w, objeval( %1, lwho( ))), 
+		setq( u, 
+			iter( %qr, 
+				setinter( 
+					lcon( %i0, CONNECT ), 
+					%qw 
+				)
+			)
+		), 
+		filter( filter.findable, %qu, , , %1 )
+	))
+
+
+/* 
+================================================================================
+== SPECIFIC HANGOUT ============================================================
+
+Subsystem to list information about a specific hangout. Mainly the front end 
+to &display.detail
+
+0: partial name of hangout to find
+
+*/
+
+&f.hangout-specific Directory and Hangouts <dah>=
+	strcat( 
+		setq( 0, u( f.find.location, %0 )), 
+		ifelse( %q0, 
+			u( display.detail, rest( %q0, ~ )), 
+			u( .msg, hangout, Couldn't find hangout '%0'. )
+		)
+	)
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Find Named Location ---------------------------------------------------------
+
+0: Dbref or partial hangout name
+n: Name, if matched
+returns: 'full name|dbref' of first sorted match
+
+*/
+
+&f.find.location Directory and Hangouts <dah>=
+	case( 1, 
+
+// .. dbref, or at least something that looks like one
+		u( .dbreflike, %0 ), 
+		if( 
+			t( setr( l, u( f.get.element, name, %0 ))), 
+			strcat( %ql, |, %0 ), 
+			#-1 Couldn't find a location with that dbref. 
+		), 
+
+// .. exact name
+		t( setr( l, 
+			filter( filter.element, 
+				lattr( v( d.data )/loc.*.info ), 
+				, , 
+				%0, 
+				v( d.data ), 
+				1 
+			)
+		)), 
+		strcat( 
+			u( f.get.element, name, u( .attr2dbref, %ql )), |, 
+			elements( %ql, 2, . )
+		), 
+
+// .. hope to find partial name
+		strcat( 
+			setq( l, 
+				filter( filter.element, 
+					lattr( v( d.data )/loc.*.info ), 
+					, , 
+					%0*, 
+					v( d.data ), 
+					1 
+				)
+			), 
+			setq( l, first( sortby( sortby.element.name, %ql ))), 
+			if( strlen( %ql ), 
+				strcat( 
+					u( f.get.element, name, u( .attr2dbref, %ql )), |, 
+					u( .attr2dbref, %ql )
+				), 
+				#-1 Couldn't find a location by that name. 
+			)
+		)
+	)
+
+
+
+/* 
+================================================================================
+== ROOM ========================================================================
+
+Add a room or delete a room
+
+
+--------------------------------------------------------------------------------
+-- Add the room ----------------------------------------------------------------
+
+"0" means you really are adding a room
+
+0: hangout name
+1: main dbref
+2: room dbref
+
+r: current room list
+n: new room list
+
+*/
+
+&f.room.add Directory and Hangouts <dah>=
+	strcat( 
+		setq( r, u( f.get.element, rooms, %1 )), 
+		switch( 0, 
+
+// dbref must point to a real room
+			t( hastype( %2, room )), 
+			u( .msg, dir/room, 
+				You must enter a valid room dbref to add. 
+			), 
+
+// dbref must not be in location already
+			not( match( %qr, %2 )), 
+			u( .msg, dir/room, 
+				Room already exists for that location. 
+			), 
+
+// ok: change the room list
+// .. replace room list (element 2) with the old list plus new room
+			strcat( 
+				setq( n, trim( %qr %2 )), 
+				u( f.set.element, rooms, %1, %qn ), 
+				u( .msg, dir/room, 
+					Room %2 added to the location. 
+					Use 'dir %0' to check.
+				)
+			)
+		)
+ 	)
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Remove the room -------------------------------------------------------------
+
+"1" means you're removing the room
+
+0: hangout name
+1: main dbref
+2: room dbref
+
+r: current room list
+l: room's location in %qr
+n: new room list
+
+*/
+
+
+&f.room.remove Directory and Hangouts <dah>=
+	strcat( 
+		setq( r, u( f.get.element, rooms, %1 )), 
+		setq( l, match( %qr, %2 )), 
+		switch( 0, 
+
+// dbref must point to a real room
+			t( hastype( %2, room )), 
+			u( .msg, dir/room, 
+				You must enter a valid room dbref to remove. 
+			), 
+
+// dbref must not be in location already
+			%ql, 
+			u( .msg, dir/room, 
+				Room doesn't exist for that location. 
+			), 
+
+// ok: change the room list
+// .. replace room list (element 2) with the old list plus new room
+			strcat( 
+				setq( n, ldelete( %qr, %q2 )), 
+				u( f.set.element, rooms, %1, %qn ), 
+				u( .msg, dir/room, 
+					Room %2 removed from the location. 
+					Use 'dir %0' to check.
+				)
+			)
+		)
+ 	)
+
+
+
+
+/* 
+================================================================================
+== GET & SET ELEMENTS ==========================================================
+
+
+--------------------------------------------------------------------------------
+-- Is Element ------------------------------------------------------------------
+
+Is '%0' a valid element?
+
+*/
+
+&f.iselement  Directory and Hangouts <dah>=
+		t( match( v( d.index.elements ), %0:*:* ))
+
+
+/*
+--------------------------------------------------------------------------------
+-- Map Loc ---------------------------------------------------------------------
+
+How to get the map location from the room dbref.
+Each game will probably have to change this.
+
+0: room dbref
+
+*/
+
+&f.get.maploc Directory and Hangouts <dah>=
+	get( %0/coord )
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Description -----------------------------------------------------------------
+
+0: room dbref
+
+*/
+
+&f.get.description Directory and Hangouts <dah>=
+	default( %0/short-desc, <no &short-desc set> )
+
+
+/*
+--------------------------------------------------------------------------------
+-- Functions: Get Element ------------------------------------------------------
+
+0: element name (exact)
+1: main room (dbref, validated)
+
+e: element stuff
+a: attribute (as in 'loc.<attribute>.%1') to find it on
+i: index position to find it in
+d: entire directory attribute
+
+*/
+
+&f.get.element Directory and Hangouts <dah>=
+	localize( strcat( 
+		setq( e, grab( v( d.index.elements ), %0:*:* )), 
+		setq( a, elements( %qe, 2, : )), 
+		setq( i, elements( %qe, 3, : )), 
+		setq( d, get( v( d.data )/loc.%1.%qa )), 
+
+		case( 0, 
+			strlen( %qe ), 
+			#-1 Element not known, 
+
+// if the element index is '0', return the entire attribute
+			if( eq( %qi, 0 ), 
+				%qd, 
+				elements( %qd, %qi, | )
+			)
+		)
+	))
+
+
+/*
+--------------------------------------------------------------------------------
+-- Functions: Set Element ------------------------------------------------------
+
+0: element name (exact)
+1: main room (dbref, validated)
+2: item to set
+
+e: element stuff
+a: attribute (as in 'loc.<attribute>.%1') to find it on
+i: index position to find it in
+d: entire directory attribute
+n: new attribute
+
+Creating the new attribute is a pain in the ass. We want to use replace(), but 
+the way we're storing (positional), we need to be able to replace 'element 6' 
+in a list that may currently only be 3 elements long. Neither replace() nor 
+insert() allow us to do this.
+
+So: 
+	max( <number of elements in the current list>, <element to set> )
+	add 'null' elements equal to <that max> - <number of current elements>
+	we now have enough words, so do the replace() as expected
+
+Someone suggested that it would be easier if the list was stored:
+	name:<name>|owner:<owner>|etc:<etc>
+
+Using keywords would have made this ugly situation moot, as position wouldn't 
+have been a thing.
+
+*/
+
+&f.set.element Directory and Hangouts <dah>=
+	localize( strcat( 
+		setq( e, grab( v( d.index.elements ), %0:*:* )), 
+		setq( a, elements( %qe, 2, : )), 
+		setq( i, elements( %qe, 3, : )), 
+
+		setq( d, get( v( d.data )/loc.%1.%qa )), 
+
+		case( 0, 
+			strlen( %qe ), 
+			#-1 Element not known, 
+
+			strcat( 
+				setq( n, 
+					if( eq( %qi, 0 ), 
+						%qd, 
+						strcat( 
+							setq( w, words( %qd, | )), 
+							setq( m, max( %qw, %qi )), 
+							setq( n, %qd[repeat( |, sub( %qm, %qw ))] ), 
+							replace( %qn, %qi, %2, | )
+						)
+					)
+				), 
+				set( v( d.data ), loc.%1.%qa:%qn )
+			)
+		)
+	))

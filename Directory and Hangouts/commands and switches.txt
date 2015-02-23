@@ -1,0 +1,370 @@
+/*
+================================================================================
+== INITIAL COMMAND =============================================================
+
+q0: Secured %1, can be safely clobbered after this
+
+*/
+
+&c.directory Directory and Hangouts <dah>=
+	$^\+?dir(.*)$:@pemit %#=
+		switch( 
+			strtrunc( setr( 0, trim( secure( %1 ))), 1 ), 
+// .. no entry (+dir)
+			, u( c.directory.default ), 
+// .. a switch with/without argument (+dir/<switch> [<arg>])
+			/, u( c.directory.switch, after( first( %q0 ), / ), rest( %q0 )), 
+// .. else: specific (+dir <name>)
+			u( c.directory.specific, trim( %q0 ))
+		)
+
+// --
+
+@set Directory and Hangouts <dah>/c.directory=regex
+
+
+
+/* 
+================================================================================
+== SWITCHES ====================================================================
+
+q0: Partial-name-match the switch
+
+*/
+
+&c.directory.switch Directory and Hangouts <dah>=
+
+// .. do I know the switch?
+	case( 1, 
+// .. no switch passed
+		strmatch( %0, @@( null )), 
+		Null switches are not allowed. Valid switches are: 
+		[itemize( 
+			iter( 
+				sort( lattr( me/c.directory/* )), 
+				lcstr( after( %i0, / ))
+			)
+		)], 
+
+// .. yes, I know it; run it
+		t( 
+			setr( 0, 
+				grab( 
+					sort( lattr( me/c.directory/* )), 
+					c.directory/%0* 
+				)
+			)
+		), 
+		u( %q0, %1 ), 
+
+// .. else, no, I don't know it
+		No such switch for 'dir'.  Valid switches are: 
+		[itemize( 
+			iter( 
+				sort( lattr( me/c.directory/* )), 
+				lcstr( after( %i0, / ))
+			)
+		)]
+	)
+
+
+
+/* 
+================================================================================
+== DEFAULT (no arguments) ======================================================
+
+q0: <people>:<main dbref> <people>:<main dbref>, ranked, filtered
+
+**** THIS NEEDS UPDATED FOR +DIR ****
+
+*/
+
+&c.directory.default Directory and Hangouts <dah>=
+	ifelse(
+		t( setr( 0, u( f.population.rank, 0 ))), 
+		u( display.locations, %q0, , %# ), 
+		There are currently no people at any locations. %r
+		For a complete list of hangouts%, please use '+hangouts/all'. 
+	)
+
+
+
+/* 
+================================================================================
+== SPECIFIC (list specific location) ===========================================
+
+0: Name to search for
+q0: First match of sorted name~dbref
+
+*/
+
+&c.directory.specific Directory and Hangouts <dah>=
+	ifelse( 
+		setr( 0, u( f.find.location, %0 )), 
+		u( display.detail, first( %q0, | ), rest( %q0, | )), 
+		u( .msg, dir, Couldn't find location '%0'. )
+	)
+
+
+/* 
+================================================================================
+== SWITCH: /ALL ================================================================
+
+	dir/all
+
+Just like 'default', but lists all hangouts.
+
+**** YUP, THIS NEEDS RE-DONE FOR +DIR, TOO ****
+
+*/
+
+&c.directory/all Directory and Hangouts <dah>=
+	u( display.locations, u( f.population.rank, 1 ), 1, %# )
+
+
+/* 
+================================================================================
+== SWITCH: /CREATE =============================================================
+
+	dir/create <dbref>=<name>/<type>
+
+Adds a location. No longer edits the location.
+
+q0: <dbref>
+q1: <name>
+q2: <type>
+
+*/
+
+&c.directory/create Directory and Hangouts <dah>=
+	strcat( 
+		setq( 0, trim( first( %0, = ))), 
+		setq( 1, trim( before( rest( %0, = ), / ))), 
+		setq( 2, trim( rest( rest( %0, = ), / ))), 
+
+		setq( a, u( v( d.data )/loc.%q0.info )), 
+
+		switch( 0, 
+
+			u( .isstaff, %# ), 
+			u( .msg, dir/create, 
+				Only staff may create locations for the directory. 
+			), 
+
+			isdbref( %q0 ), 
+			u( .msg, dir/create, You must enter a valid main room dbref. ), 
+
+			not( %qa ), 
+			u( .msg, dir/create, A location already exists for '%q0'. ), 
+
+// >> add entry, don't cheat
+			strcat( 
+				u( f.set.element, name, %q0, %q1 ), 
+				u( f.set.element, type, %q0, %q2 ), 
+				u( f.set.element, rooms, %q0, %q0 ), 
+				u( .msg, dir/create, 
+					New location created%, use 'dir %q1' to check 
+					and 'dir/set' to complete. 
+				)
+			)
+		)
+	)
+
+
+
+/* 
+================================================================================
+== SWITCH /SET =================================================================
+
+Set an aspect of a location.
+
+	dir/set <dbref|location name>/<aspect>=<value>
+
+0: location, as entered
+1: element
+2: value
+
+a: location name|dbref
+n: location name
+d: dbref
+
+*/
+
+&c.directory/set Directory and Hangouts <dah>=
+	strcat( 
+		setq( 0, trim( first( %0, / ))), 
+		setq( 1, trim( before( rest( %0, / ), = ))), 
+		setq( 2, trim( rest( %0, = ))), 
+
+		setq( a, u( f.find.location, %q0 )), 
+		setq( n, first( %qa, | )), 
+		setq( d, rest( %qa, | )), 
+
+		switch( 0, 
+
+			u( .isstaff, %# ), 
+			u( .msg, dir/set, Only staff may set location elements. ), 
+
+			strlen( %qa ), 
+			u( .msg, dir/set, Couldn't find location '%q0'. ), 
+
+			u( f.iselement, %q1 ), 
+			u( .msg, dir/set, 
+				Can't find that element. I know 
+				[itemize( iter( v( d.index.elements ), first( %i0, : )))].
+			), 
+
+			not( strmatch( %q1, rooms )), 
+			u( .msg, dir/set, Please use 'dir/room'. ), 
+
+			strcat( 
+				u( f.set.element, %q1, %qd, %q2 ), 
+				u( .msg, dir/set, 
+					Element '[lcstr( %q1 )]' set%, use 'dir %qn' to check. 
+				)
+			)
+		)
+	)
+
+
+
+/* 
+================================================================================
+== SWITCH: /DELETE =============================================================
+
+	dir/delete <dbref>
+
+Kill a hangout, by dbref only (for security) - completely removes all references 
+to that locale.
+
+q0: Hangout~attribute
+
+*/
+
+&c.directory/delete Directory and Hangouts <dah>=
+	case( 0, 
+
+		u( .isstaff, %# ), 
+		u( .msg, dir/delete, 
+			Only staff may delete a location. 
+		), 
+
+// .. dbref not okay
+		hasattr( v( d.data ), loc.%0.info ), 
+		u( .msg, dir/delete, 
+			There is no location based on that dbref. 
+		), 
+
+// .. dbref okay
+		strcat( 
+			ansi( r, >> DELETING LOCATION << ), %r, 
+			u( display.detail, u( f.get.element, name, %0 ), %0 ), %r, 
+			iter( lattr( v( d.data )/loc.%0.* ), 
+				set( v( d.data ), %i0: ), 
+				, @@
+			), 
+			ansi( r, >> LOCATION DELETED << )
+		)
+	)
+
+
+
+/* 
+================================================================================
+== SWITCH: /ROOM ===============================================================
+
+	dir/room <dbref|hangout name>=[!]<room dbref>
+
+Add a room dbref to an existing hangout, or removes it from same.
+
+0: Location name or dbref as entered
+1: Location name|dbref
+2: Dbref of room to add/remove
+3: Boolean: 1 if ! is used (delete room), 0 otherwise.
+
+*/
+
+&c.directory/room Directory and Hangouts <dah>=
+	strcat( 
+		setq( 0, before( %0, = )), 
+		setq( 1, u( f.find.location, %q0 )), 
+		setq( 2, after( %0, = )), 
+		setq( 3, strmatch( %q2, !* )), 
+		setq( 2, 
+			ifelse( %q3, 
+				after( %q2, ! ), 
+				%q2
+			)
+		), 
+
+		case( 0, 
+
+// staff-only
+			u( .isstaff, %# ), 
+			u( .msg, dir/room, 
+				Only staff can add or remove rooms. 
+			), 
+
+// location not found
+			t( %q1 ), 
+			u( .msg, dir/room, trim( rest( %q1, #-1 ))), 
+
+// trying to target (add/remove) main room
+			comp( %q2, last( %q1, | )), 
+			u( .msg, dir/room, Can't add or remove the main room. ), 
+
+// ok: add the room ('0' means 'no ! found' means 'add') 
+			%q3, 
+			u( f.room.add, 
+				first( %q1, | ), 
+				rest( %q1, | ), 
+				%q2
+			), 
+
+// ok: remove the room
+			u( f.room.remove, 
+				first( %q1, | ), 
+				rest( %q1, | ), 
+				%q2 
+			)
+		)
+	)
+
+
+
+
+
+
+
+
+
+
+
+
+/* 
+================================================================================
+== SWITCH /WHO =================================================================
+
+(a good deal of this code is Alzie's, then tweaked for my code bugaboos) 
+
+This is just plain '+hangout <dir>' anyway. Why is it here?
+
+**** THIS NEEDS UPDATED FOR +DIR ****
+
+
+*/
+
+&c.directory/who Directory and Hangouts <dah>=
+	case( 0, 
+		words( %0 ), 
+		u( .msg, dir/who, 
+			You didn't put in a location name. 
+		), 
+
+		t( setr( 0, u( f.find.location, %0 ))), 
+		u( .msg, dir/who, 
+			Couldn't find '%0'. 
+		), 
+
+		u( display.location.who, %q0 )
+	)

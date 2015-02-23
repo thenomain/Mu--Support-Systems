@@ -1,0 +1,309 @@
+/* 
+================================================================================
+== DISPLAY DIRECTORY ===========================================================
+
+List one hangout at a time in a list.
+
+?? Availability: low, mid, high ?? or numbers ??
+
+         1111111111          3333333333          5555555555          7777777777 
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+Loc   Name                             Type             Avlb  Owner         Pop
+xxxx  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  xxxxxxxxxxxxxxxx   x   xxxxxxxxxxxx  999 
+xxxx  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  xxxxxxxxxxxxxxxx   x   xxxxxxxxxxxx  999 
+xxxx  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  xxxxxxxxxxxxxxxx   x   xxxxxxxxxxxx  999 
+
+
+0: <population>:<main dbref> (aka: `u( f.population.rank )` )
+1: 1 if 'all'
+2: dbref of enactor (%#)
+q0: dbref of main hangout
+q1: complete attribute of hangout
+
+ql: maploc length
+qp: room population
+
+*/
+
+&display.locations Directory and Hangouts <dah>=
+	[setq( l, v( d.len.maploc ))]
+
+// .. header
+//	[u( .header, Directory[if( %1, /all )] )] %r
+	[u( .header, Directory )] %r
+	[ansi( 
+		n, space( add( 2, %ql )), 
+		%vc, Name, 
+		n, space( sub( 33, %ql )), 
+		%vc, Type, 
+		n, space( 13 ), 
+		%vc, Avlb, 
+		n, %b%b, 
+		%vc, Owner, 
+		n, space( 9 ),
+		%vc, Pop 
+	)]%r
+
+// .. for each hangout ..
+	[iter( 
+		%0, 
+		strcat( 
+			setq( 0, rest( %i0, : )), 
+			setq( 1, get( v( d.data )/hangout-%q0 )), 
+
+// .. map loc
+			ljust( 
+				u( f.get.maploc, %q0 ), 
+				add( %ql, 2 )
+			), 
+
+// .. name
+			ljust( 
+				u( f.get.element, name, %q0 ), 
+				sub( 35, %ql )
+			), %b%b, 
+
+// .. location type 
+			ljust( 
+				u( f.get.element, type, %q0 ), 
+				16 
+			), %b %b, 
+
+// .. availability of stuff there (if appropriate)
+			u( f.get.element, availability, %q0 ), 
+			%b %b, 
+
+// .. owner
+			ljust( 
+				u( f.get.owner, %q0 ), 
+				12 
+			), %b%b, 
+
+// .. population
+			center( 
+				if( neq( 0, setr( p, first( %i0, : ))), 
+					%qp 
+				), 
+				3 
+			)
+		)
+	)]%r
+	[u( .footer, [words( %0 %qh )] locations listed )]
+
+
+
+/* 
+================================================================================
+== DISPLAY DETAIL ==============================================================
+
+Display the detail of a specific hangout
+
+                               Hangout: XXXXX
+   Map Loc: xxxx
+   Ownner: xxxxxxxxx
+   Type: xxxxxxx
+   Availaibilty: x
+   Description: xxxxxxxxxxxxxxxxxxxxxxxxxx
+ -----------------------------------------------------------------------------
+   Room Name                                                            Pop
+   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)      999
+   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (#xxxxxx)      999
+ -----------------------------------------------------------------------------
+   View Lock: xxxxxxxxxx
+
+
+0: Full name of hangout
+1: Dbref of hangout
+Returns: Prettified display of hangout
+
+q0: Attrib contents for hangout
+q1: Info part
+
+o: owner
+t: type
+a: availability
+d: description
+
+*/
+
+&display.detail Directory and Hangouts <dah>=
+	strcat( 
+		u( .header, %0 ), %r, 
+
+// maploc
+		%b%b, ansi( %vc, Map Loc: ), %b, 
+		u( f.get.maploc, %1 ), %r, 
+
+// owner (if exists)
+		if( 
+			t( setr( o, u( f.get.element, owner, %1 ))), 
+			strcat( 
+				%b%b, 
+				ansi( %vc, Owner: ), %b, 
+				%qo, 
+				%r 
+			)
+		), 
+
+// type (if exists)
+		if( 
+			t( setr( t, u( f.get.element, type, %1 ))), 
+			strcat( 
+				%b%b, 
+				ansi( %vc, Type: ), %b, 
+				%qt, 
+				%r 
+			)
+		), 
+
+// availability (if exists)
+		if( 
+			t( setr( a, u( f.get.element, availability, %1 ))), 
+			strcat( 
+				%b%b, 
+				ansi( %vc, Availability: ), %b, 
+				%qa, 
+				%r 
+			)
+		), 
+
+// description (if exists)
+		if( 
+			t( setr( d, u( f.get.description, %1 ))), 
+			wrap( 
+				cat( ansi( %vc, Description: ), %qd ),
+				74, left, %b%b 
+			)%r
+		), 
+
+		u( .divider ), %r, 
+
+// list rooms :: header
+		%b%b, 
+		ansi( u%vc, Room Name ), 
+		space( 61 ), 
+		ansi( u%vc, Pop ), %r, 
+
+// list rooms: room name & population
+		iter( 
+			u( 
+				f.population.calculate, 
+				u( f.get.element, rooms, %1 )
+			), 
+
+			cat( 
+				%b, 
+				ljust(  				// should be 'format.room.name'
+					name( setr( d, rest( %i0, : ))), 
+					53 
+				), 
+				ljust( 
+					if( 
+						cor( hasflag( %qd, jump_ok ), u( .isstaff, %# )), 
+						%(%qd%) 
+					), 
+					15 
+				), 
+
+				center( 
+					if( neq( 0, setr( p, first( %i0, : ))), 
+						%qp 
+					), 
+					3 
+				)
+			), 
+			, %r 
+		), %r, 
+
+// "lock" and possibly "personal locations" will go here when implemented
+
+		u( .footer )
+
+	)
+
+
+
+
+
+
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Display Map Loc -------------------------------------------------------------
+
+A bit of fussing to make sure the (loc) comes out looking right.
+
+0: map loc
+
+*/
+
+&display.map-loc Directory and Hangouts <dah>=
+	lcstr( default( %0/coord, %b-%b ))
+
+
+
+/* 
+================================================================================
+== DISPLAY HANGOUT/WHO =========================================================
+
+0: output from f.find.location: <name>~<main dbref>
+q1: attribute contents: <name>~<rooms list>~<map loc>~<notes>
+
+qc: per room: connected people, minus dark wizards
+qp: per room: findable people
+qn: per room: number of visible people
+qf: per room: number of findable people
+
+*/
+
+&display.location.who Directory and Hangouts <dah>=
+	[setq( 1, 
+		get( [v( d.data )]/hangout-[after( %0, ~ )] )
+	)]
+
+	[u( .header, +hangout [before( %0, ~ )] )]%r
+
+	%b [ansi( %vc, Map Loc: )] [elements( %q1, 3, ~ )]%r
+	[u( .divider )]%r
+	[ansi(  %vc, %b Room Name )]%r%r
+
+// >> for each room ...
+	[iter( elements( %q1, 2, ~ ), 
+		[setq( c, filter( f.get.occupants, %i0, , , %# ))]
+// 		[setq( c, filter( filter.people-in-room, lcon( %i0, CONNECT )))]
+		[setq( p, filter( filter.findable, %qc, , , %# ))]
+		[setq( n, words( %qp ))]
+		[setq( f, sub( words( %qc ), %qn ))]
+
+		%b [ljust( name( %i0 ), 53 )]
+
+// ... show dbref for staff and any j_ok rooms
+		[if( 
+			cor( 
+				u( .isstaff, %# ), 
+				hasflag( %i0, jump_ok )
+			), 
+			ljust( %(%i0%), 16 )
+		)]%r
+		%b %b 
+		[ansi( hw, 
+			case( 1, 
+				hasflag( %i0, unfindable ), 
+				%qn [u( .plural, %qn, person, people )] here, 
+
+// ... list visible people and make note of unfindable people ...
+				strcat(
+					itemize( iter( %qp, name( %i0 ), , | ), | ), 
+					if( %qf, 
+						%,%bplus %qf [u( .plural, %qf, other, others )] 
+					)
+				)
+
+			)
+		)], 
+		, %r 
+	)]%r
+
+	[u( .footer )]
+

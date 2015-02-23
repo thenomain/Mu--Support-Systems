@@ -1,0 +1,67 @@
+A help file.
+
+/* 
+-==--==--=-=-==-=--=-=-==-=-=--=-=-==-=-=-=-=--==-=-=-=-=-=-==--=-=-==-=-=-=--==
+HELP: Basic Help
+
+&help~commands~+hangouts #270=Finding People, Being Found~
+
+[ljust(+hangouts, 23)] -- List hangouts with people in them
+[ljust(+hangouts/all, 23)] -- List all hangouts
+[ljust(+hangout <hangout name>, 23)] -- Look into a hangout
+
+You can type the first part of the hangout name and the system will do its best to find your match.
+
+The dbref of a room in a hangout will be visible if it is jump_ok or you are staff.
+
+The population of a hangout or a room is listed regardless of the findability of the people or the room.  It will not list dark staff.
+
+For this command, +hangout and +hangouts are synonymous in all uses.
+
+---
+
+&help~commands~+hangouts #270=Finding People, Being Found~[ljust(+hangouts, 23)] -- List hangouts with people in them %r[ljust(+hangouts/all, 23)] -- List all hangouts %r[ljust(+hangout <hangout name>, 23)] -- Look into a hangout %r %rYou can type the first part of the hangout name and the system will do its best to find your match. %r %rThe dbref of a room in a hangout will be visible if it is jump_ok or you are staff. %r %rThe population of a hangout or a room is listed regardless of the findability of the people or the room.  It will not list dark staff. %r %rFor this command, +hangout and +hangouts are synonymous in all uses.
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==--==--==-=--=-==--=-==--=-=-=-=-=-=
+SHELP: How To Make This Work
+
+&shelp~commands~+hangouts #270=Setting Up Hangouts~
+
+Expands: +help +hangouts
+
++hangout/add <main dbref>=<hangout name>/<map loc>%[/<description>%]
+
+<main dbref>: Each hangout relies upon a main room dbref to treat as the main room.  If the main dbref is jump_ok, the hangout is marked as jump_ok.  If the main dbref is a nightzone, the hangout is marked as a nightzone.
+
+<hangout name>: The name as will appear in +hangouts.
+
+<map loc>: A three-letter location of where the hangout can be found on the map.
+
+<description>: A short description of the hangout, shown in +hangout <name>.
+
++hangout/add also allows you to edit a hangout.  If the <main dbref> already exists, the rest of the information you add will overwrite the existing hangout information.  This way, you can change a hangout's name, map location, or description.
+
+WARNING: If you're using +hangout/add to edit, you must enter all the information or that information will be erased.
+~
++hangout/delete <main dbref>
+
+Completely removes a hangout and all attached rooms from the hangouts list.  The only way to change a hangout's <main dbref> is to delete it and add it with a new dbref, and re-add any attached rooms.
+
+[ansi(c, repeat(-, 74))]
+
++hangout/addroom <main dbref|hangout name>=%[!%]<room dbref>
+
+While the <main dbref> is always part of a hangout's room list, you can add other rooms to it with this command.
+
+The optional ! symbol, meaning "not", is how you remove a room from this list.  You can't remove the <main dbref>.
+
+e.g.:
+ %b +hangout/add #666=#254
+ %b +hangout/add devil's cafe=!#254
+
+---
+
+&shelp~commands~+hangouts #270=Setting Up Hangouts~>>> Expands: +help +hangouts <<< %r %r+hangout/add <main dbref>=<hangout name>/<map loc>%[/<description>%] %r %r<main dbref>: Each hangout relies upon a main room dbref to treat as the main room.  If the main dbref is jump_ok, the hangout is marked as jump_ok.  If the main dbref is a nightzone, the hangout is marked as a nightzone. %r %r<hangout name>: The name as will appear in +hangouts. %r %r<map loc>: A three-letter location of where the hangout can be found on the map. %r %r<description>: A short description of the hangout, shown in +hangout <name>. %r %r+hangout/add also allows you to edit a hangout. If the <main dbref> already exists, the rest of the information you add will overwrite the existing hangout information.  This way, you can change a hangout's name, map location, or description. %r %rWARNING: If you're using +hangout/add to edit, you must enter all the information or that information will be erased.~+hangout/delete <main dbref> %r %rCompletely removes a hangout and all attached rooms from the hangouts list.  The only way to change a hangout's <main dbref> is to delete it and add it with a new dbref, and re-add any attached rooms. %r %r[ansi(c, repeat(-, 74))]%r+hangout/addroom <main dbref|hangout name>=%[!%]<room dbref> %r %rWhile the <main dbref> is always part of a hangout's room list, you can add other rooms to it with this command. %r %rThe optional ! symbol, meaning "not", is how you remove a room from this list.  You can't remove the <main dbref>. %r %re.g.: %r %b +hangout/add #666=#254 %r %b +hangout/add devil's cafe=!#254
+
+*/

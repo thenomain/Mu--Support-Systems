@@ -1,0 +1,84 @@
+/* 
+================================================================================
+== INFO ========================================================================
+
+Originally set up for TinyMUX 2.4, sometime 1996.
+Updated for TinyMUX 2.10, 2013.
+
+Hangouts Command: Where all the commands are stored
+Hangouts Data: Where all the hangouts are stored
+
+Core data structure: 
+	&hangout-<main dbref>: 
+		<name>~<dbrefs of rooms, main first>~<map loc>~<description>
+
+We are shifting this to:
+	&loc.<attribute>.<main dbref>
+
+	<attribute>:
+		info: <name>|<type>|<rooms>|<owner>
+		desc: <description of location>
+		lock: <returns '1' if viewer, %0, can see this location>
+
+
+
+================================================================================
+== SETUP =======================================================================
+*/
+
+@create Directory and Hangouts <dah>=10
+@set Directory and Hangouts <dah>=inherit safe
+
+@create Locations Data=10
+@set Locations Data=safe
+@force me=&d.data Directory and Hangouts <dah>=[num( Locations Data )]
+@tel Locations Data=Directory and Hangouts <dah>
+
+@parent Directory and Hangouts <dah>=CODP
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Data ------------------------------------------------------------------------
+*/
+
+// .. ansi color for accents & titles
+@vc Directory and Hangouts <dah>=c
+
+// .. how long is the 'map location'?
+&d.len.maploc Directory and Hangouts <dah>=4
+
+// .. element index
+// .. <name of element>:<attribute>:<index location in 'attribute'>
+// .. '0' means 'entire attribute'
+
+&d.index.elements dah=
+	name:info:1 
+	type:info:2 
+	rooms:info:3 
+	owner:info:4 
+	availability:info:5 
+//	description:desc:0 
+	lock:lock:0 
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Support Functions -----------------------------------------------------------
+*/
+
+&.header Directory and Hangouts <dah>=header( %0 )
+&.footer Directory and Hangouts <dah>=footer( %0 )
+&.divider Directory and Hangouts <dah>=divider( %0 )
+
+&.isstaff Directory and Hangouts <dah>=isstaff( %0 )
+&.msg Directory and Hangouts <dah>=ansi( h, <%0>, n, %b%1 )
+&.plural Directory and Hangouts <dah>=if( eq( %0, 1 ), %1, %2 )
+
+// .. isdbref() only passes if the dbref exists. we want anything dbref-ish
+&.dbreflike Directory and Hangouts <dah>=
+	cand( strmatch( %0, #* ), isint( rest( %0, # )))
+
+// .. pull dbref from the attribute; a quick place to change it if needed
+&.attr2dbref Directory and Hangouts <dah>=
+	elements( %0, 2, . )
