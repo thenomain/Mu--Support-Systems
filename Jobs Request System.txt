@@ -135,7 +135,7 @@ vs.
 
 
 // -----------------------------------------------------------------------------
-// -- Create the job -----------------------------------------------------------
+// -- Create the request -------------------------------------------------------
 
 // 0: switch (validated)
 // 1: enactor (%#)
@@ -167,15 +167,36 @@ vs.
 
 	@pemit %1=u( .msg, req/%0, u( f.get.msg, %0, %2, %3 )); 
 
-	@trigger %va/TRIG_CREATE=
+	@trigger %!/trig.create.job=
 		%1, 
 		%qb, 
 		u( f.get.level, %0 ), 
 		[if( strlen( u( f.get.prefix, %0 )), [u( f.get.prefix, %0 )]:%b )]
 		[u( %va/FN_STRTRUNC, trim( %2 ), 30 )], 
-		%r[u( %va/FN_STRTRUNC, trim( %3 ), get( %va/BUFFER ))], 
+		u( %va/FN_STRTRUNC, trim( %3 ), get( %va/BUFFER )), 
+		%qj; 
+
+
+// -----------------------------------------------------------------------------
+// -- Create the job itself ----------------------------------------------------
+// As a hook for other systems
+
+// 0: enactor (%#)
+// 1: bucket dbref (%qb)
+// 2: alert level (1, 2, or 3)
+// 3: job title
+// 4: job contents
+// 5: +jgroup dbref (%qj)
+
+&trig.create.job jrs=
+	@trigger %va/TRIG_CREATE=
+		%0, 
+		%1, 
+		%2, 
+		%3, 
+		%r%4, 
 		, 
-		%qj, 
+		%5, 
 		2
 
 
