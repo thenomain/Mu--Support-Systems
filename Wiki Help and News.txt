@@ -103,6 +103,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 &f.clean.query Wiki News and Help <wnh>=
 	edit( 
 		sql( u( query.newshelp, %0, %1 ), %r, ^ ), 
+		\%, \\\%, 
 		\[\[News:, \%xhnews%b, 
 		\[\[Help:, \%xh+help%b, 
 		\[\[Category:, Category:%b,
