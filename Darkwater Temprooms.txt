@@ -264,7 +264,7 @@ Here are some functions it calls:
 
 &f.format.roomname trm=%0
 
-&f.format.entrance trm=%0 [ansi(hx, %(temp%))];[u(f.first_letters, %0)];%0
+&f.format.entrance trm=%0;[u(f.first_letters, %0)];%0
 
 &f.format.exit trm=Out;o;out;exit;leave
 
