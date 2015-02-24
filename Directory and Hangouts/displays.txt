@@ -86,7 +86,7 @@ qp: room population
 				), 
 				3 
 			)
-		)
+		), , %r 
 	)]%r
 	[u( .footer, 
 		[setr( n, words( %0 %qh ))] location[u( .plural, %qn, , s )] listed 
