@@ -62,6 +62,13 @@ A filter that removes unfindable people.
 
 
 
+// -- Filter: Passes view lock?
+// 0: List of <population>:<dbref>
+// 1: dbref of viewer
+// Just strips out <population>: and passes to 'f.lock.pass'
+
+&filter.lock.pass Directory and Hangouts <dah>=
+	u( f.lock.pass, rest( %0, : ), %1 )
 
 
 

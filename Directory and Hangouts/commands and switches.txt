@@ -79,7 +79,13 @@ q0: <population>:<main dbref> <population>:<main dbref>, ranked & filtered
 
 &c.directory.default Directory and Hangouts <dah>=
 	ifelse(
-		t( setr( 0, u( f.population.rank, 0 ))), 
+		t( 
+			setr( 0, 
+				filter( filter.lock.pass, 
+					u( f.population.rank, 0 ), , , %# 
+				)
+			)
+		), 
 		u( display.locations, %q0, , %# ), 
 		There are currently no people at any directory locations. %r
 		For a complete list of hangouts%, please use 'dir/all'. 
@@ -97,11 +103,16 @@ q0: First match of sorted name~dbref
 */
 
 &c.directory.specific Directory and Hangouts <dah>=
-	ifelse( 
-		setr( 0, u( f.find.location, %0 )), 
-		u( display.detail, first( %q0, | ), rest( %q0, | )), 
-		u( .msg, dir, Couldn't find location '%0'. )
+	case( 0, 
+		t( setr( 0, u( f.find.location, %0 ))), 
+		u( .msg, dir, Couldn't find location '%0'. ), 
+		
+		u( f.lock.pass, rest( %q0, | ), %# ), 
+		u( .msg, dir, That location exists but you don't pass the view lock. ), 
+		
+		u( display.detail, first( %q0, | ), rest( %q0, | ))
 	)
+
 
 
 /* 
@@ -213,8 +224,8 @@ d: dbref
 			not( strmatch( %q1, rooms )), 
 			u( .msg, dir/set, Please use 'dir/room'. ), 
 
-			not( strmatch( %q1, lock )), 
-			u( .msg, dir/set, The view locks aren't ready yet. ), 
+//			not( strmatch( %q1, lock )), 
+//			u( .msg, dir/set, The view locks aren't ready yet. ), 
 
 			strcat( 
 				u( f.set.element, %q1, %qd, %q2 ), 

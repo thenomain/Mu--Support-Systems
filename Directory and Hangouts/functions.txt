@@ -482,3 +482,32 @@ have been a thing.
 			)
 		)
 	))
+
+
+/*
+--------------------------------------------------------------------------------
+-- Functions: Pass Lock --------------------------------------------------------
+
+Is the location view-locked?
+
+Can also filter a list of location dbrefs:
+	filter( f.lock.pass, <list of dbrefs>, , , %# )
+
+--
+
+0: main room dbref
+1: dbref of viewer
+
+l: lock attr
+*/
+
+&f.lock.pass Directory and Hangouts <dah>=
+	localize( strcat( 
+		setq( l, loc.%0.lock ),
+
+		cor( 
+			not( hasattr( v( d.data ), %ql )), 
+			u( v( d.data )/%ql, %1 ), 
+			isstaff( %1 )
+		)
+	))
