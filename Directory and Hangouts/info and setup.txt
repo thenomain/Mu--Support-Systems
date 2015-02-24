@@ -84,5 +84,77 @@ We are shifting this to:
 	cand( strmatch( %0, #* ), isint( rest( %0, # )))
 
 // .. pull dbref from the attribute; a quick place to change it if needed
-&.attr2dbref Directory and Hangouts <dah>=
-	elements( %0, 2, . )
+&.attr2dbref Directory and Hangouts <dah>=elements( %0, 2, . )
+
+
+
+
+/*
+===============================================================================
+== SAMPLE HELP FILE ===========================================================
+
+:::::::::::::::::::::::::::::::.  Help for Dir  .:::::::::::::::::::::::::::::::
+
+                              THE DIRECTORY SYSTEM
+ 
+dir                                                                     
+    List all populated locations.
+dir/all                                                                 
+    List all locations.
+dir <name>
+    List details about location <name>, which may be partially typed.
+dir/who <name>                                                          
+    Lists details and who's there, if they are findable.
+ 
+"Population" depends on who you can see normally. It does not hide 'unfindable'
+people or rooms. The directory system is intended to find role-play and 
+facilitate the setting.
+ 
+Some locations will have a "view lock" which will prevent some people from 
+seeing that location or getting details about it. Staff always pass this lock.
+ 
+* Planned: personal location lists, "hangouts"
+ 
+Builder commands listed in: +help Dir 2
+ 
+See Also: +help Travel
+ 
+Category: Who & Where
+
+::::::::::::::.  Tue Feb 24 17:42:57 2015 Eastern (1 minute 15 seconds ago)  .::
+
+
+::::::::::::::::::::::::::::::.  Help for Dir 2  .::::::::::::::::::::::::::::::
+
+                          DIRECTORY: BUILDER COMMANDS
+ 
+The key concept here is that one location may be made up of many rooms. One room 
+must be the primary.
+ 
+After each command description is a shortcut for when you're already in the room 
+you want to add.
+ 
+dir/create <room dbref>=<location name>
+    Create a new location based on the a room.
+    Shortcut: dir/create %L=New Location Name
+ 
+dir/room <location name>=<room dbref>
+    Add a new room to the list of rooms in that location.
+    Shortcut: dir/room New Location Name=%L
+ 
+dir/set <location name>/<element>=<value>
+    Set <element>. Elements are:
+    * Name (already set, but can be changed here)
+    * Type
+    * Availability (in game-terms, the cash needed to go here)
+    * Owner (name of the PC or NPC owner; will be changing sometime)
+    * Lock (view lock, uses %0 as the viewer)
+    Shortcut: There is no shortcut for this.
+ 
+&short-desc <main room dbref>=<a description of the location>           
+    Give people an idea about what that location is for.                    
+ 
+The system also pulls the map location of the main room from the main room. It 
+will complain if it hasn't been set.
+
+::::::::::::::.  Tue Feb 24 17:41:23 2015 Eastern (4 minutes 9 seconds ago)  .::

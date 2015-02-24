@@ -9,11 +9,14 @@ q0: Secured %1, can be safely clobbered after this
 &c.directory Directory and Hangouts <dah>=
 	$^\+?dir(.*)$:@pemit %#=
 		switch( 
-			strtrunc( setr( 0, trim( secure( %1 ))), 1 ), 
-// .. no entry (+dir)
+			strtrunc( setr( 0, trim( %1 )), 1 ), 
+
+// .. no entry
 			, u( c.directory.default ), 
-// .. a switch with/without argument (+dir/<switch> [<arg>])
+
+// .. switch
 			/, u( c.directory.switch, after( first( %q0 ), / ), rest( %q0 )), 
+
 // .. else: specific (+dir <name>)
 			u( c.directory.specific, trim( %q0 ))
 		)
@@ -21,6 +24,7 @@ q0: Secured %1, can be safely clobbered after this
 // --
 
 @set Directory and Hangouts <dah>/c.directory=regex
+@set Directory and Hangouts <dah>/c.directory=no_parse
 
 
 
@@ -211,7 +215,7 @@ d: dbref
 
 			u( .isstaff, %# ), 
 			u( .msg, dir/set, Only staff may set location elements. ), 
-
+			
 			strlen( %qa ), 
 			u( .msg, dir/set, Couldn't find location '%q0'. ), 
 
@@ -222,7 +226,7 @@ d: dbref
 			), 
 
 			not( strmatch( %q1, rooms )), 
-			u( .msg, dir/set, Please use 'dir/room'. ), 
+			u( c.directory/room, %qd=%2 ), 
 
 //			not( strmatch( %q1, lock )), 
 //			u( .msg, dir/set, The view locks aren't ready yet. ), 
@@ -343,26 +347,13 @@ Add a room dbref to an existing hangout, or removes it from same.
 
 
 
-
-
-
-
-
-
-
-
-
 /* 
 ================================================================================
 == SWITCH /WHO =================================================================
 
 (a good deal of this code is Alzie's, then tweaked for my code bugaboos) 
 
-This is just plain '+hangout <dir>' anyway. Why is it here?
-
-**** THIS NEEDS UPDATED FOR +DIR ****
-
-0: 
+0: <location name>|<main dbref>
 
 */
 
