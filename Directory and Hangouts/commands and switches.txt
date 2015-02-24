@@ -213,10 +213,14 @@ d: dbref
 			not( strmatch( %q1, rooms )), 
 			u( .msg, dir/set, Please use 'dir/room'. ), 
 
+			not( strmatch( %q1, lock )), 
+			u( .msg, dir/set, The view locks aren't ready yet. ), 
+
 			strcat( 
 				u( f.set.element, %q1, %qd, %q2 ), 
 				u( .msg, dir/set, 
-					Element '[lcstr( %q1 )]' set%, use 'dir %qn' to check. 
+					Element '[lcstr( %q1 )]' set%, 
+					use 'dir [u( f.get.element, name, %qd )]' to check. 
 				)
 			)
 		)
