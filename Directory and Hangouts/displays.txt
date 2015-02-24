@@ -88,7 +88,9 @@ qp: room population
 			)
 		)
 	)]%r
-	[u( .footer, [words( %0 %qh )] locations listed )]
+	[u( .footer, 
+		[setr( n, words( %0 %qh ))] location[u( .plural, %qn, , s )] listed 
+	)]
 
 
 
@@ -128,15 +130,54 @@ d: description
 
 &display.detail Directory and Hangouts <dah>=
 	strcat( 
-		u( .header, %0 ), %r, 
+		setq( w, objeval( %#, lwho( ))), 
 
+		u( .header, %0 ), %r, 
+		u( display.location.summary, %1 ), 
+		u( .divider ), %r, 
+
+// list rooms :: header
+		%b%b, 
+		ansi( u%vc, Room Name ), 
+		space( 61 ), 
+		ansi( u%vc, Pop ), %r, 
+
+// list rooms :: room name & population
+		iter( u( f.get.element, rooms, %1 ), 
+
+			u( display.location.room, 
+				%i0, 
+				u( f.get.population.room, %i0, %#, %qw ) 
+			), 
+
+			, %r 
+		), 
+		%r, 
+
+// "lock" and possibly "personal locations" will go here when implemented
+
+		u( .footer )
+
+	)
+
+
+/*
+--------------------------------------------------------------------------------
+-- Display Detail: Location Summary --------------------------------------------
+
+0: main room dbref
+
+*/
+
+&display.location.summary Directory and Hangouts <dah>=
+	strcat( 
 // maploc
 		%b%b, ansi( %vc, Map Loc: ), %b, 
-		u( f.get.maploc, %1 ), %r, 
+		u( f.get.maploc, %0 ), %r, 
 
 // owner (if exists)
 		if( 
-			t( setr( o, u( f.get.element, owner, %1 ))), 
+			t( setr( o, u( f.get.element, owner, %0 ))), 
 			strcat( 
 				%b%b, 
 				ansi( %vc, Owner: ), %b, 
@@ -147,7 +188,7 @@ d: description
 
 // type (if exists)
 		if( 
-			t( setr( t, u( f.get.element, type, %1 ))), 
+			t( setr( t, u( f.get.element, type, %0 ))), 
 			strcat( 
 				%b%b, 
 				ansi( %vc, Type: ), %b, 
@@ -158,7 +199,7 @@ d: description
 
 // availability (if exists)
 		if( 
-			t( setr( a, u( f.get.element, availability, %1 ))), 
+			t( setr( a, u( f.get.element, availability, %0 ))), 
 			strcat( 
 				%b%b, 
 				ansi( %vc, Availability: ), %b, 
@@ -169,141 +210,161 @@ d: description
 
 // description (if exists)
 		if( 
-			t( setr( d, u( f.get.description, %1 ))), 
+			t( setr( d, u( f.get.description, %0 ))), 
 			wrap( 
 				cat( ansi( %vc, Description: ), %qd ),
 				74, left, %b%b 
 			)%r
+		)
+	)
+
+
+/*
+--------------------------------------------------------------------------------
+-- Display Detail: Room Summary ------------------------------------------------
+
+0: that room dbref
+1: that room population
+
+*/
+
+&display.location.room Directory and Hangouts <dah>=
+	cat( 
+		%b, 
+// name
+		ljust( 
+			name( %0 ), 
+			53 
 		), 
 
-		u( .divider ), %r, 
+// room's dbref if staff or room is jump_ok
+		ljust( u( format.room.dbref, %0 ), 15 ), 
+
+// population
+		center( 
+			if( neq( 0, %1 ), 
+				%1 
+			), 
+			3 
+		)
+	)
+
+
+
+/* 
+================================================================================
+== DISPLAY DETAIL + WHO ========================================================
+
+Like "where", this would show who is in this location, room by room.
+
+This could use the touches used in 'display detail' to slim it down and make it 
+easier to alter, but we'll stick with this for the time being.
+
+--
+
+0: main hangout name
+1: main hangout dbref 
+
+o: occupants (list of dbrefs)
+p: population (includes unfindables)
+u: unfindable population
+n: names|of|occupants
+
+*/
+
+&display.location.who Directory and Hangouts <dah>=
+  strcat( 
+		setq( w, objeval( %#, lwho( ))), 
+
+		u( .wheader, %0 ), %r, 
+		u( display.location.summary, %1 ), 
+		u( .wdivider ), %r, 
 
 // list rooms :: header
 		%b%b, 
-		ansi( u%vc, Room Name ), 
-		space( 61 ), 
-		ansi( u%vc, Pop ), %r, 
+		ansi( u%vc, Room Name ), %r, 
 
-// list rooms: room name & population
-		iter( 
-			u( 
-				f.population.calculate, 
-				u( f.get.element, rooms, %1 )
-			), 
+		iter( u( f.get.element, rooms, %1 ), 
+			strcat( 
+				setq( o, u( f.get.occupants.room, %i0, %#, %qw )), 
+				setq( p, u( f.get.population.room, %i0, %#, %qw )), 
+				setq( u, sub( %qp, words( %qo ))), 
+				setq( n, iter( %qo, moniker( %i0 ), , | )), 
 
-			cat( 
-				%b, 
-				ljust(  				// should be 'format.room.name'
-					name( setr( d, rest( %i0, : ))), 
-					53 
+// room name
+				%b%b, name( %i0 ), %b, u( format.room.dbref, %i0 ), 
+
+// occupants (if any)
+				if( words( %qn, | ), 
+					strcat( 
+						%r, 
+						wrap( 
+							table( 
+								%qn, 
+								25, 
+								sub( width( %# ), 6 ), 
+								| 
+							), 
+							width( %# ), 
+							left, 
+							%b %b%b 
+						)
+					)
 				), 
-				ljust( 
-					if( 
-						cor( hasflag( %qd, jump_ok ), u( .isstaff, %# )), 
-						%(%qd%) 
-					), 
-					15 
-				), 
 
-				center( 
-					if( neq( 0, setr( p, first( %i0, : ))), 
-						%qp 
+// unfindables (if any)
+				case( 1, 
+					cand( t( %qn ), t( %qu )), 
+					cat( 
+						%r, %b%b, 
+						... and %qu,
+						u( .plural, %qu, other., others. )
 					), 
-					3 
+
+					t( %qu ), 
+					cat( 
+						%r, %b%b, 
+						There, 
+						u( .plural, %qp, is, are ), 
+						%qp, 
+						u( .plural, %qp, person, people ), 
+						here. 
+					)
 				)
-			), 
-			, %r 
-		), %r, 
-
-// "lock" and possibly "personal locations" will go here when implemented
-
-		u( .footer )
-
+			), , %r 
+		), 
+		%r, 
+		u( .wfooter )
 	)
 
 
 
 
 
-
-
-
-/* 
---------------------------------------------------------------------------------
--- Display Map Loc -------------------------------------------------------------
-
-A bit of fussing to make sure the (loc) comes out looking right.
-
-0: map loc
-
-*/
-
-&display.map-loc Directory and Hangouts <dah>=
-	lcstr( default( %0/coord, %b-%b ))
-
-
-
-/* 
+/*
 ================================================================================
-== DISPLAY HANGOUT/WHO =========================================================
+== FORMATTING ==================================================================
 
-0: output from f.find.location: <name>~<main dbref>
-q1: attribute contents: <name>~<rooms list>~<map loc>~<notes>
+Quick and easily updatable formatting tricks.
 
-qc: per room: connected people, minus dark wizards
-qp: per room: findable people
-qn: per room: number of visible people
-qf: per room: number of findable people
+
+--------------------------------------------------------------------------------
+-- Format: Room Dbref ----------------------------------------------------------
+
+Formatting the room dbref, if shown. Here to be easy to change.
+
+Currently: (#xxx)
 
 */
 
-&display.location.who Directory and Hangouts <dah>=
-	[setq( 1, 
-		get( [v( d.data )]/hangout-[after( %0, ~ )] )
-	)]
+&format.room.dbref Directory and Hangouts <dah>=
+	if( 
+		cor( 
+			u( .isstaff, %# ), 
+			hasflag( %0, jump_ok )
+		), 
+		%(%0%) 
+	)
 
-	[u( .header, +hangout [before( %0, ~ )] )]%r
 
-	%b [ansi( %vc, Map Loc: )] [elements( %q1, 3, ~ )]%r
-	[u( .divider )]%r
-	[ansi(  %vc, %b Room Name )]%r%r
-
-// >> for each room ...
-	[iter( elements( %q1, 2, ~ ), 
-		[setq( c, filter( f.get.occupants, %i0, , , %# ))]
-// 		[setq( c, filter( filter.people-in-room, lcon( %i0, CONNECT )))]
-		[setq( p, filter( filter.findable, %qc, , , %# ))]
-		[setq( n, words( %qp ))]
-		[setq( f, sub( words( %qc ), %qn ))]
-
-		%b [ljust( name( %i0 ), 53 )]
-
-// ... show dbref for staff and any j_ok rooms
-		[if( 
-			cor( 
-				u( .isstaff, %# ), 
-				hasflag( %i0, jump_ok )
-			), 
-			ljust( %(%i0%), 16 )
-		)]%r
-		%b %b 
-		[ansi( hw, 
-			case( 1, 
-				hasflag( %i0, unfindable ), 
-				%qn [u( .plural, %qn, person, people )] here, 
-
-// ... list visible people and make note of unfindable people ...
-				strcat(
-					itemize( iter( %qp, name( %i0 ), , | ), | ), 
-					if( %qf, 
-						%,%bplus %qf [u( .plural, %qf, other, others )] 
-					)
-				)
-
-			)
-		)], 
-		, %r 
-	)]%r
-
-	[u( .footer )]
 

@@ -71,6 +71,10 @@ We are shifting this to:
 &.footer Directory and Hangouts <dah>=footer( %0 )
 &.divider Directory and Hangouts <dah>=divider( %0 )
 
+&.wheader Directory and Hangouts <dah>=wheader( %0 )
+&.wfooter Directory and Hangouts <dah>=wfooter( %0 )
+&.wdivider Directory and Hangouts <dah>=wdivider( %0 )
+
 &.isstaff Directory and Hangouts <dah>=isstaff( %0 )
 &.msg Directory and Hangouts <dah>=ansi( h, <%0>, n, %b%1 )
 &.plural Directory and Hangouts <dah>=if( eq( %0, 1 ), %1, %2 )

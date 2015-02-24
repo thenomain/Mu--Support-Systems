@@ -73,9 +73,7 @@ q0: Partial-name-match the switch
 ================================================================================
 == DEFAULT (no arguments) ======================================================
 
-q0: <people>:<main dbref> <people>:<main dbref>, ranked, filtered
-
-**** THIS NEEDS UPDATED FOR +DIR ****
+q0: <population>:<main dbref> <population>:<main dbref>, ranked & filtered
 
 */
 
@@ -83,8 +81,8 @@ q0: <people>:<main dbref> <people>:<main dbref>, ranked, filtered
 	ifelse(
 		t( setr( 0, u( f.population.rank, 0 ))), 
 		u( display.locations, %q0, , %# ), 
-		There are currently no people at any locations. %r
-		For a complete list of hangouts%, please use '+hangouts/all'. 
+		There are currently no people at any directory locations. %r
+		For a complete list of hangouts%, please use 'dir/all'. 
 	)
 
 
@@ -113,8 +111,6 @@ q0: First match of sorted name~dbref
 	dir/all
 
 Just like 'default', but lists all hangouts.
-
-**** YUP, THIS NEEDS RE-DONE FOR +DIR, TOO ****
 
 */
 
@@ -351,6 +347,7 @@ This is just plain '+hangout <dir>' anyway. Why is it here?
 
 **** THIS NEEDS UPDATED FOR +DIR ****
 
+0: 
 
 */
 
@@ -362,9 +359,7 @@ This is just plain '+hangout <dir>' anyway. Why is it here?
 		), 
 
 		t( setr( 0, u( f.find.location, %0 ))), 
-		u( .msg, dir/who, 
-			Couldn't find '%0'. 
-		), 
+		u( .msg, dir/who, Couldn't find '%0'. ), 
 
-		u( display.location.who, %q0 )
+		u( display.location.who, first( %q0, | ), rest( %q0, | ))
 	)

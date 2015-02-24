@@ -52,9 +52,9 @@ List all hangouts in the rank-hangouts format:
 
 /* 
 --------------------------------------------------------------------------------
--- People in One Hangout -------------------------------------------------------
+-- People in One Location ------------------------------------------------------
 
-Returns the total population of a single hangout
+Returns the total population across a single location.
 
 This is '&f.get.occupants' without filtering findable, and reporting the total
 
@@ -62,21 +62,16 @@ This is '&f.get.occupants' without filtering findable, and reporting the total
 1: dbref of viewer (usually %#)
 r: list of 'rooms' for hangout
 w: lwho(), from viewer's perspective
-u: un-dark, from viewer's perspective
+v: visible, from viewer's perspective
 returns: population across all rooms
 
 */
 
 &f.get.population Directory and Hangouts <dah>=
 	localize( strcat( 
-		setq( r, 
-			if( t( u( f.get.element, %0, rooms )), 
-				%qr, 
-				%0 
-			)
-		), 
+		setq( r, u( f.get.element, rooms, %0 )), 
 		setq( w, objeval( %#, lwho( ))), 
-		setq( u, 
+		setq( v, 
 			iter( %qr, 
 				setinter( 
 					lcon( %i0, CONNECT ), 
@@ -84,8 +79,35 @@ returns: population across all rooms
 				)
 			)
 		), 
-		words( %qu )
+		words( %qv )
 	))
+
+
+/* 
+--------------------------------------------------------------------------------
+-- People in One Room ----------------------------------------------------------
+
+Returns the total population of a single room.
+Includes unfindable.
+
+0: dbref of room
+1: dbref of viewer (usually %#)
+2: objeval( %1, lwho()) -- do this before calling
+
+r: list of 'rooms' for hangout
+w: lwho(), from viewer's perspective
+v: visible, from viewer's perspective
+returns: population across all rooms
+
+*/
+
+&f.get.population.room Directory and Hangouts <dah>=
+	words( 
+		setinter( 
+			lcon( %0, CONNECT ), 
+			%2 
+		)
+	)
 
 
 /* 
@@ -96,21 +118,16 @@ returns: population across all rooms
 1: dbref of viewer (usually %#)
 r: list of 'rooms' for hangout
 w: lwho(), from viewer's perspective
-u: un-dark, from viewer's perspective
+v: visible, from viewer's perspective
 returns: 
 
 */
 
 &f.get.occupants Directory and Hangouts <dah>=
 	localize( strcat( 
-		setq( r, 
-			if( t( u( f.get.element, %0, rooms )), 
-				%qr, 
-				%0 
-			)
-		), 
+		setq( r, u( f.get.element, rooms, %0 )), 
 		setq( w, objeval( %1, lwho( ))), 
-		setq( u, 
+		setq( v, 
 			iter( %qr, 
 				setinter( 
 					lcon( %i0, CONNECT ), 
@@ -118,8 +135,30 @@ returns:
 				)
 			)
 		), 
-		filter( filter.findable, %qu, , , %1 )
+		filter( filter.findable, %qv, , , %1 )
 	))
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Get Occupants In One Room ---------------------------------------------------
+
+0: dbref of room
+1: dbref of viewer (usually %#)
+2: objeval( %1, lwho()) -- do this before passing
+returns: list of visible, findable people in that room
+
+*/
+
+&f.get.occupants.room Directory and Hangouts <dah>=
+  filter( filter.findable, 
+		setinter( 
+			lcon( %0, CONNECT ), 
+			%2
+		), , , 
+		%1 
+	)
+
 
 
 /* 
