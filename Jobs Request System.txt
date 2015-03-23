@@ -233,7 +233,7 @@ vs.
 &f.get.msg jrs=udefault( 
 		d.%0.msg, 
 		You have requested 
-		[u( display.msg.job_title, %0 )] 
+		'[u( display.msg.job_title, %1 )]' 
 		from staff. Please allow for some time to process it., 
 		%1, %2 
 	)
