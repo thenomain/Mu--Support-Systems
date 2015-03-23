@@ -211,7 +211,11 @@ vs.
 // -- Function: Validations ----------------------------------------------------
 // (used in most, but not all, cases)
 
-&f.validate.access jrs=cand( isstaff( %1 ), not( udefault( f.%0.staff-only, 0 )))
+&f.validate.access jrs=
+	cor( 
+		isstaff( %1 ), 
+		not( udefault( f.%0.staff-only, 0 ))
+	)
 
 
 // -----------------------------------------------------------------------------
