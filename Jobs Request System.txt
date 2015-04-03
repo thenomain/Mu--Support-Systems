@@ -265,7 +265,7 @@ vs.
 	<info>
 		bucket: <bucket> [required]
 		assign: <+jgroup> [required]
-		msg: <message> to send to enactor [required]
+		msg: <message> to send to enactor [defaulted if not set]
 		prefix: <prefix to message, e.g. 'BUG'> [optional]
 		level: <alert level, default to '2', '3' for bugs> [optional]
 		staff-only: '1' if staff-only
