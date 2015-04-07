@@ -1,3 +1,4 @@
+/*
 ################################################################################
 ## User-Definable Window Width #################################################
 
@@ -42,41 +43,45 @@ Make sure every user-defined function is built with at least @function/preserve
 --------------------------------------------------------------------------------
 -- the new 'width()' function --------------------------------------------------
 
+*/
+
 &UFUNC/PRIVILEGED.WIDTH <user functions object>=
-strcat( 
-	setq( 0, if( t( %0 ), %0, %# )), 
-	if( 
-		cor( 
-			isstaff( %#, admin ), 
-			haspower( %#, see_all ), 
-			strmatch( %#, %q0 )
-		), 
-		strcat( 
-			setq( u, get( %0/width )), 
-			setq( w, width_old( %0 )), 
+	strcat( 
+		setq( 0, if( t( %0 ), pmatch( %0 ), %# )), 
+		if( 
+			cor( 
+				isstaff( %@ ), 
+				haspower( %@, see_all ), 
+				strmatch( %@, %q0 )
+			), 
 
-@@ >> calculate the real width
-			case( 1, 
+// calculate the real width
+			strcat( 
+				setq( u, get( %q0/width )), 
+				setq( w, width_old( %q0 )), 
+				case( 1, 
 
-@@ .. manually set and correct, so return it
-				cand( isint( %qu ), gt( %qu, 0 )), 
-				%qu, 
+// .. (&width is manually set and correct, so use it)
+					cand( isint( %qu ), gt( %qu, 0 )), 
+					%qu, 
 
-@@ .. tinymux defaults to 78 if NAWS isn't passed; make it 79
-				eq( %qw, 78 ), 
-				79, 
+// .. (tinymux defaults to 78 if NAWS isn't passed; make it 79)
+					eq( %qw, 78 ), 
+					79, 
 
-@@ .. else, return the NAWS width
-				%qw 
-			)
-		), 
+// .. (else, return the NAWS width)
+					%qw 
+				)
+			), 
 
-@@ >> fail if person without privs entered width( <someone not them> )
-		#-1 Permission Denied 
+// fail if person without privs entered width( <someone not them> )
+			#-1 Permission Denied 
+		)
 	)
-)
 
 
+
+/*
 ================================================================================
 == Add with @function ==========================================================
 
@@ -102,3 +107,4 @@ Once you have restarted, you will not have to restart again unless you remove
 this function, in order to delete this function and restore the original 
 width().
 
+*/
