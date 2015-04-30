@@ -150,7 +150,7 @@ Ahh, mistress system, how we adore thee.
 
 */
 
-&C.NOTE Notes Setter <ns>=$^`notes?(.*)$:@pemit %#=
+&C.NOTE Notes Setter <ns>=$^\+?notes?(.*)$:@pemit %#=
 	switch( %1, 
 		@@( <null> ), u( c.note.default, %qs ), 
 		/*, u( c.note.switched, first( after( %1, / )), rest( %1 )), 
@@ -240,7 +240,7 @@ Ahh, mistress system, how we adore thee.
 --------------------------------------------------------------------------------
 -- Switch: Add -----------------------------------------------------------------
 
-	+note/add [<target person>/][<category>=]<title>/<note>
+	note/add [<target person>/][<category>=]<title>/<note>
 */
 
 &C.NOTE/ADD Notes Setter <ns>=
@@ -303,6 +303,12 @@ Ahh, mistress system, how we adore thee.
 			u( .msg, note, 
 				That note name exists under a different category%; 
 				please choose different name
+			), 
+
+			t( first( get( %qd/_NOTE~%qc~%qt ), ~ )), 
+			u( .msg, note, 
+				That note name exists as a an approved note 
+				and cannot be overwritten 
 			), 
 
 			strcat( 
@@ -615,6 +621,107 @@ Ahh, mistress system, how we adore thee.
 
 
 /*
+--------------------------------------------------------------------------------
+-- Switch: Move ----------------------------------------------------------------
+
+	note/move [<target>/]<note name>=<category>[/<new name>]
+*/
+
+&C.NOTE/MOVE Notes Setter <ns>=
+	strcat( 
+
+		setq( x, first( %0, = )), 
+		if( strmatch( %qx, */* ), 
+			strcat( setq( d, first( %qx, / )), setq( n, rest( %qx, / ))), 
+			strcat( setq( d, %# ), setq( n, %qx ))
+		), 
+		setq( d, u( f.about-target, %qd )), 
+		setq( n, u( f.scrub-name, trim( edit( %qn, %b, _  )))), 
+
+		setq( y, rest( %0, = )), 
+		setq( c, u( f.scrub-name, trim( first( %qy, / )))), 
+		setq( t, 
+			u( f.scrub-name, 
+				if( strmatch( %qy, */* ), trim( rest( %qy, / )), %qn )
+			)
+		), 
+
+		setq( l, 
+			filter( fil.not-hidden, lattr( %qd/_NOTE~*~%qn* ), , , %qd, %# )
+		), 
+		setq( s, get( %qd/%ql )), 
+
+		case( 0, 
+			cor( isstaff( %# ), strmatch( %#, owner( %qd ))), 
+			u( .msg, note, 
+				You may move notes only on yourself and your own 
+				objects and rooms 
+			), 
+
+			t( lattr( %qd/_note~* )), 
+			u( .msg, note, Target has no notes ), 
+
+			lte( words( %ql ), 1 ), 
+			u( .msg, note, 
+				More than one note matches that name%; please be more specific 
+			), 
+
+			gte( words( %ql ), 1 ), 
+			u( .msg, note, A note by that name could not be found ), 
+
+			cor( isstaff( %# ), not( u( f.approved-note, %qd, %ql ))), 
+			u( .msg, note, Only staff may move an approved note ), 
+
+			strlen( %qc ), 
+			u( .msg, note, Must have a new category ), 
+
+			strlen( %qt ), 
+			u( .msg, note, Must have a new title ), 
+
+			not( hasattr( %qd, _NOTE~%qc~%qt )), 
+			u( .msg, note, You can't move a note on top of another note ), 
+
+			not( words( 
+				setdiff( 
+					lattr( %qd/_NOTE~*~%qt ), 
+					cat( ucstr( _NOTE~%qc~%qt ), %ql )
+				)
+			)), 
+			u( .msg, note, 
+				That note name exists under a different category%; 
+				please choose different name
+			), 
+
+			strcat( 
+				wheader( strcat( 
+					MOVING, %b, name( %qd ), 's Note:, %b, 
+					u( format.title, rest( %ql, ~ )), 
+				)), %r, 
+
+				u( format.note, 
+					u( f.note.get, 
+						%qd, elements( %ql, 2, ~ ), elements( %ql, 3, ~ )
+					)
+				), %r, 
+				wheader( strcat( TO:, %b, u( format.title, %qc~%qt ))), %r, 
+
+				switch( #-*, 
+					setr( e, set( %qd, %ql: )), 
+					ansi( h, %b ERROR WHILE REMOVING OLD NOTE: %qe ), 
+
+					setr( e, set( %qd, _NOTE~%qc~%qt:%qs )), 
+					ansi( h, %b ERROR WHILE SETTING NEW NOTE: %qe ), 
+
+					Move complete. We hope. Please check. 
+				), %r, 
+				wfooter( u( format.stamp, elements( %qs, 2, ~ ))), 
+			)
+		)
+	)
+
+
+
+/*
 ================================================================================
 == RAW HELP FILES ==============================================================
 
@@ -682,5 +789,59 @@ Ahh, mistress system, how we adore thee.
   See Also: +help +notes
  
 ..............................................................................
+
+*/
+
+
+/*
+-=-=-=-=-=-=-=
+
+EBLA TO DARKWATER NOTE CONVERSION PROJECT AHOY 
+
+-=-=-=-=-=-=-=
+
+
+An Ebla Note:
+	_NOTE_TEST [#3]: 
+		1427827197|#7|
+		Not Approved|
+		1427827197|#7|
+		Unlocked|			<-- Could be 'Wizlocked'
+		1427827197|#7|
+		Hello.%rHello
+
+
+
+&trig.convert_all_notes me=
+	@dolist lattr( %0/_note_* )=@trigger me/trig.convert_a_note=%0,##
+
+&trig.convert_a_note me=
+	@eval strcat( 
+		setq( n, get( %0/%1 )), 
+		setr( a, strcat( _NOTE~GENERAL~, ucstr(rest( rest( %1, _ ), _ )))), 
+		%b::%b, 
+		setr( c, 
+			strcat( 
+				if( strmatch( elements( %qn, 6, | ), Wizlocked ), 
+					strcat( 
+						name( elements( %qn, 5, | )), %b%(, 
+						elements( %qn, 5, | ), %), 
+						%b, convsecs(elements( %qn, 4, | ))
+					)
+				), 
+				~, 
+				name( elements( %qn, 8, | )), %b%(, elements( %qn, 8, | ), %), 
+				%b, convsecs(elements( %qn, 7, | )), 
+				~, 
+				translate( first( revwords( %qn, | ), | ), 1 )
+			)
+		)
+	); 
+	@set/quiet %0=%qa:%qc;
+	
+@dolist search( eplayer=t( lattr( ##/_note_* )))=
+	@trigger me/trig.convert_all_notes=##
+
+This appears to work!
 
 */
