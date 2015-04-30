@@ -753,6 +753,9 @@ Ahh, mistress system, how we adore thee.
                                                                             
   +note/show <note name>=<player name>: Show your <note name> to <player    
   name>                                                                     
+
+  +note/move <note>=<category>[/<new name>]: Move a note unless it's been 
+  approved by staff.
                                                                             
   See Also: +shelp +notes
  
@@ -785,6 +788,9 @@ Ahh, mistress system, how we adore thee.
                                                                             
   +note/[!]dark <target>/<note>: Sets a note dark (invisible to the player) 
   or sets it visible again.                                                 
+
+  +note/move <note>=<category>[/<new name>]: Move a note even if it's 
+  approved.
                                                                             
   See Also: +help +notes
  
