@@ -46,10 +46,10 @@ Notes Setter <ns>
 
 &F.ABOUT-TARGET Notes Setter <ns>=
 	case( 1, 
-		t( pmatch( %0 )), [pmatch( %0 )]|player, 
-		strmatch( %0, me ), [pmatch( %1 )]|player, 
-		strmatch( %0, here ), [loc( %1 )]|room, 
-		t( objeval( %#, num( %0 ))), [objeval( %#, num( %0 ))]|[type( %0 )], 
+		t( pmatch( %0 )), pmatch( %0 ), 
+		strmatch( %0, me ), pmatch( %1 ), 
+		strmatch( %0, here ), loc( %1 ), 
+		t( objeval( %#, num( %0 ))), objeval( %#, num( %0 )), 
 		#-1 
 	)
 
