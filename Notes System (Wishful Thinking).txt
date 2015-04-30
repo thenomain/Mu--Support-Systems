@@ -1,0 +1,930 @@
++ NOTES: An Awesome System
+
+PEOPLE LOVE:
+	Different view levels
+	Let people edit notes, but the validation falls off - using CHOWN attribute
+	Timestamp: creation, edit, lock
+
+FORMAT:
+	+note[/list/of/switches] <note>[=<other>]
+
+KEY: 
+	<note> - <object>/<note>
+
+COMMANDS:
+
+All switches are mutually exclusive unless noted otherwise. Ignore all mutually 
+exclusive switches except the first, in those cases.
+
+@@ basics (approval falls off using any of these): 
+	/new
+		Special rules using the +bg alias
+			+bg/new [<player>=]<text> - Auto-increment, prepend: BG #
+	/add
+		appends to a note
+	/edit <note>=<old>/<new>
+	/replace
+		Uses /add, except note must exist
+	/delete
+
+@@ moving (approval falls off using any of these): 
+	/move <note>=<target>|<new name>|<target>/<new name>
+	/clone <note>=<target>|<new name>|<target>/<new name>
+	/merge <note>=<note>
+
+@@ locks (stacks with basics and moving, except /delete):
+	/[un]apporove
+	/[un]lock
+		Also /[un]approves.
+
+@@ viewing:
+	/view <item>|<note>|<item/note>
+		Special rules using the +view alias (not '/view'):
+			+view: view here
+			+view <item>: view item (processed first)
+			+view <note>: view here/note
+	/show <targets>=<note>
+	/show <note> [??]
+	/contents <item>
+		Show items in <item> that contains notes at <permission level(s)>.
+
+@@ permissions (approval falls off using any of these unless staff):
+	/permissions <note>[=<permission level>]
+		view -> 'public'
+		note -> 'private'
+		staffnote -> 'hidden'
+		deleted -> 'archived'
+
+		Aliases chould assume permissions level. e.g.:
+			+view/new -> public
+			+bg/new> - private
+			+note/new -> private
+			+judgenote/new -> hidden
+
+--
+
+A DECENT TEST: 
+
+think 
+	[setr(r, sql(u(note/sql.one-dbref.title-lookup, %#, tes), ~, |))] ==> 
+	t:[setr(t, first(%qr, |))] -- 
+	e:[setr(e, elements(%qr, 2, |))] -- 
+	s:[setr(s, elements(%qr, 3, |))] ==> 
+	[sql(u(notes/sql.primary_key.note_text, %qt, %qe, %qs))]
+
+
+================================================================================
+== ITEM SETUP ==================================================================
+
+@create Notes System <ns>=10
+@set Notes System <ns>=INHERIT SAFE
+
+
+
+================================================================================
+== COMMANDS SETUP ==============================================================
+
+Mistress system again.
+
+n: name of the command for finding right attr
+  GLOBAL REGISTER - holds command/alias player is using
+
+--
+
+&c.notes Notes System=$^\+?notes?(.*):@pemit %#=
+	[setq( n, notes )]
+	[switch( %1, 
+		, u( c.%qn.default ), 
+		/*, u( c.%qn.switch, first( %1 ), rest( %1 )), 
+		%b*, u( c.%qn.specific, trim( %1 )), 
+
+		u( .notice, 
+			I don't know what you mean. Please see [ansi( h, +help %qn )] 
+		)
+
+	)]
+
+--
+
+@set Notes System/c.notes=regex
+
+
+--------------------------------------------------------------------------------
+-- notes/<switch> --------------------------------------------------------------
+
+Handles all /switches, which is to say it makes sure they exist and passes them on.
+
+Also handles pseudo-switches, passing them on as elements to any switched item.
+
+Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), 
+even if %1 is empty.
+
+--
+
+0: /<switch>[/<switch>/<switch>, etc.]
+1: [<more>], stuff to pass to c.<name>/<switch>, if any
+
+n: Name of the command, global register set in &c.<name> (set above)
+   'qn' MUST BE MAINTINED after this command (for aliases)
+
+a: all c.<name>/* on this object
+s: /valid/command/switches/found
+p: /pseudo/switches/found, pass to c.<name>[/<switch>]
+
+--
+
+&c.notes.switch Notes System=
+	[setq( s, )][setq( p, )][setq( a, lattr( %!/c.%qn/* ))]
+	[iter( rest( %0, / ), 
+		if( 
+			t( grab( %qa, c.%qn/%i0* )), 
+			setq( s, %qs/[rest( grab( %qa, c.%qn/%i0* ), / )] ), 
+			setq( p, %qp/%i0 )
+		), 
+		/, @@
+	)]
+	[if( t( %qs ), 
+		ulocal( c.%qn/[extract( %qs, 2, 1, / )], %1, %qp ), 
+		if( t( %1 ), 
+			ulocal( c.%qn.specific, %1, %qp ), 
+			ulocal( c.%qn.default, %1, %qp )
+		)
+	)]
+
+
+--------------------------------------------------------------------------------
+-- notes (default) -------------------------------------------------------------
+
+Nothing for now.
+
+n: name of calling command/alias, MUST BE MAINTAINED after this command
+
+--
+
+0: ignored
+1: fake /switches, if any
+
+l: location of %#
+
+--
+
+&c.notes.default Notes System=u( c.notes/view, %0, %1 )
+
+
+--------------------------------------------------------------------------------
+-- notes <stuff> (specific) ----------------------------------------------------
+
+Show information about a particular note
+
+--
+
+0: note name or number
+1: fake /switches
+
+ql: location of %#
+qn: number of location, if name or #<num> passed
+
+--
+
+&c.notes.specific Notes System=>>> notes specific -- 0: %0 -- 1: %1
+
+
+
+================================================================================
+== /view =======================================================================
+
+	+notes/view [<object>[/<note>]]
+	+notes/view [<object>]
+	+notes/view [<note>]
+
+The '+notes' default should detect default <object> and replace with '%!'.
+The '+view' alias should detect default <object> and replace with 'here'.
+
+Priority: Search for <object> first, then <note>
+	(You can always +notes/view me/note)
+
+--
+
+0: input
+1: fake /switches, if any
+
+n: name of command/alias used to call this (from mistress system)
+   MUST BE MAINTAINED after this command
+
+o: object
+d: object dbref
+t: note text, if any
+
+e: error, if any
+
+--
+
+&c.notes/view Notes System=
+	strcat( 
+@@ >> Determine %qo And %qt
+		case( 1, 
+
+@@ .. if input '*/*' then <object>/<note>
+@@ .. (same for all instances)
+			strmatch( %0, */* ), 
+			strcat( setq( o, first( %0, / )), setq( t, rest( %0, / ))), 
+
+@@ .. else if input is object, then input is <object> & null <note>
+			or( t( setr( o, locate( %#, %0, *P ))), strmatch( %qo, #-2 )), 
+			setq( t, @@( null )), 
+
+@@ .. else 
+@@ .. views: <object> is 'here', <note> is '%0'
+@@ .. default: <object> is '%#', <note> is '%0'
+			switch( %qn, 
+				views, 
+				strcat( setq( o, loc( %# )), setq( t, %0 )), 
+				strcat( setq( o, %# ), setq( t, %0 ))
+			)
+		), 
+
+@@ >> Make Sure 'd' Is Set
+		setq( d, num( %qo )), 
+
+@@ >> Error Checks
+		setq( e, 
+			case( 0, 
+@@ .. object has too many matches
+				comp( %qo, #-2 ), 
+				[u( .notice, Object has too many matches )], 
+@@ .. object is dbref
+				t( %qd ), 
+				[u( .notice, Object not found )], 
+@@ .. 
+				@@( more errors to follow )
+			)
+		), 
+
+@@ >> Error, List or Detail
+		case( 1, 
+			t( %qe ), %qe, 
+			t( %qt ), u( f.notes/view.detail, %qd, %qt ), 
+			u( f.notes/view.list, %qd )
+		)
+	)
+
+
+--------------------------------------------------------------------------------
+-- /view: list -----------------------------------------------------------------
+
+0: object dbref
+
+n: command name ( notes, views, etc. )
+l: list of dbrefs
+
+--
+
+&f.notes/view.list Notes System=
+	u( display.list-notes, 
+		filter( 
+			filter.permission?, 
+			filter( filter.permissions, 
+				sql( u( sql.one-dbref, %0 ), :, | ), :, :, 
+				u( f.lookup.permissions.for, %qn )
+			), 
+			:, :, %# 
+		), 
+		[capstr( %qn )] on [name( %0 )], 
+		No %qn on [name( %0 )] 
+	)
+
+
+--------------------------------------------------------------------------------
+-- /view: detail ---------------------------------------------------------------
+
+0: object
+1: note name
+
+l: list of matching notes in the sql.one-dbref.title-lookup / sql.one-dbref fmt
+
+--
+
+&f.notes/view.detail Notes System=
+		case( 0, 
+
+@@ >> No notes (also populates %ql)
+			words( 
+				setr( l, sql( u( sql.one-dbref.title-lookup, %0, %1 ), :, | )), 
+				: 
+			), 
+			u( .notice, No match ), 
+
+@@ >> Too many matches ( display matches )
+			eq( words( %ql, : ), 1 ), 
+			u( .notice, 
+				I don't know which you mean: 
+				[itemize( 
+					iter( %ql, elements( %i0, 4, | ), :, : ), 
+					:, or 
+				)]
+			), 
+
+@@ >> Good, display note
+			u( display.one-note, elements( %ql, 1 2 3, |, | ))
+		)
+
+
+
+================================================================================
+== /show =======================================================================
+
+	+notes/show <targets>=<note>
+	+notes/show <note> (???)
+
+0: input
+1: psuedo-switches, if any
+
+t: targets dbrefs ('all' -> room contents)
+
+--
+
+&c.notes/show Notes System=
+	>>> /show -- 0: %0 -- 1: %1
+
+
+--------------------------------------------------------------------------------
+-- /show: list -----------------------------------------------------------------
+
+0: object dbref
+1: target(s)
+
+n: command name (notes, views, etc.)
+
+l: list of notes
+d: list of target dbrefs
+
+--
+
+&f.notes/view.list Notes System=
+	strcat( 
+
+		setq( l, 
+			filter( 
+				filter.permission?, 
+				filter( filter.permissions, 
+					sql( u( sql.one-dbref, %0 ), :, | ), :, :, 
+					u( f.lookup.permissions.for, %qn )
+				), 
+				:, :, %# 
+			)
+		), 
+
+		setq( d, 
+			setunion( %#, 
+				case( 1, 
+					or( strmatch( %1, all ), strmatch( %1, here )), 
+					lcon( loc( %# )), 
+
+					filter( filter.pagable, 
+						iter( %1, locate( %#, %i0, amnP ))
+					)
+				)
+			)
+		), 
+
+
+@@ display to 'all' or 
+		if( t( %qn ), 
+			u( display.list-notes, 
+				%qn, 
+				( From %N: ) [capstr( %qn )] on [name( %0 )]
+			), 
+			No %qn on [name( %0 )] 
+		)
+	)
+
+
+--------------------------------------------------------------------------------
+-- /show: detail ---------------------------------------------------------------
+
+0: object
+1: note name
+
+--
+
+&f.notes/show.detail Notes System=
+	u( f.notes/view.detail )	
+
+
+
+================================================================================
+== ALIAS: +views ===============================================================
+
+Mistress system on "views" -- we'll be careful to alias back over to 'notes' with the proper input.
+
+--
+
+&c.views Notes System=$^\+?views?(.*):@pemit %#=
+	[setq( n, views )]
+	[switch( %0, 
+@@ Without 's' ending
+		, u( c.notes.default ), 
+		/*, u( c.notes.switch, first( %0 ), rest( %0 )), 
+
+@@ No match
+		u( .notice, 
+			Error: I don't know what you mean. Please see [ansi( h, +help %qn )] 
+		)
+	)]
+
+-- 
+
+@set Notes System/c.views=regex
+
+
+
+================================================================================
+== FILTERS =====================================================================
+
+
+--------------------------------------------------------------------------------
+-- Filter: Permissions ---------------------------------------------------------
+
+Return only those notes the <viewer> has permission to see.
+Right now that is one of: 
+	The note permission is 'public'
+	Viewer is staff
+	The viewer is target, and the note permission is not 'hidden'
+
+We're using softcode here to make it easier to read/update.
+
+--
+
+0: List of notes in the 'sql.one-dbref' format
+1: Viewer's dbref
+
+--
+
+&filter.permission? Notes System=
+	cor( 
+		strmatch( elements( %0, 5, | ), public ), 
+		u( .isstaff, %1 ), 
+		and( 
+			strmatch( %1, elements( %0, 1, | )), 
+			not( match( hidden, elements( %0, 5, | )))
+		)
+	)
+
+
+--------------------------------------------------------------------------------
+-- Filter: Permission Type -----------------------------------------------------
+
+0: List of notes in the 'sql.one-dbref' format
+1: List of permissions to allow (public, private, hidden)
+
+--
+
+&filter.permissions Notes System=t( match( %1, elements( %0, 5, | )))
+
+
+--------------------------------------------------------------------------------
+-- Filter: Pagable -------------------------------------------------------------
+
+0: list of dbrefs targeted
+1: %#
+
+--
+
+&filter.pagable Notes System=
+or( 
+	hastype( %0, object ), 
+	and( 
+		hastype( %0, connect ), 
+		not( or( elock( %1/pagelock, %0 ), elock( %0/pagelock, %1 )))
+	)
+)
+
+
+
+================================================================================
+== SUPPORT FUNCTIONS ===========================================================
+
+
+--------------------------------------------------------------------------------
+-- Lookup Permissions For ------------------------------------------------------
+
+Translates command into legal permission type
+
+0: Command(s) or permission-partial-match(es)
+output: full list of those permissions, unique & sorted via setunion()
+
+(note: each entry can take only one of these; the multi-lookup is for listings)
+
+--
+
+&f.lookup.permissions.for Notes System=
+setunion( 
+	iter( %0, 
+		switch( %i0, 
+			views, public, 
+			notes, private, 
+			staffnotes, hidden, 
+			backgrounds, private, 
+			deleted, archived, 
+			grab( %0*, public private hidden archived )
+		)
+	), 
+)
+
+
+================================================================================
+== SQL =========================================================================
+
+(for CODP)
+&prefix.sql Notes System=sql.
+
+--
+
+Create a full history system, a la Wikipedia.
+
+Format:
+	sql.<filter style>
+	sql.<filter style>.<search for>
+
+e.g.:
+	sql.one-dbref : Pull all information from that dbref
+	sql.one-dbref.title-lookup : Search title for a particilar dbref ( player )
+
+--
+
+SQL DD:
+	target's guid (primary key)
+	editor's guid (primary key)
+	time (creation timestamp, primary key)
+	the complete new note, even if only edited (not null)
+	permissions (default: private)
+	approved by (guid)
+	locked by (guid)
+
+--
+
+Table SQL:
+
+DROP TABLE IF EXISTS mush_notes; 
+CREATE TABLE IF NOT EXISTS mush_notes
+( 
+  action          VARCHAR(255)  NOT NULL DEFAULT 'UNKNOWN', 
+  target_guid     VARCHAR(255)  NOT NULL, 
+  editor_guid     VARCHAR(255)  NOT NULL, 
+  time            TIMESTAMP     NOT NULL DEFAULT NOW(), 
+  title           VARCHAR(255)  NOT NULL, 
+  note            TEXT          NOT NULL, 
+  permission      VARCHAR(255)  NOT NULL DEFAULT 'private', 
+  approved_by     VARCHAR(255), 
+  locked_by       VARCHAR(255), 
+
+  PRIMARY KEY ( target_guid, editor_guid, time ), 
+  UNIQUE INDEX ( target_guid, title )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+
+Valid actions:
+
+	NEW - first instance
+	MOVE - 
+
+Future possible actions:
+	READ - use a different lookup table to record these
+
+	/write/chown/chmod/move/copy
+
+
+--------------------------------------------------------------------------------
+-- SQL: Transaction Start/Commit -----------------------------------------------
+
+&sql.transaction.start Notes System=
+	strcat( 
+		sql( START TRANSACTION ), 
+		sql( SET autocommit = 0 )
+	)
+
+--
+
+&sql.tranaction.commit Notes System=
+	strcat( 
+		sql( COMMIT ), 
+		sql( SET autocommit = 1 )
+	)
+
+
+--------------------------------------------------------------------------------
+-- SQL: Insert Note ------------------------------------------------------------
+
+Basic insert + optional approve + optional loc
+
+0: action
+1: editor dbref
+2: target dbref
+3: title
+4: note
+5: permission
+6: approved by this editor?
+7: locked by this editor?
+
+--
+
+&sql.insert Notes System=
+	INSERT INTO mush_notes 
+	VALUES ( 
+		'%0', 
+		'[u( .guid, %2 )]', 
+		'[u( .guid, %1)]', 
+		NOW(), 
+		'%3', 
+		'%4', 
+		'[if( t( %5 ), %5, private )]', 
+		[if( t( %6 ), '[u( .guid, %1 )]', NULL )], 
+		[if( t( %7 ), '[u( .guid, %1 )]', NULL )]
+	);
+
+--
+
+Sample population: 
+
+think sql( u( notes/sql.insert, NEW, %#, %#, Testing, This is a test ))
+think sql( u( notes/sql.insert, NEW, %#, %#, Wasting Away Again, In Margaritaville. ))
+think sql( u( notes/sql.insert, NEW, %#, %#, Looking for that, Lost shaker of salt., public, 1, 1 ))
+
+sample abandoned GUID:
+
+think sql( INSERT INTO mush_notes VALUES ( 'NEW', '%#:[secs( , 6 )]', '%#:[secs( , 6 )]', NOW(), 'Orphaned note', 'This note should belong to an orphaned GUID OBJID.', 'private', NULL, NULL ))
+
+
+--------------------------------------------------------------------------------
+-- SQL: List Notes for One Dbref -----------------------------------------------
+
+List of note titles from a specific person
+
+0: target dbref
+output: target (guid), editor (guid), time (secs), title (text), 
+        permission (text), approved_by (guid), locked_by guid
+
+(does not output the note text itself)
+
+--
+
+&sql.one-dbref Notes System=
+	SELECT 
+		target_guid, 
+		editor_guid, 
+		UNIX_TIMESTAMP( time ) AS time, 
+		title, 
+		permission, 
+		IF( IFNULL( approved_by, NULL ), approved_by, '' )
+			AS approved_by, 
+		IF( IFNULL( locked_by, NULL ), locked_by, '' ) AS locked_by 
+	FROM mush_notes 
+	WHERE target_guid = '[u( .guid, %0 )]'; 
+
+--
+
+think sql( u( notes/sql.one-dbref, %# ), |, ~ )
+
+
+--------------------------------------------------------------------------------
+-- SQL: List Notes for One Dbref (Filter Title) --------------------------------
+
+List of a specific person's notes, found by title match
+
+0: target dbref
+1: title partial name
+output: target (dbref), editor (dbref), time (secs), title (text), 
+         permission (text), approved_by (dbref), locked_by (dbref)
+
+(does not output the note text itself)
+
+--
+
+&sql.one-dbref.title-lookup Notes System=
+	SELECT 
+		target_guid, 
+		editor_guid, 
+		UNIX_TIMESTAMP( time ) AS time, 
+		title, 
+		permission, 
+		IF( IFNULL( approved_by, NULL ), approved_by, '' ) AS approved_by, 
+		IF( IFNULL( locked_by, NULL ), locked_by, '' ) AS locked_by 
+	FROM mush_notes 
+	WHERE 
+		target_guid = '[u( .guid, %0 )]' AND 
+		title LIKE '%1\\\%'
+	ORDER BY title ASC;
+
+--
+
+think sql( u( notes/sql.one-dbref.title-lookup , %#, Wasting ), |, ~ )
+think u( notes/sql.one-dbref.title-lookup , %#, Wasting )
+
+
+--------------------------------------------------------------------------------
+-- SQL: Get Notes Text using Primary Key ---------------------------------------
+
+Get the text of a specific note
+
+0: target dbref
+1: editor dbref
+2: timestamp
+(these are primary key)
+
+output: note text
+
+--
+
+&sql.primary_key.note_text Notes System=
+	SELECT note 
+	FROM mush_notes 
+	WHERE 
+		target_guid = '[u( .guid, %0 )]' AND 
+		editor_guid = '[u( .guid, %1 )]' AND 
+		time = FROM_UNIXTIME( '%2' ); 
+
+--
+
+think sql( u( notes/sql.primary_key.note_text, %#, %#, 1412719601 ), |, ~ )
+
+
+--------------------------------------------------------------------------------
+-- SQL: Get Everything using Primary Key ---------------------------------------
+
+Get the text of a specific note
+
+0: target dbref
+1: editor dbref
+2: timestamp (aka primary key)
+
+output: target (dbref), editor (dbref), time (secs), 
+        target_created (secs), title (text), note (text), 
+        permission (text), approved_by (dbref), locked_by (dbref)
+
+--
+
+&sql.primary_key.everything Notes System=
+	SELECT 
+		target_guid, 
+		editor_guid, 
+		UNIX_TIMESTAMP( time ) AS time, 
+		title, 
+		note, 
+		permission, 
+		IF( IFNULL( approved_by, NULL ), approved_by, '' ) AS approved_by, 
+		IF( IFNULL( locked_by, NULL ), locked_by, '' ) AS locked_by 
+	FROM mush_notes 
+	WHERE 
+		target_guid = '[u( .guid, %0 )]' AND 
+		editor_guid = '[u( .guid, %1 )]' AND 
+		time = FROM_UNIXTIME( '%2' ); 
+
+--
+
+think sql( u( notes/sql.primary_key.everything, %#, %#, 1412719601 ), ~, | )
+
+
+--------------------------------------------------------------------------------
+-- SQL: Orphaned GUID ----------------------------------------------------------
+
+List abandoned 'dbref + creation date' GUIDs based on a single dbref.
+
+0: target dbref
+
+--
+
+&sql.one_dbref.orphaned_guid Notes System=
+	SELECT DISTINCT target_guid 
+	FROM mush_notes 
+	WHERE 
+		target_guid LIKE '%0:\\\%' AND 
+		target_guid NOT LIKE '[u( .guid, %0 )]'; 
+
+--
+
+think sql( u( notes/sql.one_dbref.orphaned_guid, #7 ))
+
+think search( eval=t( sql( u( notes/sql.one_dbref.orphaned_guid, ## ))))
+
+
+
+================================================================================
+== DISPLAYS ====================================================================
+
+Various outputs.
+
+(for CODP)
+&prefix.displays Notes System=display.
+
+
+--------------------------------------------------------------------------------
+-- DISPLAY: List Of Notes ------------------------------------------------------
+
+0: list of notes/note details in the 'sql.one-dbref' format.
+1: Header text
+2: Fail text (if any)
+
+--
+
+&display.list-notes Notes System=
+
+	if( t( %0 ), 
+
+@@ >> Display items
+		strcat( 
+			list( 1, u( .header, %1 )), 
+			list( 
+				%0, 
+				elements( %i0, 4, | ), 
+				:
+			), 
+			list( 1, u( .footer, words( %0, : )))
+		), 
+
+@@ >> Nothing to display (default msg)
+		u( .notice, if( t( %2 ), %2, Nothing to display ))
+	)
+
+
+--------------------------------------------------------------------------------
+-- DISPLAY: One Note -----------------------------------------------------------
+
+	think u( notes/display.one-note, #1003|#1003|1326417155 )
+
+0: primary key (#target|#editor|time-in-secs)
+  (we do it like this so we can extract primary key from, say, keyword search)
+  (a cheap 'join')
+
+The | delimiter is for legibility only.
+
+--
+
+&display.one-note Notes System=
+
+strcat( 
+	setq( q, 
+		sql( 
+			u( sql.primary_key.everything, 
+				elements( %0, 1, | ), 
+				elements( %0, 2, | ), 
+				elements( %0, 3, | )
+			), 
+			~, 
+			|
+		)
+	), 
+
+	case( 0, 
+		eq( words( %qq, ~ ), 1 ), 
+		u( .notice, Primary key passed to 'display one note' was not unique. ), 
+
+@@ Display!
+		strcat( 
+			u( .header, 
+				[elements( %qq, 4, | )] 
+				(on [name( first( elements( %qq, 1, | ), : ))])
+			), %r, 
+
+			NAME:%b, elements( %qq, 4, | ), %r
+			EDITED BY:%b, name( first( elements( %qq, 2, | ), : )), %r, 
+			LAST EDIT:%b, convsecs( elements( %qq, 3, | )), %r, 
+			PERMISSIONS:%b, elements( %qq, 6, | ), %r, 
+			APPROVED BY:%b, elements( %qq, 7, | ), %r, 
+			LOCKED BY:%b, elements( %qq, 8, | ), %r, 
+			TEXT:%b, elements( %qq, 5, | ), %r, 
+		
+			u( .footer, elements( %qq, 6, | ))
+		)
+	)
+)
+
+--
+
+think u( notes/display.one-note, %#|%#|1412719601 )
+
+
+
+================================================================================
+== CROSS-PLATFORM CODE =========================================================
+
+Code which will probably be different from game to game.
+
+(for CODP)
+&prefix.cross_platform Notes System=.
+
+--
+
+&.header Notes System=wheader( %0 )
+&.footer Notes System=wfooter( %0 )
+&.divider Notes System=wdivider( %0 )
+
+&.notice Notes System=[ansi( xh, notes: )] %0
+&.isstaff Notes System=isstaff( %0 )
+&.guid Notes System=strcat( num( %0 ), :, convtime( get( %0/created ), , 6 ))
+
+@@ guid == objid == <dbref>:<created timestamp in seconds>
+
+&f.validate.guid Notes System=strmatch( %1, u( .guid, %0 ))
+
+&.sqlescape Notes System=edit( edit( edit( edit( %0, \\, \\\\ ), ', \\' ), ", \\" ), \%, \\\\\% )
