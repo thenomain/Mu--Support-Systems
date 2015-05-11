@@ -47,8 +47,8 @@ Notes Setter <ns>
 &F.ABOUT-TARGET Notes Setter <ns>=
 	case( 1, 
 		t( pmatch( %0 )), pmatch( %0 ), 
-		strmatch( %0, me ), pmatch( %1 ), 
-		strmatch( %0, here ), loc( %1 ), 
+		strmatch( %0, me ), %#, 
+		strmatch( %0, here ), loc( %# ), 
 		t( objeval( %#, num( %0 ))), objeval( %#, num( %0 )), 
 		#-1 
 	)
@@ -68,7 +68,8 @@ Notes Setter <ns>
 == FORMAT/DISPLAY ==============================================================
 */
 
-&FORMAT.NOTE Notes Setter <ns>=wrap( s( %0 ), dec( width( %# )))
+&FORMAT.NOTE Notes Setter <ns>=
+	wrap( s( edit( %0, \[, \\\[, \], \\\] )), dec( width( %# )))
 &FORMAT.STAMP Notes Setter <ns>=%0
 &FORMAT.MAKESTAMP Notes Setter <ns>=%N %(%#%) [time( )]
 
@@ -212,7 +213,7 @@ Ahh, mistress system, how we adore thee.
 
 &C.NOTE/VIEW Notes Setter <ns>=
 	strcat( 
-		setq( d, u( f.about-target, trim( first( %0, / )), %# )), 
+		setq( d, u( f.about-target, trim( first( %0, / )))), 
 		setq( n, edit( trim( rest( %0, / )), %b, _ )), 
 		case( 0, 
 			cor( 
@@ -276,23 +277,26 @@ Ahh, mistress system, how we adore thee.
 		setq( s, u( format.makestamp )), 
 
 		case( 0, 
-			strlen( %qc ), 
-			u( .msg, note, Must have a category ), 
-
-			strlen( %qt ), 
-			u( .msg, note, Must have a title ), 
-
-			strlen( %qn ), 
-			u( .msg, note, Must have content ), 
-
 			cor( 
 				isstaff( %# ), 
 				strmatch( %#, owner( %qd ))
 			), 
-			u( .msg, note, 
+			u( .msg, note/add, 
 				You may add notes only to yourself and your own 
 				objects and rooms 
 			), 
+
+			t( %qd ), 
+			u( .msg, note/add, Can't find that target ), 
+
+			strlen( %qc ), 
+			u( .msg, note/add, Must have a category ), 
+
+			strlen( %qt ), 
+			u( .msg, note/add, Must have a title ), 
+
+			strlen( %qn ), 
+			u( .msg, note/add, Must have content ), 
 
 			not( words( 
 				setdiff( 
@@ -300,15 +304,15 @@ Ahh, mistress system, how we adore thee.
 					ucstr( _NOTE~%qc~%qt )
 				)
 			)), 
-			u( .msg, note, 
+			u( .msg, note/add, 
 				That note name exists under a different category%; 
 				please choose different name
 			), 
 
-			t( first( get( %qd/_NOTE~%qc~%qt ), ~ )), 
-			u( .msg, note, 
-				That note name exists as a an approved note 
-				and cannot be overwritten 
+			not( first( get( %qd/_NOTE~%qc~%qt ), ~ )), 
+			u( .msg, note/add, 
+				That note name exists as an approved note 
+				and cannot be overwritten
 			), 
 
 			strcat( 
@@ -377,43 +381,44 @@ Ahh, mistress system, how we adore thee.
 				isstaff( %# ), 
 				strmatch( %#, owner( %qd ))
 			), 
-			u( .msg, note, 
+			u( .msg, note/delete, 
 				You may delete notes only to yourself and your own 
 				objects and rooms 
 			), 
 
 			t( lattr( %qd/_note~* )), 
-			u( .msg, note, Target has no notes ), 
+			u( .msg, note/delete, Target has no notes ), 
 
 			lte( words( %ql ), 1 ), 
-			u( .msg, note, 
+			u( .msg, note/delete, 
 				More than one note matches that name%; please be more specific 
 			), 
 
 			gte( words( %ql ), 1 ), 
-			u( .msg, note, A note by that name could not be found ), 
+			u( .msg, note/delete, A note by that name could not be found ), 
 			
 			cor( isstaff( %# ), not( u( f.approved-note, %qd, %ql ))), 
-			u( .msg, note, 
+			u( .msg, note/delete, 
 				You may not delete that note because it has been approved and 
 				locked by a staff member
 			), 
 
 			comp( %qy, ), 
-			u( .msg, note, 
+			u( .msg, note/delete, 
 				WARNING: You are about to delete the note: 
 				[titlestr( last( edit( %ql, _, %b ), ~ ))]%r
 				[space( 5 )] If you are sure%, type: `note/delete %0=YES 
 			), 
 
 			not( t( comp( %qy, YES ))), 
-			u( .msg, note, 
+			u( .msg, note/delete, 
 				If you want to delete the note%, you need to use YES
 			), 
 
 			strcat( 
 				wheader( 
-					DELETING [name( %qd )]'s Note: [u( format.title, %ql )] 
+					DELETING [name( %qd )]'s Note: 
+					[u( format.title, rest( %ql, ~ ))] 
 				), %r, 
 				u( format.note, extract( u( %qd/%ql ), 3, 1, ~ )), %r, 
 				wfooter( u( format.stamp, extract( u( %qd/%ql ), 2, 1, ~ ))), 
@@ -421,6 +426,7 @@ Ahh, mistress system, how we adore thee.
 			)
 		)
 	)
+
 
 /*
 --------------------------------------------------------------------------------
@@ -438,16 +444,16 @@ Ahh, mistress system, how we adore thee.
 		case( 0, 
 
 			cor( not( strlen( %1 )), not( comp( %1, ! ))), 
-			u( .msg, note, To undark%, ! must be passed ), 
+			u( .msg, note/dark, To undark%, ! must be passed ), 
 
 			isstaff( %# ), 
-			u( .msg, note, Only staff can set notes %1dark. ), 
+			u( .msg, note/dark, Only staff can set notes %1dark. ), 
 
 			t( lattr( %qd/_note~* )), 
-			u( .msg, note, Target has no notes ), 
+			u( .msg, note/dark, Target has no notes ), 
 
 			lte( words( %ql ), 1 ), 
-			u( .msg, note, 
+			u( .msg, note/dark, 
 				More than one note matches that name%; please be more specific 
 			), 
 
@@ -455,7 +461,7 @@ Ahh, mistress system, how we adore thee.
 			Error: A note by that name could not be found., 
 			strcat( 
 				set( %qd/%ql, %1hidden ), 
-				u( .msg, note, 
+				u( .msg, note/dark, 
 					strcat( 
 						Set, %b, name( %qd ), 's, %b, 
 						u( format.title, %ql ), %b, %1dark..., %b, 
@@ -492,18 +498,18 @@ Ahh, mistress system, how we adore thee.
 
 		case( 0, 
 			cor( not( strlen( %1 )), not( comp( %1, ! ))), 
-			u( .msg, note, To unapprove%, ! must be passed ), 
+			u( .msg, note/approve, To unapprove%, ! must be passed ), 
 
 			isstaff( %# ), 
-			u( .msg, note, Only staff can %1approve notes ), 
+			u( .msg, note/approve, Only staff can %1approve notes ), 
 
 			lte( words( %ql ), 1 ), 
-			u( .msg, note, 
+			u( .msg, note/approve, 
 				More than one note matches that name%; please be specific 
 			), 
 
 			gte( words( %ql ), 1 ), 
-			u( .msg, note, A note by that name could not be found ), 
+			u( .msg, note/approve, A note by that name could not be found ), 
 
 			strcat( 
 				if( strmatch( %1, ! ), 
@@ -519,7 +525,7 @@ Ahh, mistress system, how we adore thee.
 						[extract( get( %qd/%ql ), 3, 1, ~ )] 
 					)
 				), 
-				u( .msg, note, 
+				u( .msg, note/approve, 
 					Set [name( %qd )]'s [u( format.title, %ql )] %1approved 
 				), 
 			)
@@ -564,28 +570,28 @@ Ahh, mistress system, how we adore thee.
 
 		case( 0, 
 			t( %qd ), 
-			u( .msg, note, Could not find that target ), 
+			u( .msg, note/show, Could not find that target ), 
 
 			cor( 
 				isstaff( %# ), 
 				strmatch( %#, owner( %qd ))
 			), 
-			u( .msg, note, 
+			u( .msg, note/show, 
 				You may show notes only from yourself and your own 
 				objects and rooms 
 			), 
 
 			lte( words( %ql ), 1 ), 
-			u( .msg, note, 
+			u( .msg, note/show, 
 				More than one note matches that name%; 
 				please be more specific 
 			), 
 
 			gte( words( %ql ), 1 ), 
-			u( .msg, note, A note by that name could not be found ), 
+			u( .msg, note/show, A note by that name could not be found ), 
 
 			t( %qs ), 
-			u( .msg, note, 
+			u( .msg, note/show, 
 				The 'to list' must be valid player names or aliases 
 				in a comma-separated list 
 			), 
@@ -653,33 +659,33 @@ Ahh, mistress system, how we adore thee.
 
 		case( 0, 
 			cor( isstaff( %# ), strmatch( %#, owner( %qd ))), 
-			u( .msg, note, 
+			u( .msg, note/move, 
 				You may move notes only on yourself and your own 
 				objects and rooms 
 			), 
 
 			t( lattr( %qd/_note~* )), 
-			u( .msg, note, Target has no notes ), 
+			u( .msg, note/move, Target has no notes ), 
 
 			lte( words( %ql ), 1 ), 
-			u( .msg, note, 
+			u( .msg, note/move, 
 				More than one note matches that name%; please be more specific 
 			), 
 
 			gte( words( %ql ), 1 ), 
-			u( .msg, note, A note by that name could not be found ), 
+			u( .msg, note/move, A note by that name could not be found ), 
 
 			cor( isstaff( %# ), not( u( f.approved-note, %qd, %ql ))), 
-			u( .msg, note, Only staff may move an approved note ), 
+			u( .msg, note/move, Only staff may move an approved note ), 
 
 			strlen( %qc ), 
-			u( .msg, note, Must have a new category ), 
+			u( .msg, note/move, Must have a new category ), 
 
 			strlen( %qt ), 
-			u( .msg, note, Must have a new title ), 
+			u( .msg, note/move, Must have a new title ), 
 
 			not( hasattr( %qd, _NOTE~%qc~%qt )), 
-			u( .msg, note, You can't move a note on top of another note ), 
+			u( .msg, note/move, You can't move a note on top of another note ), 
 
 			not( words( 
 				setdiff( 
@@ -687,7 +693,7 @@ Ahh, mistress system, how we adore thee.
 					cat( ucstr( _NOTE~%qc~%qt ), %ql )
 				)
 			)), 
-			u( .msg, note, 
+			u( .msg, note/move, 
 				That note name exists under a different category%; 
 				please choose different name
 			), 
