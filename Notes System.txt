@@ -485,6 +485,104 @@ Ahh, mistress system, how we adore thee.
 &C.NOTE/!DARK Notes Setter <ns>=u( c.note/dark, %0, ! )
 
 
+/* 
+--------------------------------------------------------------------------------
+-- Switch: Staffnote -----------------------------------------------------------
+
+Merges '/add' and '/dark' into one command.
+
+*/
+
+&c.note/staffnote [v( d.ns )]=
+	strcat( 
+		setq( x, first( %0, = )), 
+		setq( y, rest( %0, = )), 
+		setq( d, u( f.about-target, first( %qx, / ))), 
+		setq( c, trim( rest( %qx, / ))), 
+		setq( t, trim( first( %qy, / ))), 
+		setq( n, trim( rest( %qy, / ))), 
+
+		setq( t, u( f.scrub-name, edit( %qt, %b, _  ))), 
+		setq( c, if( t( %qc ), u( f.scrub-name, edit( %qc, %b, _ )), general )), 
+		setq( s, u( format.makestamp )), 
+
+		case( 0, 
+			isstaff( %# ), 
+			u( .msg, note/staffnote, Staff only ), 
+
+			t( %qd ), 
+			u( .msg, note/staffnote, Can't find that target ), 
+
+			strlen( %qc ), 
+			u( .msg, note/staffnote, Must have a category ), 
+
+			strlen( %qt ), 
+			u( .msg, note/staffnote, Must have a title ), 
+
+			strlen( %qn ), 
+			u( .msg, note/staffnote, Must have content ), 
+
+			not( words( 
+				setdiff( 
+					lattr( %qd/_NOTE~*~%qt ), 
+					ucstr( _NOTE~%qc~%qt )
+				)
+			)), 
+			u( .msg, note/staffnote, 
+				That note name exists under a different category%; 
+				please choose different name
+			), 
+
+			not( first( get( %qd/_NOTE~%qc~%qt ), ~ )), 
+			u( .msg, note/staffnote, 
+				That note name exists as an approved note 
+				and cannot be overwritten
+			), 
+
+			strcat( 
+				wheader( strcat( 
+					ADDING DARK (staffnote), %b, name( %qd ), 's Note:, %b, 
+					titlestr( [edit( %qc, _, %b )] / [edit( %qt, _, %b )] )
+				)), %r, 
+
+				if( hasattr( %qd, _note~%qc~%qt ), 
+					strcat( 
+						wdivider( 
+							Old Value%, 
+							[u( format.stamp, 
+								u( f.note.stamp, %qd, %qc, %qt )
+							)] 
+						), %r, 
+						u( format.note, u( f.note.get, %qd, %qc, %qt )), %r, 
+						wdivider( New Value ), %r 
+					)
+				), 
+
+				if( 
+					strmatch( 
+						setr( e, set( %qd, _NOTE~%qc~%qt:~%qs~%qn )), 
+						#-* 
+					), 
+					%b ERROR WHILE SETTING: %qe%r, 
+					u( format.note, %qn )
+				), %r, 
+
+				if( 
+					strmatch( setr( e, set( %qd/_NOTE~%qc~%qt, hidden )), #-* ), 
+					%b ERROR WHILE DARKENING: %qe%r
+				), 
+
+				if( 
+					not( hasflag( %qd/_NOTE~%qc~%qt, hidden )), 
+					%b NOTE NOT DARK%r
+				), 
+
+				wfooter( u( format.stamp, %qs )), 
+			)
+		)
+	)
+
+
 /*
 --------------------------------------------------------------------------------
 -- Switch: [!]Approve ----------------------------------------------------------
