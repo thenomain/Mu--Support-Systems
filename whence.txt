@@ -1,4 +1,5 @@
-## @WHENCE #####
+/*
+@whence
 
 @whence is a soft-coded system of locating commands. This is good for 
 Master Rooms with far too many objects in it, or games with far too much code.
@@ -12,6 +13,7 @@ The copy-paste version is at the end.
 
 ================================================================================
 == SETUP =======================================================================
+*/
 
 
 @create Whence command object=10
@@ -22,16 +24,27 @@ The copy-paste version is at the end.
 
 
 
+/*
+================================================================================
+== DOT FUNCTIONS ===============================================================
+*/
+
+&.plural Whence command object=if( strmatch( %0, *s ), %1, %2 )
+&.msg Whence command object=ansi( h, <%0>, n, %b%1 )
+
+
+
+/*
 ================================================================================
 == COMMANDS ====================================================================
 
 Requires:
 	wheader(), wfooter(), wdivider() - Width-sensitive versions of the usual
-	plural() - determines which of a singular-or-plural to display
 
 
 --------------------------------------------------------------------------------
 -- Main Command ----------------------------------------------------------------
+*/
 
 &CMD_WHENCE Whence command object=$@whence *:
 	think setq( h, 
@@ -46,7 +59,7 @@ Requires:
 		)))
 	); 
 
-	@assert words( %qh )=@pemit %#=msg( h, @whence, No commands match. ); 
+	@assert words( %qh )=@pemit %#=u( .msg, @whence, No commands match. ); 
 
 	@pemit %#=wheader( @whence command matches ); 
 	
@@ -83,28 +96,31 @@ Requires:
 	@pemit %#=wfooter( 
 		cat( 
 			words( %qh ), 
-			plural( words( %qh ), match, matches )
+			u( .plural, words( %qh ), match, matches )
 		)
 	)
 
---
+// --
 
 @set Whence command object/CMD_WHENCE = no_parse
 
 
+/*
 --------------------------------------------------------------------------------
 -- Command Objects -------------------------------------------------------------
 
 A quick way to get which objects are parsing for you. For troubleshooting.
 
---
+*/
 
-&CMD_CMDOBJS Whence command object=$+cmdobjs:@pemit %#=u(fn_get_objects)
+&CMD_CMDOBJS Whence command object=$+cmdobjs:@pemit %#=u( fn_get_objects )
 
 
 
+/*
 ================================================================================
 == FORMATTED OUTPUTS ===========================================================
+*/
 
 &LINE_MATCH Whence command object=
 	strtrunc( 
@@ -126,11 +142,14 @@ A quick way to get which objects are parsing for you. For troubleshooting.
 
 
 
+/*
 ================================================================================
 == SUPPORT FUNCTIONS ===========================================================
 
+
 --------------------------------------------------------------------------------
 -- Which Objects To Scan -------------------------------------------------------
+*/
 
 &FN_GET_OBJECTS Whence command object=
 	trim( squish( 
@@ -152,9 +171,10 @@ A quick way to get which objects are parsing for you. For troubleshooting.
 	))
 
 
-
+/*
 --------------------------------------------------------------------------------
 -- Check Object For Command ----------------------------------------------------
+*/
 
 &FN_CHECK_OBJECT_FOR_COMMAND Whence command object=
 	if( 
@@ -169,7 +189,7 @@ A quick way to get which objects are parsing for you. For troubleshooting.
 					setq( f, lflags( %0/%i0 )), 
 					setq( v, get( %0/%i0 )), 
 					switch( 1, 
-@@ .. a number of instances to avoid showing the command
+// .. a number of instances to avoid showing the command
 						match( %qf, NO_COMMAND ), , 
 						and( 
 							match( %qf, HIDDEN ), 
@@ -183,13 +203,13 @@ A quick way to get which objects are parsing for you. For troubleshooting.
 							))
 						), , 
 						not( regmatch( %qv, ^%[$%](%[^:%]+):, -1 m )), , 
-@@ .. different check if case-sensitive regexp
+// .. different check if case-sensitive regexp
 						match( %qf, REGEXP ), 
 						if( match( %qf, CASE ), 
 							if( regmatchi( %1, %qm ), %0/%i0 ), 
 							if( regmatch( %1, %qm ), %0/%i0 )
 						), 
-@@ .. otherwise normal successful match
+// .. otherwise normal successful match
 						strmatch( %1, %qm ), %0/%i0 
 					)
 				)
@@ -199,40 +219,53 @@ A quick way to get which objects are parsing for you. For troubleshooting.
 
 
 
-
-
+/*
 ================================================================================
 == LISTS =======================================================================
+*/
 
-&LIST_NEVER_CHECK Whence command object=desc idesc odesc fail ofail succ osucc drop odrop sex charges created modified last quota rquota logindata lastsite lastip alias reason conninfo mailcurf moniker mailflags adesc aconnect startup nameformat descformat conformat exitformat listen
+&LIST_NEVER_CHECK Whence command object=desc idesc odesc fail ofail succ osucc 
+	drop odrop sex charges created modified last quota rquota logindata lastsite 
+	lastip alias reason conninfo mailcurf moniker mailflags adesc aconnect 
+	startup nameformat descformat conformat exitformat listen
 
-&LIST_BUILTINS Whence command object=@@ @backup @dbck @dump @mark_all @readcache @restart @startslave @timecheck clearcom info inventory leave logout quit report score version @apply_marked @boot @ccreate @cdestroy @clist @cut @cwho @destroy @disable @doing @emit @enable @entrances @eval @find @halt @kick @last @list @list_file @listmotd @mark @motd @nemit @ps @quitprogram @search @shutdown @stats @sweep @timewarp @unlink @unlock @wall @wipe allcom comlist delcom doing drop enter examine get goto look outputprefix outputsuffix pose puebloclient say session think train use who @admin @alias @assert @break @cboot @ccharge @cchown @cemit @chown @chownall @chzone @clone @coflags @cpflags @create @cset @decompile @dolist @drain @email @femit @folder @force @forwardlist @fpose @fsay @link @lock @log @mail @malias @moniker @name @newpassword @notify @npemit @oemit @parent @password @pcreate @pemit @power @program @query @quota @reference @robot @rxlevel @set @teleport @txlevel @toad @wait addcom comtitle give page slay whisper @cpattr @dig @edit @if @mvattr @open @switch @trigger @verb DOING LOGOUT OUTPUTPREFIX OUTPUTSUFFIX QUIT SESSION WHO PUEBLOCLIENT INFO
+&LIST_BUILTINS Whence command object=@@ @backup @dbck @dump @mark_all @readcache 
+	@restart @startslave @timecheck clearcom info inventory leave logout quit 
+	report score version @apply_marked @boot @ccreate @cdestroy @clist @cut 
+	@cwho @destroy @disable @doing @emit @enable @entrances @eval @find @halt 
+	@kick @last @list @list_file @listmotd @mark @motd @nemit @ps @quitprogram 
+	@search @shutdown @stats @sweep @timewarp @unlink @unlock @wall @wipe allcom 
+	comlist delcom doing drop enter examine get goto look outputprefix 
+	outputsuffix pose puebloclient say session think train use who @admin @alias 
+	@assert @break @cboot @ccharge @cchown @cemit @chown @chownall @chzone 
+	@clone @coflags @cpflags @create @cset @decompile @dolist @drain @email 
+	@femit @folder @force @forwardlist @fpose @fsay @link @lock @log @mail 
+	@malias @moniker @name @newpassword @notify @npemit @oemit @parent @password 
+	@pcreate @pemit @power @program @query @quota @reference @robot @rxlevel 
+	@set @teleport @txlevel @toad @wait addcom comtitle give page slay whisper 
+	@cpattr @dig @edit @if @mvattr @open @switch @trigger @verb DOING LOGOUT 
+	OUTPUTPREFIX OUTPUTSUFFIX QUIT SESSION WHO PUEBLOCLIENT INFO
 
 
 
+
+/*
 ################################################################################
 ## COPY-PASTE VERSION ##########################################################
-
-@@ Because you just want the code
+(Because you just want the code.)
 
 @create Whence command object=10
-
 @set Whence command object=INHERIT SAFE
-
 @fo me=@VA Whence command object=[num( Whence command object )]
-
-&CMD_WHENCE Whence command object=$@whence *:think setq( h, trim( squish( cat( if( setinter( first( first( %0 ), / ), get( %va/list_builtins )), builtin ), iter( ulocal( %va/fn_get_objects ), ulocal( %va/fn_check_object_for_command, %i0, %0 )))))); @assert words( %qh )=@pemit %#=msg( h, @whence, No commands match. ); @pemit %#=wheader( @whence command matches ); think list( %qh, if( strmatch( %i0, builtin ), %t(builtin), u( %va/line_match, first( %i0, / ), strcat( first( stripansi( name( first( %i0, / ))), < ), if( strlen( flags( first( %i0, / ))), ansi( hy, strcat( %b%(, flags( first( %i0, / ))%))))), strcat( rest( %i0, / ), if( strlen( flags( %i0 )), ansi( hy, strcat( %b%(, flags( %i0 )%))))), rest( first( get( %i0 ), : ), $ )))); @pemit %#=wfooter( cat( words( %qh ), plural( words( %qh ), match, matches )))
-
-@set Whence command object/CMD_WHENCE = no_parse
-
+&.plural Whence command object=if( strmatch( %0, *s ), %1, %2 )
+&.msg Whence command object=ansi( h, <%0>, n, %b%1 )
+&CMD_WHENCE Whence command object=$@whence *:think setq( h, trim( squish( cat( if( setinter( first( first( %0 ), / ), get( %va/list_builtins )), builtin ), iter( ulocal( %va/fn_get_objects ), ulocal( %va/fn_check_object_for_command, %i0, %0 )))))); @assert words( %qh )=@pemit %#=u( .msg, @whence, No commands match. ); @pemit %#=wheader( @whence command matches ); think list( %qh, if( strmatch( %i0, builtin ), %t(builtin), u( %va/line_match, first( %i0, / ), strcat( first( stripansi( name( first( %i0, / ))), < ), if( strlen( flags( first( %i0, / ))), ansi( hy, strcat( %b%(, flags( first( %i0, / ))%))))), strcat( rest( %i0, / ), if( strlen( flags( %i0 )), ansi( hy, strcat( %b%(, flags( %i0 )%))))), rest( first( get( %i0 ), : ), $ )))); @pemit %#=wfooter( cat( words( %qh ), u( .plural, words( %qh ), match, matches )))
+@set Whence command object/CMD_WHENCE=no_parse
+&CMD_CMDOBJS Whence command object=$+cmdobjs:@pemit %#=u( fn_get_objects )
 &LINE_MATCH Whence command object=strtrunc( cat( rjust( %0, 7 ), ljust( %1%b, div( mul( sub( width( %# ), 10 ), 1 ), 2 ), ansi( hx, . )), ljust( %2%b, div( mul( sub( width( %# ), 10 ), 1 ), 3 ), ansi( hx, . )), %3 ), width( %# ))
-
-&CMD_CMDOBJS Whence command object=$+cmdobjs:@pemit %#=u(fn_get_objects)
-
 &FN_GET_OBJECTS Whence command object=trim( squish( iter( cat( %#, lcon( %# ), loc( %# ), lcon( loc( %# )), config( master_room ), lcon( config( master_room ))), switch( 1, strmatch( %i0, %# ), %i0, strmatch( type( %i0 ), PLAYER ), , %i0 ))))
-
 &FN_CHECK_OBJECT_FOR_COMMAND Whence command object=if( not( orflags( %0, nhG )), trim( squish( iter( setdiff( lcstr( lattrp( %0 )), lcstr( get( %va/list_never_check ))), strcat( setq( f, lflags( %0/%i0 )), setq( v, get( %0/%i0 )), switch( 1, match( %qf, NO_COMMAND ), , and( match( %qf, HIDDEN ), not( orflags( %#, WZ ))), , and( match( %qf, PRIVATE ), not( or( orflags( %#, W ), strmatch( owner( %0/%i0 ), %# )))), , not( regmatch( %qv, ^%[$%](%[^:%]+):, -1 m )), , match( %qf, REGEXP ), if( match( %qf, CASE ), if( regmatchi( %1, %qm ), %0/%i0 ), if( regmatch( %1, %qm ), %0/%i0 )), strmatch( %1, %qm ), %0/%i0 ))))))
-
 &LIST_NEVER_CHECK Whence command object=desc idesc odesc fail ofail succ osucc drop odrop sex charges created modified last quota rquota logindata lastsite lastip alias reason conninfo mailcurf moniker mailflags adesc aconnect startup nameformat descformat conformat exitformat listen
+&LIST_BUILTINS Whence command object=@@ @backup @dbck @dump @mark_all @readcache @restart @startslave @timecheck clearcom info inventory leave logout quit report score version @apply_marked @boot @ccreate @cdestroy @clist @cut @cwho @destroy @disable @doing @emit @enable @entrances @eval @find @halt @kick @last @list @list_file @listmotd @mark @motd @nemit @ps @quitprogram @search @shutdown @stats @sweep @timewarp @unlink @unlock @wall @wipe allcom comlist delcom doing drop enter examine get goto look outputprefix outputsuffix pose puebloclient say session think train use who @admin @alias @assert @break @cboot @ccharge @cchown @cemit @chown @chownall @chzone @clone @coflags @cpflags @create @cset @decompile @dolist @drain @email @femit @folder @force @forwardlist @fpose @fsay @link @lock @log @mail @malias @moniker @name @newpassword @notify @npemit @oemit @parent @password @pcreate @pemit @power @program @query @quota @reference @robot @rxlevel @set @teleport @txlevel @toad @wait addcom comtitle give page slay whisper @cpattr @dig @edit @if @mvattr @open @switch @trigger @verb DOING LOGOUT OUTPUTPREFIX OUTPUTSUFFIX QUIT SESSION WHO PUEBLOCLIENT INFO
 
-&LIST_BUILTINS Whence command object=@@ @backup @dbck @dump @mark_all @readcache @restart @startslave @timecheck clearcom info inventory leave logout quit report score version @apply_marked @boot @ccreate @cdestroy @clist @cut @cwho @destroy @disable @doing @emit @enable @entrances @eval @find @halt @kick @last @list @list_file @listmotd @mark @motd @nemit @ps @quitprogram @search @shutdown @stats @sweep @timewarp @unlink @unlock @wall @wipe allcom comlist delcom doing drop enter examine get goto look outputprefix outputsuffix pose puebloclient say session think train use who @admin @alias @assert @break @cboot @ccharge @cchown @cemit @chown @chownall @chzone @clone @coflags @cpflags @create @cset @decompile @dolist @drain @email @femit @folder @force @forwardlist @fpose @fsay @link @lock @log @mail @malias @moniker @name @newpassword @notify @npemit @oemit @parent @password @pcreate @pemit @power @program @query @quota @reference @robot @rxlevel @set @teleport @txlevel @toad @wait addcom comtitle give page slay whisper @cpattr @dig @edit @if @mvattr @open @switch @trigger @verb DOING LOGOUT OUTPUTPREFIX OUTPUTSUFFIX QUIT SESSION WHO PUEBLOCLIENT INFO +help 
+*/
