@@ -327,8 +327,8 @@ vs.
 // -----------------------------------------------------------------------------
 // -- Switch: Build ------------------------------------------------------------
 
-&d.code.bucket jrs=CODE
-&d.code.jgroup jrs=+code
+&d.build.bucket jrs=BUILD
+&d.build.jgroup jrs=+build
 
 &d.build.msg jrs=u( display.generic_msg, %0, build )
 

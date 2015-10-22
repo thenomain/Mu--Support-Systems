@@ -1,18 +1,18 @@
+/*
 ================================================================================
 == PLANNING: Setting Up Places =================================================
 
 The owner of a location should be able to set up places there, but the concept 
-of "owner" is sometimes an iffy one.  Some games prefer that staff own all 
+of "owner" is sometimes an iffy one. Some games prefer that staff own all 
 public hangouts, for example, even though a noncharbit has administrative 
 control over it.
 
 We'll store everything, including this optional 'places owner' lock, on a set of 
-room attributes prefixed &places.* & keep controlled information locked to the 
-places object.
+room attributes prefixed `&places.*` and keep controlled information locked to 
+the places object.
 
 	places.<num>.details: <name>|<spaces>|<description>
-	places.<num>.notices: 
-		<say prefix>|<join>|<ojoin>|<depart>|<odepart>
+	places.<num>.notices: <say prefix>|<join>|<ojoin>|<depart>|<odepart>
 	places.<num>.occupancy: <who's there>
 
 (If 'spaces' is 0, no limit.)
@@ -22,21 +22,21 @@ If we get this far, lock to the places system object:
 	places.administrators: <list of people who can set up places here>
 
 User-defined commands we'll need:
-(If your game does not have one of these, look for "&f.funcname")
+(If your game does not have one of these, look for `&.<funcname>`)
 
-	isstaff(<player>) - return '1' if player has staff access
-	lmin(<list> [, <delimiter>]) - min() with delimiter
+	isstaff( <player> ) - return '1' if player has staff access
+	lmax( <list> [, <delimiter>] ) - max() with delimiter
+	lmin( <list> [, <delimiter>] ) - min() with delimiter
 
-	header(<text>) - game's default command header
-	footer(<text>) - game's default command footer
+	header( <text> ) - game's default command header
+	footer( <text> ) - game's default command footer
 	divider() - minor divider
 	wheader(), wdivider(), wfooter() - A width()-friendly version of the above
 
-	alert(<test>) - prefix for informational alerts
-	msg(<ansi>, <text>) - prefix for command notice
-	plural(<num>, <singular text>, <plural text>) - does what it looks like
-	titlestr(<string>) - Display text as something like book-title appropriate
-	crumple(<string> [, <delim>]) - trim() + squish()
+	msg( <ansi>, <header>, <text> ) - prefix for command notice
+	plural( <num>, <singular text>, <plural text> ) - does what it looks like
+	titlestr( <string> ) - Display text as something like book-title appropriate
+	crumple( <string> [, <delim>] ) - trim() + squish()
 
 
 --------------------------------------------------------------------------------
@@ -49,14 +49,14 @@ mess up attribute setting.
 --------------------------------------------------------------------------------
 -- TO DO -----------------------------------------------------------------------
 
-*** As-Needed Places (LA's Gatherings) ***
+*** As-Needed Places (LA's "Gatherings") ***
 
 You could, essentially, 'go stand next to' someone and it'd make the place 
 spontaneously and other people could join it.
 
 And it ceases to be when all are gone.
 
-Same, but &gathering.* (?) -- no, because the rest of the places system needs to 
+Same, but &gathering.* ( ? ) -- no, because the rest of the places system needs to 
 be able to interface with it.
 
 Instead: &place.<# of places + 1> and 
@@ -66,7 +66,7 @@ Instead: &place.<# of places + 1> and
 *** Evesdropping Staff ***
 
 Extend '*.occupancy' to <at place>|<evesdropping> so 'tt' triggers for them, but 
-join/leave does not.  Be loud about evesdropping.  Staff-only.
+join/leave does not. Be loud about evesdropping. Staff-only.
 
 
 *** Dark Staff ***
@@ -77,6 +77,7 @@ notify the room.
 
 ================================================================================
 == SETUP: Places ===============================================================
+*/
 
 @create Places Global Object <pgo>
 @set pgo=Inherit
@@ -86,24 +87,31 @@ notify the room.
 &prefix.user_function_actions pgo=action.
 
 
+/*
 --------------------------------------------------------------------------------
 -- @adisconnect ----------------------------------------------------------------
 
 Because TinyMUX and PennMUSH, as of this writing, don't have rooms checking 
 @adisconnect for their contents, allowing only zones to do this, we're forced to 
-do some mental gymnastics.  We could override the room's @listen/@ahear, but I'd 
+do some mental gymnastics. We could override the room's @listen/@ahear, but I'd 
 rather this clearner solution.
 
 Using @eval so it only hits the command queue once, in unlikely fringe timing 
 cases.
 
-Using iter() to catch all rooms needing cleaned.  Again unlikely, but there.
+Using iter() to catch all rooms needing cleaned. Again unlikely, but there.
 
--
+*/
 
-@adisconnect pgo=@eval iter( search( eroom=grep( ##, places.*.occupancy, %# )), ulocal( ufunc/privileged.places, depart, ##, %# ))
+@adisconnect pgo=
+	@eval 
+		iter( 
+			search( eroom=grep( ##, places.*.occupancy, %# )), 
+			ulocal( ufunc/privileged.places, depart, ##, %# )
+		)
 
 
+/*
 ================================================================================
 == PLACES GLOBAL OBJECT <pgo> ==================================================
 
@@ -114,7 +122,7 @@ Commands:
 	join & depart - there we go
 
 NOTE TO SELF: I think the 'mutter' commands try to integrate with the places 
-systems.  Remember to check and fix accordingly.
+systems. Remember to check and fix accordingly.
 
 
 ================================================================================
@@ -125,6 +133,8 @@ systems.  Remember to check and fix accordingly.
 -- Element Defaults ------------------------------------------------------------
 
 If a places element is not set, or while setting up, use these defaults.
+
+*/
 
 &d.default.name pgo=a table
 &d.default.spaces pgo=5
@@ -137,47 +147,51 @@ If a places element is not set, or while setting up, use these defaults.
 &d.default.odepart pgo=departs #NAME (##LOC).
 
 
+/*
 ================================================================================
 == COMMAND SETUP ===============================================================
 
-The "Mistress System" funnels everything through a single command.  For this command, like many others, an optional 's' on it is valid.  e.g., place/places.
+The "Mistress System" funnels everything through a single command. For this command, like many others, an optional 's' on it is valid. e.g., place/places.
 
 	+command(s) -> &c.<command>.default
 	+command(s) <stuff> -> &c.<command>.specific
 	+command(s)/switches [<stuff>] -> &c.<command>/<switch>
 
-To each of these (including the first), the following are passed:
+To each of these ( including the first ), the following are passed:
 	%0: <stuff>
 	%1: </other/switches>
 
 In the case of the switches, the first valid switch has their command called, if all switches are invalid we call &c.<name>.default or &c.<name>.specific, depending on the above rules.
 
---
+*/
 
-&c.places Places Global Object=$^\+?places?(.*)$:@pemit %#=
-	[setq(n, places)]
-	[switch(%1, 
-		, u(c.%qn.default), 
-		/*, u(c.%qn.switch, first(%1), rest(%1)), 
-		%b*, u(c.%qn.specific, trim(%1)), 
+&c.places Places Global Object=$(?s)^\+?places?(.*)$:
+	@eval setq( n, places ); 
 
-@@ No match
-		Error: I don't know what you mean. Please see [ansi(h, +help %qn)]
-	)]
+	@pemit %#=
+		switch( strtrunc( %1, 1 ), 
+			@@( null ), u( c.%qn.default ), 
+			/, u( c.%qn.switch, first( %1 ), rest( %1 )), 
+			%b, u( c.%qn.specific, trim( %1 )), 
+			error
+		)
 
---
+// --
 
 @set pgo/c.places=regex
 
 
+/*
 --------------------------------------------------------------------------------
 -- places/<switch> -------------------------------------------------------------
 
-Handles all /switches, which is to say it makes sure they exist and passes them on.
+Handles all /switches, which is to say it makes sure they exist and passes them 
+on.
 
 Also handles pseudo-switches, passing them on as elements to any switched item.
 
-Passes to &c.<name>.specific (%1, %qp) or &c.<name>/<switch> (%1, %qp), even if %1 is empty.
+Passes to `&c.<name>.specific` (%1, %qp) or `&c.<name>/<switch>` (%1, %qp), 
+even if %1 is empty.
 
 --
 
@@ -189,35 +203,36 @@ qa: all c.<name>/* on this object
 qs: /valid/command/switches/found
 qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
 
---
+*/
 
 &c.places.switch Places Global Object=
-	[setq(s, )][setq(p, )][setq(a, lattr(%!/c.%qn/*))]
-	[iter(rest(%0, /), 
-		if(
-			t(grab(%qa, c.%qn/%i0*)), 
-			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
-			setq(p, %qp/%i0)
+	[setq( s, )][setq( p, )][setq( a, lattr( %!/c.%qn/* ))]
+	[iter( rest( %0, / ), 
+		if( 
+			t( grab( %qa, c.%qn/%i0* )), 
+			setq( s, %qs/[rest( grab( %qa, c.%qn/%i0* ), / )] ), 
+			setq( p, %qp/%i0 )
 		), 
 		/, @@
 	)]
-	[if(t(%qs), 
-		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
-		if(t(%1), 
-			ulocal(c.%qn.specific, %1, %qp), 
-			ulocal(c.%qn.default, %1, %qp)
+	[if( t( %qs ), 
+		ulocal( c.%qn/[extract( %qs, 2, 1, / )], %1, %qp ), 
+		if( t( %1 ), 
+			ulocal( c.%qn.specific, %1, %qp ), 
+			ulocal( c.%qn.default, %1, %qp )
 		)
 	)]
 
 
+/*
 --------------------------------------------------------------------------------
 -- places (default) ------------------------------------------------------------
 
 Show default places setup.
 
->> DO NOT WORK IF ROOM IS SET HALT <<
+>> REFUSE TO WORK IF ROOM IS SET HALT <<
 
-Because of the @aleave/@startup that's placed on a room, if it's set halt then the cleanup code won't work properly.  Annoy people to unset it.
+Because of the @aleave/@startup that's placed on a room, if it's set halt then the cleanup code won't work properly. Annoy people to unset it.
 
 --
 
@@ -226,31 +241,32 @@ Because of the @aleave/@startup that's placed on a room, if it's set halt then t
 
 ql: location of %#
 
---
+*/
 
 &c.places.default Places Global Object=
-	case(0, 
-		not(hasflag(loc(%#), HALT)), 
-		[u(f.alert, places)] Places cannot work while the room is set HALT., 
+	case( 0, 
+		not( hasflag( loc( %# ), HALT )), 
+		u( .msg, places, Places cannot work while the room is set HALT ), 
 
-		attrcnt([setr(l, loc(%#))]/places.1.details), 
-		[u(f.alert, places)] Places not configured., 
+		attrcnt( [setr( l, loc( %# ))]/places.1.details ), 
+		u( .msg, places, Places not configured ), 
 
-		list(
-			lattr(%ql/places.*.details), 
-			u(f.display.one-place-brief, %ql, elements(%i0, 2, .))
+		list( 
+			lattr( %ql/places.*.details ), 
+			u( f.display.one-place-brief, %ql, elements( %i0, 2, . ))
 		)
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places <stuff> (specific) ---------------------------------------------------
 
 Show information about a particular place
 
->> DO NOT WORK IF ROOM IS SET HALT <<
+>> REFUSE TO WORK IF ROOM IS SET HALT <<
 
-Because of the @aleave/@startup that's placed on a room, if it's set halt then the cleanup code won't work properly.  Annoy people to unset it.
+Because of the @aleave/@startup that's placed on a room, if it's set halt then the cleanup code won't work properly. Annoy people to unset it.
 
 --
 
@@ -260,32 +276,33 @@ Because of the @aleave/@startup that's placed on a room, if it's set halt then t
 ql: location of %#
 qn: number of location, if name or #<num> passed
 
---
+*/
 
 &c.places.specific Places Global Object=
-	case(1, 
-		hasflag(loc(%#), HALT), 
-		[u(f.alert, places)] Places cannot work while the room is set HALT., 
+	case( 1, 
+		hasflag( loc( %# ), HALT ), 
+		u( .msg, places, Places cannot work while the room is set HALT )
 
-		not(attrcnt([setr(l, loc(%#))]/places.1.details)), 
-		[u(f.alert, places)] Places not configured., 
+		not( attrcnt( [setr( l, loc( %# ))]/places.1.details )), 
+		u( .msg, places, Places not configured )
 
-		and(
-			isint(setr(n, if(strmatch(%0, #*), rest(%0, #), %0))), 
-			hasattr(%ql, places.%qn.details)
+		cand( 
+			isint( setr( n, if( strmatch( %0, #* ), rest( %0, # ), %0 ))), 
+			hasattr( %ql, places.%qn.details )
 		), 
-		u(f.display.one-place-detailed, %ql, %qn), 
+		u( f.display.one-place-detailed, %ql, %qn ), 
 		
-		and(
-			t(setr(n, u(f.get-num-by-name, %ql, %0))), 
-			hasattr(%ql, places.%qn.details)
+		and( 
+			t( setr( n, u( f.get-num-by-name, %ql, %0 ))), 
+			hasattr( %ql, places.%qn.details )
 		), 
-		u(f.display.one-place-detailed, %ql, %qn), 
+		u( f.display.one-place-detailed, %ql, %qn ), 
 
-		[u(f.alert, places)] I can't find that place.
+		u( .msg, places, I can't find that place )
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places/configure ------------------------------------------------------------
 
@@ -297,34 +314,36 @@ qn: number of location, if name or #<num> passed
 
 qf: places() function results
 ql: location for places
-qn: number of places the player wants configured (always 1)
+qn: number of places the player wants configured ( always 1 )
 
---
+*/
 
 &c.places/configure Places Global Object=
-	case(0, 
-		not(comp(rest(%0, =), YES)), 
-		[u(f.alert, places/configure)] Please take note! Configuring up places 
-		will overwrite the room's @startup%, @ahear and @aleave attributes.  
-		If the room has places set up already%, the existing places will be 
-		left but these attributes will still be overwritten.  If you are alright 
-		with this%, please type: [ansi(h, places/configure 
-		[before(%0, =)]=YES)], 
+	case( 0, 
+		not( comp( rest( %0, = ), YES )), 
+		u( .msg, places/confugure, 
+			Please take note! Configuring up places will overwrite the room's 
+			@startup%, @ahear and @aleave attributes. If the room has places set 
+			up already%, the existing places will be left but these attributes 
+			will still be overwritten. If you are alright with this%, please 
+			type: [ansi( h, places/configure [before( %0, = )]=YES )], 
+		), 
 
-		t(setr(f, 
-			ulocal(ufunc/privileged.places, 
+		t( setr( f, 
+			ulocal( ufunc/privileged.places, 
 				configure, 
-				before(before(%0, =), /), 
+				before( before( %0, = ), / ), 
 				YES, 
-				rest(before(%0, =), /)
+				rest( before( %0, = ), / )
 			)
 		)), 
-		[u(f.alert, places/configure)] [titlestr(rest(%qf))], 
+		u( .msg, places/configure, titlestr( rest( %qf ))), 
 
-		[u(f.notify, places/configure)] Configured!
+		u( .msg, places/configure, Configured! )
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places/breakdown ------------------------------------------------------------
 
@@ -332,24 +351,28 @@ qn: number of places the player wants configured (always 1)
 
 qf: places() function results
 
---
+*/
 
 &c.places/breakdown Places Global Object=
-	case(0, 
-		not(comp(rest(%0, =), YES)), 
-		[u(f.alert, places/breakdown)] Please take note! Breaking down places 
-		will delete the room's @startup%, @ahear and @aleave attributes%, as 
-		well as the attributes set up to make places work.  
-		If you are alright with this%, please type: 
-		[ansi(h, places/breakdown <location>=YES)], 
+	case( 0, 
+		not( comp( rest( %0, = ), YES )), 
+		u( .msg, places/breakdown, 
+			Please take note! Breaking down places will delete the room's 
+			@startup%, @ahear and @aleave attributes%, as well as the attributes 
+			set up to make places work. If you are alright with this%, please 
+			type: [ansi( h, places/breakdown <location>=YES )] 
+		), 
 
-		t(setr(f, ulocal(ufunc/privileged.places, breakdown, first(%0, =), YES))), 
-		[u(f.alert, places/breakdown)] [titlestr(rest(%qf))], 
+		t( setr( f, 
+			ulocal( ufunc/privileged.places, breakdown, first( %0, = ), YES )
+		)), 
+		u( .msg, places/breakdown, titlestr( rest( %qf ))), 
 
-		[u(f.notify, places/breakdown)] Breakdown Complete!
+		u( .msg, places/breakdown, Breakdown Complete! )
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places/newplace -------------------------------------------------------------
 
@@ -357,33 +380,34 @@ qf: places() function results
 
 qf: places() function results
 
---
+*/
 
 &c.places/newplace Places Global Object=
-	case(0, 
-		t(setr(f, 
-			ulocal(ufunc/privileged.places, 
+	case( 0, 
+		t( setr( f, 
+			ulocal( ufunc/privileged.places, 
 				newplace, 
-@@ .. find location
-				case(1, 
-					strmatch(%0, *=*), trim(first(%0, =)), 
-					or(isint(%0), strmatch(trim(%0), )), loc(%#), 
+// .. find location
+				case( 1, 
+					strmatch( %0, *=* ), trim( first( %0, = )), 
+					or( isint( %0 ), strmatch( trim( %0 ), )), loc( %# ), 
 					%0
 				), 
-@@ .. placenum
-				case(1, 
-					strmatch(%0, *=*), trim(rest(%0, =)), 
-					isint(%0), %0, 
-					@@(pass null for 'next place')
+// .. placenum
+				case( 1, 
+					strmatch( %0, *=* ), trim( rest( %0, = )), 
+					isint( %0 ), %0, 
+					@@( pass null for 'next place' )
 				)
 			)
 		)), 
-		[u(f.alert, places/newplace)] [titlestr(rest(%qf))], 
+		u( .msg, places/newplace, titlestr( rest( %qf ))), 
 
-		[u(f.notify, places/newplace)] Created Place Number %qf
+		u( .msg, places/newplace, Created place number %qf )
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places/delplace -------------------------------------------------------------
 
@@ -391,27 +415,30 @@ qf: places() function results
 
 qf: places() function results
 
---
+*/
 
 &c.places/delplace Places Global Object=
-	case(0, 
-		t(setr(f, 
-			ulocal(ufunc/privileged.places, 
+	case( 0, 
+		t( setr( f, 
+			ulocal( ufunc/privileged.places, 
 				delplace, 
-				if(strmatch(%0, *=*), trim(first(%0, =)), loc(%#)), 
-				if(strmatch(%0, *=*), trim(rest(%0, =)), %0)
+				if( strmatch( %0, *=* ), trim( first( %0, = )), loc( %# )), 
+				if( strmatch( %0, *=* ), trim( rest( %0, = )), %0 )
 			)
 		)), 
-		[u(f.alert, places/delplace)] [titlestr(rest(%qf))], 
+		u( .msg, places/delplace, titlestr( rest( %qf ))), 
 
-		[u(f.notify, places/delplace)] Deleted Place Number %qf
+		u( .msg, places/delplace, Deleted place number %qf )
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places/compress -------------------------------------------------------------
 
-Moves the places together, filling any gaps.  Does not correlate to a places() function, so do the normal set of access & validation checks.  Staff or owner only.
+Moves the places together, filling any gaps. Does not correlate to a places() 
+function, so do the normal set of access & validation checks. Staff or owner 
+only.
 
 	places/compress [<location>]
 
@@ -419,64 +446,70 @@ ql: location dbref
 qn: new place numbers list, <old>:<new> <old>:<new> <old>:<new>
 qo: output from
 
---
+*/
 
 &c.places/compress Places Global Object=
-	case(0, 
-		or(
-			strmatch(
-				setr(l, if(setr(l, locate(%#, %0, ha)), %ql, loc(%#))), 
-				loc(%#)
+	case( 0, 
+		or( 
+			strmatch( 
+				setr( l, if( setr( l, locate( %#, %0, ha )), %ql, loc( %# ))), 
+				loc( %# )
 			), 
-			u(f.isstaff, %#)
+			u( .isstaff, %# )
 		), 
-		[u(f.alert, places/compress)] Compress at location only., 
+		u( .msg, places/compress, Compress at location only ), 
 
-		strmatch(type(%ql), ROOM), 
-		[u(f.alert, places/compress)] Room Not Found., 
+		strmatch( type( %ql ), ROOM ), 
+		u( .msg, places/compress, Room not found ), 
 
-		hasattr(%ql, places.1.details), 
-		[u(f.alert, places/compress)] Places Not Configured., 
+		hasattr( %ql, places.1.details ), 
+		u( .msg, places/compress, Places Not Configured ), 
 
-@@ .. set the oldkey:newkey list
-		[setq(n, 
-			iter(
-				ulocal(ufunc/privileged.places, list, %ql), 
-				[first(%i0, :)]:[inum()], 
+// .. set the oldkey:newkey list
+		[setq( n, 
+			iter( 
+				ulocal( ufunc/privileged.places, list, %ql ), 
+				[first( %i0, : )]:[inum()], 
 				|
 			)
 		)]
-@@ .. move those that need it
-		[u(f.notify, places/compress)] Compressed. 
-		[crumple(iter(%qn, 
-			if(neq(first(%i0, :), rest(%i0, :)), 
-				[null(trigger(%!/tr.moveplace, 
+// .. move those that need it
+		[u( .msg, places/compress, Compressed )]
+		[u( .crumple, iter( %qn, 
+			if( neq( first( %i0, : ), rest( %i0, : )), 
+				[null( trigger( %!/tr.moveplace, 
 					%ql, 
-					first(%i0, :), 
-					rest(%i0, :)
+					first( %i0, : ), 
+					rest( %i0, : )
 				))]
-				[first(%i0, :)]->[rest(%i0, :)]
+				[first( %i0, : )]->[rest( %i0, : )]
 			)
 		))]
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places/cleanup --------------------------------------------------------------
 
 	places/cleanup [<location>]
 
---
+*/
 
 &c.places/cleanup Places Global Object=
-	case(0, 
-		t(setr(f, ulocal(ufunc/privileged.places, cleanup, if(t(%0), %0, loc(%#))))), 
-		[u(f.alert, places/cleanup)] [titlestr(rest(%qf))], 
+	case( 0, 
+		t( setr( f, 
+			ulocal( ufunc/privileged.places, 
+				cleanup, if( t( %0 ), %0, loc( %# ))
+			)
+		)), 
+		u( .msg, places/cleanup, titlestr( rest( %qf ))), 
 
-		[u(f.notify, places/cleanup)] Cleaned.
+		u( .msg, places/cleanup, Cleaned. )
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places/set ------------------------------------------------------------------
 
@@ -491,32 +524,36 @@ qi: info
 
 qf: function result
 
---
+*/
 
 &c.places/set Places Global Object=
-	[setq(p, first(%0, /))]
-	[if(isint(%qp), 
-		setq(l, loc(%#)), 
-		[setq(l, trim(revwords(rest(revwords(%qp)))))]
-		[setq(p, trim(last(%qp)))]
+	[setq( p, first( %0, / ))]
+	[if( isint( %qp ), 
+		setq( l, loc( %# )), 
+		[setq( l, trim( revwords( rest( revwords( %qp )))))]
+		[setq( p, trim( last( %qp )))]
 	)]
-	[setq(e, rest(first(%0, =), /))]
-	[setq(e, last(first(lattr(%!/f.set.%qe*)), .))]
-	[setq(i, rest(%0, =))]
+	[setq( e, rest( first( %0, = ), / ))]
+	[setq( e, last( first( lattr( %!/f.set.%qe* )), . ))]
+	[setq( i, rest( %0, = ))]
 
-	[case(0, 
-		not(strmatch(%qe, occupancy)), 
-		[u(f.alert, places/set)] 
-		Please use 'places/cleanup [first(first(%0), /)]'., 
+	[case( 0, 
+		not( strmatch( %qe, occupancy )), 
+		u( .msg, places/set, 
+			Please use 'places/cleanup [first( first( %0 ), / )]'
+		), 
 
-		t(setr(f, ulocal(ufunc/privileged.places, set, %ql, %qp, %qe, %qi))), 
-		[u(f.alert, places/set)] [rest(titlestr(%qf))], 
+		t( setr( f, 
+			ulocal( ufunc/privileged.places, set, %ql, %qp, %qe, %qi )
+		)), 
+		u( .msg, places/set, [rest( titlestr( %qf ))] ), 
 
-		[u(f.notify, places/set)] Set #%qp '[lcstr(%qe)]' to '[%qi]'.
+		u( .msg, places/set, Set #%qp '[lcstr( %qe )]' to '%qi'. ) 
 	)]
 
 
 
+/*
 ================================================================================
 == OTHER COMMANDS ==============================================================
 
@@ -542,73 +579,80 @@ qt: register of place number (a/w/null)
 
 qf: places() function results
 
---
+*/
 
 &c.join Places Global Object=$^join( at| with)?( #?(.*))?$:
-@@ >> if nothing but 'join', fail
-	@assert t(%3)={@pemit %#=[u(f.alert, places)] Join where?}; 
-	@assert not(ulocal(ufunc/privileged.places, whichplace, loc(%#), %#))={
-		@pemit %#=[u(f.alert, places)] 
-		You're already at a place. Please 'depart' first.
+// >> if nothing but 'join', fail
+	@assert t( %3 )={ @pemit %#=u( .msg, places, Join where? }; )
+	@assert not( ulocal( ufunc/privileged.places, whichplace, loc( %# ), %# ))={ 
+		@pemit %#=
+			u( .msg, places, You're already at a place. Please 'depart' first. )
 	}; 
 
-@@ >> guess for explicit/implicit 'at' or 'with'
-	@eval case(1, 
-@@ .. explicit 'at'
-		strmatch(%1, %bat), 
-		[setq(t, a)]
-		[setq(a, if(
-			isint(%3), 
-			trim(%3), 
-			u(f.get-num-by-name, loc(%#), %3)
+// >> guess for explicit/implicit 'at' or 'with'
+	@eval case( 1, 
+// .. explicit 'at'
+		strmatch( %1, %bat ), 
+		[setq( t, a )]
+		[setq( a, if( 
+			isint( %3 ), 
+			trim( %3 ), 
+			u( f.get-num-by-name, loc( %# ), %3 )
 		))], 
 
-@@ .. explicit 'with'
-		strmatch(%1, %bwith), 
-		[setq(t, w)]
-		[setq(w, u(f.get-num-by-player, loc(%#), setr(d, locate(%#, %3, nP))))], 
+// .. explicit 'with'
+		strmatch( %1, %bwith ), 
+		[setq( t, w )]
+		[setq( w, 
+			u( f.get-num-by-player, loc( %# ), setr( d, locate( %#, %3, nP )))
+		)], 
 
-@@ .. implicit 'at' (join <number>)
-		isint(%3), [setq(t, a)][setq(a, trim(%3))], 
+// .. implicit 'at' (join <number>)
+		isint( %3 ), [setq( t, a )][setq( a, trim( %3 ))], 
 
-@@ .. implicit 'with' (join <neighbor name>)
-		t(setr(d, locate(%#, %3, nP))), 
-		[setq(w, u(f.get-num-by-player, loc(%#), %qd))]
-		[setq(t, w)], 
+// .. implicit 'with' (join <neighbor name>)
+		t( setr( d, locate( %#, %3, nP ))), 
+		[setq( w, u( f.get-num-by-player, loc( %# ), %qd ))]
+		[setq( t, w )], 
 
-@@ .. implicit 'at' (join <place name>)
-		t(setr(a, u(f.get-num-by-name, loc(%#), %3))), setq(t, a), 
+// .. implicit 'at' ( join <place name> )
+		t( setr( a, u( f.get-num-by-name, loc( %# ), %3 ))), setq( t, a ), 
 
-@@ .. panic condition
-		setq(t, )
+// .. panic condition
+		setq( t, )
 	); 
 
-@@ >> start actual process
+// >> start actual process
 	@pemit %#=
-		case(0, 
-			comp(%qt, ), 
-			[u(f.alert, places)] I can't figure out where you want to join., 
+		case( 0, 
+			comp( %qt, ), 
+			u( .msg, places, I can't figure out where you want to join. ), 
 
-			comp(%#, %qd), 
-			[u(f.alert, places)] You can't join yourself!, 
+			comp( %#, %qd ), 
+			u( .msg, places, You can't join yourself! ), 
 
-			lte(words(r(%qt)), 1), [u(f.alert, places)] Too many matches., 
+			lte( words( r( %qt )), 1 ), 
+			u( .msg, places, Too many matches. ), 
 
-			words(r(%qt)), 
-			[u(f.alert, places)] 
-			[case(%qt, a, No such place, w, Not at a place)]., 
+			words( r( %qt )), 
+			u( .msg, places, 
+				case( %qt, a, No such place, w, Not at a place )
+			), 
 
-			t(setr(f, ulocal(ufunc/privileged.places, join, loc(%#), r(%qt), %#))), 
-			[u(f.alert, places)] [rest(titlestr(%qf))], 
+			t( setr( f, 
+				ulocal( ufunc/privileged.places, join, loc( %# ), r( %qt ), %# )
+			)), 
+			u( .msg, places, [rest( titlestr( %qf ))] ), 
 
-			@@(If things go well places() will notify everyone)
+			@@( If things go well places() will notify everyone )
 		)
 
---
+// --
 
 @set Places Global Object/c.join=regexp
 
 
+/*
 --------------------------------------------------------------------------------
 -- depart ----------------------------------------------------------------------
 
@@ -620,27 +664,27 @@ In the future: depart[ for [#]<place/player>]
 
 qf: places() function results
 
---
+*/
 
 &c.depart Places Global Object=$^depart( for #?(.*))?$:
-
 	@assert t( ulocal( ufunc/privileged.places, whichplace, loc( %# ), %# ))={ 
 		@pemit %#=
-			[u( f.alert, places )] You're not at a place. Please 'join' first. 
+			u( .msg, places, You're not at a place. Please 'join' first. )
 	}; 
 
-	@pemit %#=case(0, 
-		t(setr(f, ulocal(ufunc/privileged.places, depart, loc(%#), %#))), 
-		[u(f.alert, places)] [rest(titlestr(%qf))], 
+	@pemit %#=case( 0, 
+		t( setr( f, ulocal( ufunc/privileged.places, depart, loc( %# ), %# ))), 
+		u( .msg, places, rest( titlestr( %qf ))), 
 
-		@@(If things go well places() will notify everyone)
+		@@( If things go well places() will notify everyone )
 	)
 
--- 
+// -- 
 
 @set Places Global Object/c.depart=regexp
 
 
+/*
 --------------------------------------------------------------------------------
 -- tt: tabletalk ---------------------------------------------------------------
 
@@ -658,60 +702,91 @@ The basic unit of places are for conversation.
 qn: place number person is at
 qf: places() function results
 
+*/
 
---
-
-&c.tt Places Global Object=$^tt(o(oc)?)?(.*)?$:
-
-	@assert strlen(trim(%3))={ 
+&c.tt Places Global Object=$(?s)^tt(o(oc)?)?(.*)?$:
+	@assert strlen( trim( %3 ))={ 
 		@pemit %#=
-		[u(f.alert, places)] You need to 'tt <something>'. 
+			u( .msg, places, You need to 'tt <something>'. )
 	}; 
 
-	@assert t(ulocal(ufunc/privileged.places, whichplace, loc(%#), %#))={ 
+	@assert t( ulocal( ufunc/privileged.places, whichplace, loc( %# ), %# ))={ 
 		@pemit %#=
-		[u(f.alert, places)] You're not at a place. Please 'join' first. 
+		u( .msg, places, You're not at a place. Please 'join' first. ) 
 		}; 
 
 	@pemit %#=
-		case(0, 
-			t(setr(f, 
-				ulocal(ufunc/privileged.places, tt, loc(%#), %#, trim(%3), if(t(%1), ooc))
+		case( 0, 
+			t( setr( f, 
+				ulocal( ufunc/privileged.places, 
+					tt, loc( %# ), %#, trim( %3 ), if( t( %1 ), ooc )
+				)
 			)), 
-			[u(f.alert, places)] [rest(titlestr(%qf))], 
+			u( .msg, places, rest( titlestr( %qf ))), 
 
-			@@(If things go well places() will notify everyone)
+			@@( If things go well places() will notify everyone )
 		)
 
---
+// --
 
 @set Places Global Object/c.tt=regexp
 
 
+/*
 ================================================================================
 == LEGACY COMMANDS =============================================================
 
-These are commands that are aliased from the old places system to the new, or a notice that the command no longer works.
+These are commands that are aliased from the old places system to the new, or a 
+notice that the command no longer works.
 
--- 
+*/
 
-&c.old.plook pgo=$plook*:@pemit %#=case(1, t(%0), u(c.places.specific, trim(%0)), u(c.places.default))
+&c.old.plook pgo=$plook*:
+	@pemit %#=case( 1, t( %0 ), u( c.places.specific, trim( %0 )), 
+	u( c.places.default ))
 
-&c.old.sit pgo=$sit*:@if hasflag(%#, HALT)={@pemit %#=[u(f.alert, sit)] While you are set HALT please use 'join'.}, {@force %#=join%0}
+&c.old.sit pgo=$sit*:
+	@if hasflag( %#, HALT )=
+	{ @pemit %#=u( .msg, sit, While you are set HALT please use 'join'. ) }, 
+	{ @force %#=join%0 }
 
-&c.old.leave pgo=$leave*:@if hasflag(%#, HALT)={@pemit %#=[u(f.alert, leave)] While you are set HALT please use 'depart'.}, {@force %#=depart%0}
+&c.old.leave pgo=$leave*:
+	@if hasflag( %#, HALT )=
+	{ @pemit %#=
+		u( .msg, leave, While you are set HALT please use 'depart'. )
+	}, 
+	{ @force %#=depart%0 }
 
-&c.old.stand pgo=$stand*:@if hasflag(%#, HALT)={@pemit %#=[u(f.alert, stand)] While you are set HALT please use 'depart'.}, {@force %#=depart%0}
+&c.old.stand pgo=$stand*:
+	@if hasflag( %#, HALT )=
+		{ @pemit %#=
+			u( .msg, stand, While you are set HALT please use 'depart'. )
+		}, 
+		{ @force %#=depart%0 }
 
-&c.old.mv pgo=$mv from*:@pemit %#=[u(f.alert, places)] Moving vacancies for places has been deprecated.  Please ask the room owner to add more places to this location.
+&c.old.mv pgo=$mv from*:
+	@pemit %#=u( .msg, places, 
+		Moving vacancies for places has been deprecated. Please ask the room 
+		owner to add more places to this location. 
+	)
 
-&c.old.update pgo=$update */*=*:@pemit %#=[u(f.alert, places)] Update has been deprecated.  Please use 'place/set'.
+&c.old.update pgo=$update */*=*:
+	@pemit %#=u( .msg, places, 
+		Update has been deprecated. Please use 'place/set'. 
+	)
 
-&c.old.configure pgo=$configure * places:@pemit %#=[u(f.alert, places)] Configure has been deprecated.  Please use 'places/configure'.
+&c.old.configure pgo=$configure * places:
+	@pemit %#=u( .msg, places, 
+		Configure has been deprecated. Please use 'places/configure'. 
+	)
 
-&c.old.unconfigure pgo=$unconfigure places:@pemit %#=[u(f.alert, places)] Unconfigure has been deprecated.  Please use 'places/breakdown'.
+&c.old.unconfigure pgo=$unconfigure places:
+	@pemit %#=u( .msg, places, 
+		Unconfigure has been deprecated. Please use 'places/breakdown'. 
+	)
 
 
+/*
 ================================================================================
 == FUNCTION: Room Owner Permission =============================================
 
@@ -724,28 +799,32 @@ It's separated out for the ease of adding other types of rooms and locations, e.
 0: dbref of enactor
 1: dbref of room
 
---
+*/
 
 &f.permission.room_owner Places Global Object=
-	cor(strmatch(%0, owner(%1)), u(f.isstaff, %0))
+	cor( strmatch( %0, owner( %1 )), u( .isstaff, %0 ))
 
---
+/*
 
-For +temprooms permission (temprooms dbref hardcoded in for The Reach):
+To allow places in 'temprooms':
+
+&d.temprooms_master Places Global Object=#1224
 
 &f.permission.room_owner Places Global Object=
 	cor( 
 		strmatch( %0, owner( %1 )), 
-		u( f.isstaff, %0 ), 
-		strmatch( %0, elements( get( #1224/room.%1 ), 5, . ))
+		u( .isstaff, %0 ), 
+		strmatch( %0, elements( get( v( d.temprooms_master )/room.%1 ), 5, . ))
 	)
 
+*/
 
 
+/*
 ================================================================================
 == FUNCTION: Get XXX ===========================================================
 
-A bunch of functions to get specific information.  An easy way to get information for current and future coding.
+A bunch of functions to get specific information. An easy way to get information for current and future coding.
 
 	u( f.get, <loc>, <placenum>, <list|of|elements> )
 	u( f.get.<element>, <loc>, <placenum>, <element> )
@@ -755,30 +834,32 @@ A bunch of functions to get specific information.  An easy way to get informatio
 The cleanup on &f.get.occupancy may require a little explanation:
 
 In Tiny code, back to TinyMUSH 1.6, movement with the /quiet switch, 
-such as @teleport/quiet, will avoid triggering a room's @aleave.  
+such as @teleport/quiet, will avoid triggering a room's @aleave. 
 In order to sidestep the cleanup issue, we'll make every action that
-lists a location clean up the places.  This will cause some extra overhead
+lists a location clean up the places. This will cause some extra overhead
 and is excessive, but easy.
 
 If it becomes a problem, start fixing it here.
 
---
+*/
 
-&f.get pgo=iter(%2, udefault(first(lattr(%!/f.get.%i0*)), #-1, %0, %1), |, |)
+&f.get pgo=
+	iter( %2, udefault( first( lattr( %!/f.get.%i0* )), #-1, %0, %1 ), |, | )
 
-&f.get.name pgo=u(f.get-element, %0, details, %1, 1, %2, name)
-&f.get.spaces pgo=u(f.get-element, %0, details, %1, 2, %2, spaces)
-&f.get.description pgo=u(f.get-element, %0, details, %1, 3, %2, description)
+&f.get.name pgo=u( f.get-element, %0, details, %1, 1, %2, name )
+&f.get.spaces pgo=u( f.get-element, %0, details, %1, 2, %2, spaces )
+&f.get.description pgo=u( f.get-element, %0, details, %1, 3, %2, description )
 
-&f.get.say_prefix pgo=elements(get(%0/places.%1.notices), 1, |)
-&f.get.join pgo=u(f.get-element, %0, notices, %1, 2, %2, join)
-&f.get.ojoin pgo=u(f.get-element, %0, notices, %1, 3, %2, ojoin)
-&f.get.depart pgo=u(f.get-element, %0, notices, %1, 4, %2, depart)
-&f.get.odepart pgo=u(f.get-element, %0, notices, %1, 5, %2, odepart)
+&f.get.say_prefix pgo=elements( get( %0/places.%1.notices ), 1, | )
+&f.get.join pgo=u( f.get-element, %0, notices, %1, 2, %2, join )
+&f.get.ojoin pgo=u( f.get-element, %0, notices, %1, 3, %2, ojoin )
+&f.get.depart pgo=u( f.get-element, %0, notices, %1, 4, %2, depart )
+&f.get.odepart pgo=u( f.get-element, %0, notices, %1, 5, %2, odepart )
 
-&f.get.occupancy pgo=strcat(null(ulocal(action.cleanup, %0)), get(%0/places.%1.occupancy))
+&f.get.occupancy pgo=
+	strcat( null( ulocal( action.cleanup, %0 )), get( %0/places.%1.occupancy ))
 
---
+/*
 
 0: dbref
 1: attribtue data is on
@@ -786,89 +867,105 @@ If it becomes a problem, start fixing it here.
 3: location in attribute
 4: name of item (for pulling default)
 
-&f.get-element pgo=localize(
-	[setq(e, elements(get(%0/places.%2.%1), %3, |))]
-	[if(strlen(%qe), objeval(%0, s(%qe)), v(d.default.%4))]
-)
+*/
+
+&f.get-element pgo=
+	localize( 
+		[setq( e, elements( get( %0/places.%2.%1 ), %3, | ))]
+		[if( strlen( %qe ), objeval( %0, s( %qe )), v( d.default.%4 ))]
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Function: Get Num By Name ---------------------------------------------------
 
-Slightly related, getting the number for a particular named place is critical.  
+Slightly related, getting the number for a particular named place is critical. 
 Normally I use the name for the key, but for this system we're using the place
 number.
 
-Cheap filter().  Returns all matches, unordered - lets calling code decide what to do with it.
+Cheap filter(). Returns all matches, unordered - lets calling code decide what to do with it.
 
-	u(f.get-num-by-name, <location>, <place name>)
+	u( f.get-num-by-name, <location>, <place name> )
 
 0: room dbref
 1: name
 
---
+*/
 
 &f.get-num-by-name pgo=
-	iter(
-		lattr(%0/places.*.details), 
-		if(
-			strmatch(first(get(%0/%i0), |), %1*), 
-			elements(%i0, 2, .)
+	iter( 
+		lattr( %0/places.*.details ), 
+		if( 
+			strmatch( first( get( %0/%i0 ), | ), %1* ), 
+			elements( %i0, 2, . )
 		)
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Function: Get Num By Player -------------------------------------------------
 
 Pulls the numbers of all locations a particular dbref is at.
 
-	u(f.get-num-by-player, <location>, <player dbref>)
+	u( f.get-num-by-player, <location>, <player dbref> )
 
---
+*/
 
 &f.get-num-by-player pgo=
-	iter(
-		filter(fil.player-at-place, lattr(%0/places.*.occupancy), , , %0, %1), 
-		elements(%i0, 2, .)
+	iter( 
+		filter( fil.player-at-place, 
+			lattr( %0/places.*.occupancy ), , , %0, %1 
+		), 
+		elements( %i0, 2, . )
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Filter: Player At Place -----------------------------------------------------
 
-&fil.player-at-place pgo=t(match(get(%1/%0), %2))
-
---
-
 think filter( pgo/fil.player-at-place, lattr( here/places.*.occupancy ), , , %L, %! )
 
+*/
 
+&fil.player-at-place pgo=t( match( get( %1/%0 ), %2 ))
+
+
+
+/*
 ================================================================================
 == FUNCTION: Set XXX ===========================================================
 
-Replaces elements entirely.  No checking first; using this on a place that hasn't been set up first will cause the information to not be written, due to the nature of replace() on TinyMUX (does not create, only replaces).
+Replaces elements entirely. No checking first; using this on a place that hasn't been set up first will cause the information to not be written, due to the nature of replace() on TinyMUX ( does not create, only replaces ).
 
 	u( f.set.<element>, <loc>, <placenum>, <item> )
 
---
+*/
 
-&f.set.name pgo=trigger(%!/tr.set-element, %0, details, %1, 1, %2)
-&f.set.spaces pgo=trigger(%!/tr.set-element, %0, details, %1, 2, %2)
-&f.set.description pgo=trigger(%!/tr.set-element, %0, details, %1, 3, %2)
+&f.set.name pgo=trigger( %!/tr.set-element, %0, details, %1, 1, %2 )
+&f.set.spaces pgo=trigger( %!/tr.set-element, %0, details, %1, 2, %2 )
+&f.set.description pgo=trigger( %!/tr.set-element, %0, details, %1, 3, %2 )
 
-&f.set.say_prefix pgo=trigger(%!/tr.set-element, %0, notices, %1, 1, %2)
-&f.set.join pgo=trigger(%!/tr.set-element, %0, notices, %1, 2, %2)
-&f.set.ojoin pgo=trigger(%!/tr.set-element, %0, notices, %1, 3, %2)
-&f.set.depart pgo=trigger(%!/tr.set-element, %0, notices, %1, 4, %2)
-&f.set.odepart pgo=trigger(%!/tr.set-element, %0, notices, %1, 5, %2)
+&f.set.say_prefix pgo=trigger( %!/tr.set-element, %0, notices, %1, 1, %2 )
+&f.set.join pgo=trigger( %!/tr.set-element, %0, notices, %1, 2, %2 )
+&f.set.ojoin pgo=trigger( %!/tr.set-element, %0, notices, %1, 3, %2 )
+&f.set.depart pgo=trigger( %!/tr.set-element, %0, notices, %1, 4, %2 )
+&f.set.odepart pgo=trigger( %!/tr.set-element, %0, notices, %1, 5, %2 )
 
-@@ .. "occupancy" sets without a trigger to avoid timing issues w/'tt'
-@@ .. "cleanup" after for the same reason as &f.get.occupancy, above
+// .. "occupancy" sets without a trigger to avoid timing issues w/'tt'
+// .. "cleanup" after for the same reason as &f.get.occupancy, above
 
-&f.set.occupancy pgo=strcat(set(%0, places.%1.occupancy:%2), trigger(%!/tr.chown, %0, places.%1.occupancy), null(ulocal(action.cleanup, %0)))
+&f.set.occupancy pgo=
+	strcat( 
+		set( %0, places.%1.occupancy:%2 ), 
+		trigger( %!/tr.chown, %0, places.%1.occupancy ), 
+		null( ulocal( action.cleanup, %0 ))
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Trigger: Set Element --------------------------------------------------------
 
@@ -878,11 +975,17 @@ Replaces elements entirely.  No checking first; using this on a place that hasn'
 3: location in attribute
 4: new value
 
-&tr.set-element pgo=&places.%2.%1 %0=replace(get(%0/places.%2.%1), %3, %4, |); @trigger %!/tr.chown=%0, places.%2.%1; 
+*/
+
+&tr.set-element pgo=
+	&places.%2.%1 %0=replace( get( %0/places.%2.%1 ), %3, %4, | ); 
+	@trigger %!/tr.chown=%0, places.%2.%1; 
 
 &tr.set-direct pgo=&%1 %0=%2; @trigger %!/tr.chown=%0, places.%2.%1; 
 
 
+
+/*
 ================================================================================
 == FUNCTION: Validate XXX ======================================================
 
@@ -890,38 +993,45 @@ Used primarially with &f.set.*, and should relate 1:1
 
 	u( f.validate.<element>, <item> )
 
---
+*/
 
-&f.validate.text pgo=case(1, regmatch(%0, :|%\|), No pipes or colons., and(isint(%1), gt(strlen(%0), %1)), Keep item to %1 characters)
+&f.validate.text pgo=
+	case( 1, 
+		regmatch( %0, :|%\| ), No pipes or colons., 
+		cand( isint( %1 ), gt( strlen( %0 ), %1 )), Keep item to %1 characters 
+	)
 
-&f.validate.num pgo=if(or(lt(%0, 0), not(isint(%0))), Positive integers only)
+&f.validate.num pgo=
+	if( or( lt( %0, 0 ), not( isint( %0 ))), Positive integers only )
 
---
+// --
 
-&f.validate.name pgo=u(f.validate.text, %0, 40)
-&f.validate.spaces pgo=u(f.validate.num, %0)
-&f.validate.description pgo=u(f.validate.text, %0)
+&f.validate.name pgo=u( f.validate.text, %0, 40 )
+&f.validate.spaces pgo=u( f.validate.num, %0 )
+&f.validate.description pgo=u( f.validate.text, %0 )
 
-&f.validate.say_prefix pgo=u(f.validate.text, %0, 30)
-&f.validate.join pgo=u(f.validate.text, %0, 60)
-&f.validate.ojoin pgo=u(f.validate.text, %0, 60)
-&f.validate.depart pgo=u(f.validate.text, %0, 60)
-&f.validate.odepart pgo=u(f.validate.text, %0, 60)
+&f.validate.say_prefix pgo=u( f.validate.text, %0, 30 )
+&f.validate.join pgo=u( f.validate.text, %0, 60 )
+&f.validate.ojoin pgo=u( f.validate.text, %0, 60 )
+&f.validate.depart pgo=u( f.validate.text, %0, 60 )
+&f.validate.odepart pgo=u( f.validate.text, %0, 60 )
 
-&f.validate.occupancy pgo=if(land(iter(%0, and(isdbref(%i0), hastype(%i0, PLAYER)), , |), |), Occupancy must be player dbrefs)
+&f.validate.occupancy pgo=
+	if( 
+		land( iter( %0, and( isdbref( %i0 ), hastype( %i0, PLAYER )), , | ), | ), 
+		Occupancy must be player dbrefs 
+	)
 
 
+/*
 ================================================================================
 == DISPLAY: One Place, Brief ===================================================
 
 Used by 'show me brief information about this place'
 
-Uses:
-	plural(<num>, <singular text>, <plural text>)
-
 Returns:
 	A Table (#1) has 1 empty place.
-	  Present is: Thenomain
+	 Present is: Thenomain
 
 --
 
@@ -933,29 +1043,30 @@ qs: spaces (max)
 qo: occupancy
 qf: number of spaces free
 
---
+*/
 
 &f.display.one-place-brief Places Global Object=
-localize(
-	[setq(i, u(f.get, %0, %1, name|spaces|occupancy))]
-	[setq(s, elements(%qi, 2, |))]
-	[setq(o, last(%qi, |))]
+	localize( 
+		[setq( i, u( f.get, %0, %1, name|spaces|occupancy ))]
+		[setq( s, elements( %qi, 2, | ))]
+		[setq( o, last( %qi, | ))]
 
-	[ansi(h, capstr(first(%qi, |)))] (#%1) has 
-	[if(%qs, 
-		[if(setr(f, sub(%qs, words(%qo))), %qf, no)] 
-		empty [u(f.plural, %qf, place, places)], 
-		no limit
-	)].
+		[ansi( h, capstr( first( %qi, | )))] %(#%1%) has 
+		[if( %qs, 
+			[if( setr( f, sub( %qs, words( %qo ))), %qf, no )] 
+			empty [u( .plural, %qf, place, places )], 
+			no limit
+		)].
 
-	[if(words(%qo), 
-		%r%b Present is: 
-		[itemize(iter(%qo, name(%i0), , |), |)]
-	)]
-)
+		[if( words( %qo ), 
+			%r%b Present is: 
+			[itemize( iter( %qo, name( %i0 ), , | ), | )]
+		)]
+	)
 
 
 
+/*
 ================================================================================
 == DISPLAY: One Place, Detailed ================================================
 
@@ -976,35 +1087,36 @@ qo: occupancy
 qd: description
 qf: number of spaces free
 
---
+*/
 
 &f.display.one-place-detailed Places Global Object=
-localize(
-	[setq(i, u(f.get, %0, %1, name|spaces|occupancy|description))]
-	[setq(s, elements(%qi, 2, |))]
-	[setq(o, elements(%qi, 3, |))]
-	[setq(d, elements(%qi, 4, |))]
+	localize( 
+		[setq( i, u( f.get, %0, %1, name|spaces|occupancy|description ))]
+		[setq( s, elements( %qi, 2, | ))]
+		[setq( o, elements( %qi, 3, | ))]
+		[setq( d, elements( %qi, 4, | ))]
 
-	[u(f.header, [titlestr(first(%qi, |))] (#%1))]%r
-	%qd%r
-	[u(f.divider)]%r
-	%b This place has 
-	[if(%qs, 
-		[if(setr(f, sub(%qs, words(%qo))), %qf, no)] 
-		empty [plural(%qf, place, places)] out of %qs, 
-		no occupancy limit
-	)].
+		[u( .header, [titlestr( first( %qi, | ))] ( #%1 ))]%r
+		%qd%r
+		[u( .divider )]%r
+		%b This place has 
+		[if( %qs, 
+			[if( setr( f, sub( %qs, words( %qo ))), %qf, no )] 
+			empty [u( .plural, %qf, place, places )] out of %qs, 
+			no occupancy limit
+		)].
 
-	[if(t(%qo), 
-		%r%b Present is: 
-			[itemize(iter(%qo, name(%i0), , |), |)]
-	)]%r
+		[if( t( %qo ), 
+			%r%b Present is: 
+				[itemize( iter( %qo, name( %i0 ), , | ), | )]
+		)]%r
 	
-	[u(f.footer)]
-)
+		[u( .footer )]
+	)
 
 
 
+/*
 ================================================================================
 == DISPLAY: Elements ===========================================================
 
@@ -1014,38 +1126,42 @@ The output of the various elements.
 --------------------------------------------------------------------------------
 -- Display Element -------------------------------------------------------------
 
-Output any known element.  Edit any tokens in the text.
+Output any known element. Edit any tokens in the text.
 
 0: dbref
 1: place
 2: element
 
---
+*/
 
 &f.display.element pgo=
-	edit(
-@@ .. get element - we know we'll get something if valid
-		udefault(
+	edit( 
+// .. get element - we know we'll get something if valid
+		udefault( 
 			f.display.element.%2, 
-			u(f.display.element.other, %0, %1, %2), 
+			u( f.display.element.other, %0, %1, %2 ), 
 			%0, %1, %2
 		), 
-@@ .. replace tokens
+// .. replace tokens
 		#LOC, %1, 
-		#NAME, u(f.get.name, %0, %1), 
-		#LCNAME, lcstr(u(f.get.name, %0, %1))
+		#NAME, u( f.get.name, %0, %1 ), 
+		#LCNAME, lcstr( u( f.get.name, %0, %1 ))
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Elements to display ---------------------------------------------------------
+*/
 
-&f.display.element.other pgo=udefault(f.get.%2, #-1 Element Unknown, %0, %1)
+&f.display.element.other pgo=udefault( f.get.%2, #-1 Element Unknown, %0, %1 )
 
-&f.display.element.occupancy pgo=itemize(iter(u(f.get.occupancy, %0, %1), name(%i0), , |), |)
+&f.display.element.occupancy pgo=
+	itemize( iter( u( f.get.occupancy, %0, %1 ), name( %i0 ), , | ), | )
 
 
 
+/*
 ================================================================================
 == TRIGGERS ====================================================================
 
@@ -1057,48 +1173,50 @@ Almost all the triggers on the object.
 
 Keep Your Room Tidy.
 
---
+*/
 
 &tr.chown pgo=@chown %0/%1=[owner( %0 )]
 
 
+/*
 --------------------------------------------------------------------------------
 -- Trigger: Configure ----------------------------------------------------------
 
-The room configure functions.  Since someone can run some of these multiple times, we'll unlock things that we lock first.
+The room configure functions. Since someone can run some of these multiple times, we'll unlock things that we lock first.
 
 Setting up WILL clobber a room's @startup & @aleave and set it Monitor and !Halt
 
 0: Our target room.
 
---
+*/
 
 &tr.configure Places Global Object=
 	@unlock %0/places_listen; 
 	@unlock %0/startup; 
 
-	@aleave %0=@eval places%(depart, %%!, %%#%); 
-	@startup %0=@eval places%(cleanup, %%!%); 
+	@aleave %0=@eval places%(depart, %%!, %%#%) ; 
+	@startup %0=@eval places%(cleanup, %%!%) ; 
 
 	@set %0=!halt; 
 
-	@chown %0/aleave=[owner(%0)]; 
-	@chown %0/startup=[owner(%0)]; 
+	@chown %0/aleave=[owner( %0 )]; 
+	@chown %0/startup=[owner( %0 )]; 
 
 	@lock %0/aleave=%0; 
 	@lock %0/startup=%0; 
 
 
+/*
 --------------------------------------------------------------------------------
 -- Trigger: Breakdown ----------------------------------------------------------
 
 The places removal function.
 
-This WILL clobber a room's @aleave, and @startup
+This WILL clobber a room's @aleave and @startup
 
 0: Our target room.
 
---
+*/
 
 &tr.breakdown Places Global Object=
 	@unlock %0/aleave; 
@@ -1106,31 +1224,33 @@ This WILL clobber a room's @aleave, and @startup
 
 	@aleave %0=; @startup %0=; 
 
-	@dolist [lattr(%0/places.*)]={&## %0=}; 
+	@dolist [lattr( %0/places.* )]={ &## %0= }; 
 
 
+/*
 --------------------------------------------------------------------------------
 -- Trigger: New Place ----------------------------------------------------------
 
 Sets up Place #%1 in room %0 with all the defaults.
 
---
+*/
 
 &tr.newplace Places Global Object=
 	&places.%1.details %0=
-		[iter(name spaces description, v(d.default.%i0), , |)];
+		[iter( name spaces description, v( d.default.%i0 ), , | )];
 	&places.%1.notices %0=
-		[iter(say_prefix join ojoin depart odepart, v(d.default.%i0), , |)]; 
-	@chown %0/places.%1.details=[owner(%0)]; 
-	@chown %0/places.%1.notices=[owner(%0)]; 
+		[iter( say_prefix join ojoin depart odepart, v( d.default.%i0 ), , | )]; 
+	@chown %0/places.%1.details=[owner( %0 )]; 
+	@chown %0/places.%1.notices=[owner( %0 )]; 
 
 
+/*
 --------------------------------------------------------------------------------
 -- Trigger: Delete Place -------------------------------------------------------
 
-Removes up Place #%1 in room %0.
+Removes `Place #%1` in room `%0`.
 
---
+*/
 
 &tr.delplace Places Global Object=
 	&places.%1.details %0=; 
@@ -1138,6 +1258,7 @@ Removes up Place #%1 in room %0.
 	&places.%1.occupancy %0=; 
 
 
+/*
 --------------------------------------------------------------------------------
 -- Trigger: Move Place ---------------------------------------------------------
 
@@ -1145,17 +1266,20 @@ Removes up Place #%1 in room %0.
 1: old placenum
 2: new placenum
 
+*/
+
 &tr.moveplace Places Global Object=
 	@mvattr %0=places.%1.details, places.%2.details; 
 	@mvattr %0=places.%1.notices, places.%2.notices; 
 	@mvattr %0=places.%1.occupancy, places.%2.occupancy; 
 
-	@chown %0/places.%2.details=[owner(%0)]; 
-	@chown %0/places.%2.notices=[owner(%0)]; 
-	@chown %0/places.%2.occupancy=[owner(%0)]; 
+	@chown %0/places.%2.details=[owner( %0 )]; 
+	@chown %0/places.%2.notices=[owner( %0 )]; 
+	@chown %0/places.%2.occupancy=[owner( %0 )]; 
 
 
 
+/*
 ================================================================================
 == FUNCTIONS: Support Functions ================================================
 
@@ -1165,27 +1289,26 @@ Some functions used for various different aspects of the system.
 --------------------------------------------------------------------------------
 -- Configurable Display Functions ----------------------------------------------
 
-For cross-game compatability.  Default message formatting goes here.
+For cross-game compatability. Default message formatting goes here.
+
+*/
+
+&.isstaff pgo=isstaff( %0 )
+&.lmin pgo=lmin( %0, %1 )
+&.lmax pgo=lmax( %0, %1 )
+&.crumple pgo=trim( squish( %0 ))
+&.plural pgo=if( eq( %0, 1 ), %1, %2 )
+
+// -
+
+&.msg pgo=ansi( h, <%0>, n, %b%1 )
+
+&.header pgo=wheader( %0 )
+&.footer pgo=wfooter( %0 )
+&.divider pgo=wdivider( %0 )
 
 
-&f.isstaff pgo=isstaff( %0 )
-&f.lmin pgo=lmin( %0, %1 )
-&f.lmax pgo=lmax( %0, %1 )
-&f.crumple pgo=crumple( %0 )
-&f.plural pgo=plural( %0, %1, %2 )
-
--
-
-&f.notify pgo=trim( msg( h, %0 ))
-&f.alert pgo=alert( %0 )
-
--
-
-&f.header pgo=wheader( %0 )
-&f.footer pgo=wfooter( %0 )
-&f.divider pgo=wdivider( %0 )
-
-
+/*
 --------------------------------------------------------------------------------
 -- Lowest Available Number -----------------------------------------------------
 
@@ -1193,9 +1316,13 @@ Passed a list of integers, it will return the lowest available positive integer.
 
 0: list of values
 
-&f.lowest-available-number pgo=u( f.lmin, setdiff(lnum(1, inc( u( f.lmax, %0 ))), %0 ))
+*/
+
+&f.lowest-available-number pgo=
+	u( .lmin, setdiff( lnum( 1, inc( u( .lmax, %0 ))), %0 ))
 
 
+/*
 ================================================================================
 == USER DEFINED FUNCTIONS: Support Functions ===================================
 
@@ -1209,7 +1336,7 @@ Rather than have one function per item, let's just have one function.
 
 	places( <action>, <room> [, <other>] )
 
---
+*/
 
 &ufunc/privileged.places Places Global Object=
 	[setq( l, locate( %#, %1, ahR ))]
@@ -1218,18 +1345,23 @@ Rather than have one function per item, let's just have one function.
 		#-1 ROOM NOT FOUND 
 	)]
 
---
+// --
 
 @startup Places Global Object=@function/privileged/preserve places=
 	@@PLACES@@/ufunc/privileged.places
 
---
+// --
 
 @force me=@edit pgo/ufunc/privileged.places=@@PLACES@@, [num( pgo )]
 @force me=@edit pgo/startup=@@PLACES@@, [num( pgo )]
 
-@@ @force me=@edit [search( object=Places Global Object <pgo> )]/ufunc/privileged.places=@@PLACES@@, [search( object=Places Global Object <pgo> )]
-@@ @force me=@edit [search( object=Places Global Object <pgo> )]/startup=@@PLACES@@, [num[search( object=Places Global Object <pgo> )]]
+/*
+@force me=
+	@edit [search( object=Places Global Object <pgo> )]/ufunc/privileged.places=
+		@@PLACES@@, [search( object=Places Global Object <pgo> )]
+@force me=
+	@edit [search( object=Places Global Object <pgo> )]/startup=
+		@@PLACES@@, [search( object=Places Global Object <pgo> )]
 
 
 --------------------------------------------------------------------------------
@@ -1237,149 +1369,153 @@ Rather than have one function per item, let's just have one function.
 
 List places in the room and who is at it, or list everyone in a certain place.
 
-	places(list, <room> [, <place>])
+	places( list, <room> [, <place>] )
 
 Returns: #-1 ERROR or '<num>:<name>:<max>:<list of dbrefs>', |-delim
 
---
+*/
 
 &action.list Places Global Object=
-localize(
-	case(0, 
-		cor(strmatch(%0, loc(%#)), u(f.isstaff, %#)), 
-		#-1 LIST MUST BE TRIGGERED IN ROOM, 
+	localize( 
+		case( 0, 
+			cor( strmatch( %0, loc( %# )), u( .isstaff, %# )), 
+			#-1 LIST MUST BE TRIGGERED IN ROOM, 
 
-@@ >> check that it's set up
-		hasattr(%0, places.1.details), 
-		#-1 PLACES NOT CONFIGURED, 
+// >> check that it's set up
+			hasattr( %0, places.1.details ), 
+			#-1 PLACES NOT CONFIGURED, 
 
-@@ >> no '<place>', return everything, may be null
-		comp(%1, ), 
-		sort(
-			iter(lattr(%0/places.*.details), 
-@@ .. less efficient than grabbing directly from attribute, more updatable 
-				[setr(n, elements(%i0, 2, .))]:
-				[u(f.get.name, %0, %qn, name)]:
-				[u(f.get.spaces, %0, %qn, spaces)]:
-				[u(f.get.occupancy, %0, %qn)], 
-				, |
+// >> no '<place>', return everything, may be null
+			comp( %1, ), 
+			sort( 
+				iter( lattr( %0/places.*.details ), 
+// .. less efficient than grabbing directly from attribute, more updatable 
+					[setr( n, elements( %i0, 2, . ))]:
+					[u( f.get.name, %0, %qn, name )]:
+					[u( f.get.spaces, %0, %qn, spaces )]:
+					[u( f.get.occupancy, %0, %qn )], 
+					, |
+				), 
+				n, |, |
 			), 
-			n, |, |
-		), 
 
-@@ >> rudamentary '<place>' check
-		hasattr(%0, places.%1.details), 
-		#-1 NO SUCH PLACE, 
+// >> rudamentary '<place>' check
+			hasattr( %0, places.%1.details ), 
+			#-1 NO SUCH PLACE, 
 
-@@ >> 'else' assumption: place exists, so show it - start with cleanup
-		%1:
-		[u(f.get.name, %0, %1, name)]:
-		[u(f.get.spaces, %0, %1, spaces)]:
-		[u(f.get.occupancy, %0, %1)]
+// >> 'else' assumption: place exists, so show it - start with cleanup
+			%1:
+			[u( f.get.name, %0, %1, name )]:
+			[u( f.get.spaces, %0, %1, spaces )]:
+			[u( f.get.occupancy, %0, %1 )]
+		)
 	)
-)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): cleanup -----------------------------------------------------------
 
-Cleanup is available only to the room itself, people in the room, or to a staffer.
+Cleanup is available only to the room itself, people in the room, 
+or to a staffer.
 
 NOTE: Remember to scan for/clean null "gatherings" when it's installed.
 NOTE: See "places(): list", above, for when this code is called.
 
-	places(cleanup, <room> [, <dbrefs to remove>])
+	places( cleanup, <room> [, <dbrefs to remove>] )
 
-Returns: #-1 ERROR or 1 (true) if the code ran or set without error.
+Returns: #-1 ERROR or 1 ( true ) if the code ran or set without error.
 
 qp: player dbref
 
---
+*/
 
 &action.cleanup Places Global Object=
-localize(
-	case(0, 
-		cor(t(%1), or(strmatch(%0, loc(%#)), u(f.isstaff, %#))), 
-		#-1 CLEANUP MUST BE USED IN ROOM, 
+	localize( 
+		case( 0, 
+			cor( t( %1 ), or( strmatch( %0, loc( %# )), u( .isstaff, %# ))), 
+			#-1 CLEANUP MUST BE USED IN ROOM, 
 
-		cor(
-			strmatch(setr(p, pmatch(%1)), %#), 
-			strmatch(%1, ), 
-			u(f.isstaff, %#)
-		), 
-		#-1 CLEANUP PLAYER MUST BE USED BY PLAYER, 
+			cor( 
+				strmatch( setr( p, pmatch( %1 )), %# ), 
+				strmatch( %1, ), 
+				u( .isstaff, %# )
+			), 
+			#-1 CLEANUP PLAYER MUST BE USED BY PLAYER, 
 
-@@ no specific dbref(s), clean up everyone
-		t(%qp), 
-		[setq(c, lcon(%0, connect))]
-		[setq(e, 
-			iter(lattr(%0/places.*.occupancy), 
-				set(%0, %i0:[setinter(get(%0/%i0), %qc)]), , @@
-			)
-		)]
-		[if(comp(%qe, ), 
-			#-1 [ucstr(%qe)], 
-			1
-		)], 
+// no specific dbref( s ), clean up everyone
+			t( %qp ), 
+			[setq( c, lcon( %0, connect ))]
+			[setq( e, 
+				iter( lattr( %0/places.*.occupancy ), 
+					set( %0, %i0:[setinter( get( %0/%i0 ), %qc )] ), , @@
+				)
+			)]
+			[if( comp( %qe, ), 
+				#-1 [ucstr( %qe )], 
+				1
+			)], 
 
-@@ specific dbref(s), clean up only them - even if they're connected
-		[setq(e, 
-			iter(lattr(%0/places.*.occupancy), 
-				set(%0, %i0:[setdiff(get(%0/%i0), %qp)]), , @@
-			)
-		)]
-		[if(comp(%qe, ), 
-			#-1 [ucstr(%qe)], 
-			1
-		)]
+// specific dbref( s ), clean up only them - even if they're connected
+			[setq( e, 
+				iter( lattr( %0/places.*.occupancy ), 
+					set( %0, %i0:[setdiff( get( %0/%i0 ), %qp )] ), , @@
+				)
+			)]
+			[if( comp( %qe, ), 
+				#-1 [ucstr( %qe )], 
+				1
+			)]
+		)
 	)
-)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): configure ---------------------------------------------------------
 
-Configure (or re-configure) a room.  Clobbers @startup, @aleave.
+Configure (or re-configure) a room. Clobbers @startup, @aleave.
 
 Must be used by room owner or staffer.
 
-	places(configure, <room>, YES[, <number of places>])
+	places( configure, <room>, YES[, <number of places>] )
 
 Returns: #-1 ERROR or 1 if it believes it was successful.
 
---
+*/
 
 &action.configure Places Global Object=
-	case(0, 
-		u(f.permission.room_owner, %#, %0), 
+	case( 0, 
+		u( f.permission.room_owner, %#, %0 ), 
 		#-1 CONFIGURE MAY BE USED BY ROOM OWNER ONLY, 
 
-		not(hasflag(%0, HALT)), 
+		not( hasflag( %0, HALT )), 
 		#-1 CONFIGURE CANNOT BE USED IF ROOM IS SET HALT, 
 
-@@ >> validate 'number of places'
-		cor(
-			not(strlen(%2)), 
-			and(isint(%2), lte(%2, 10), gte(%2, 1))
+// >> validate 'number of places'
+		cor( 
+			not( strlen( %2 )), 
+			and( isint( %2 ), lte( %2, 10 ), gte( %2, 1 ))
 		), 
 		#-1 CONFIGURE BETWEEN 1 AND 10 PLACES, 
 
-@@ >> 'YES' was passed, do it
-		comp(%1, YES), 
-		[trigger(%!/tr.configure, %0)]
-		[null(iter(lnum(1, if(strlen(%2), %2, 1)), 
-			if(
-				not(hasattr(%0, places.%i0.details)), 
-				trigger(%!/tr.newplace, %0, %i0)
+// >> 'YES' was passed, do it
+		comp( %1, YES ), 
+		[trigger( %!/tr.configure, %0 )]
+		[null( iter( lnum( 1, if( strlen( %2 ), %2, 1 )), 
+			if( 
+				not( hasattr( %0, places.%i0.details )), 
+				trigger( %!/tr.newplace, %0, %i0 )
 			)
 		))]
 		1, 
 
-@@ >> else: no 'YES', show warning
+// >> else: no 'YES', show warning
 		#-1 CONFIGURE REQUIRES CONFIRMATION
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): breakdown ---------------------------------------------------------
 
@@ -1387,260 +1523,269 @@ Remove places from a room permenantly.
 
 Clobbers @startup, @aleave.
 
-	places(breakdown, <room> [, YES])
+	places( breakdown, <room> [, YES] )
 
 Returns: #-1 ERROR or 1 if it believes it was successful.
 
---
+*/
 
 &action.breakdown Places Global Object=
-	case(0, 
-		u(f.permission.room_owner, %#, %0), 
+	case( 0, 
+		u( f.permission.room_owner, %#, %0 ), 
 		#-1 BREAKDOWN MAY BE USED BY ROOM OWNER ONLY, 
 
-@@ >> 'YES' was passed, do it
-		comp(%1, YES), 
-		[trigger(%!/tr.breakdown, %0)]
+// >> 'YES' was passed, do it
+		comp( %1, YES ), 
+		[trigger( %!/tr.breakdown, %0 )]
 		1, 
 
-@@ >> else: no 'YES', show warning
+// >> else: no 'YES', show warning
 		#-1 BREAKDOWN REQUIRES CONFIRMATION
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): new place ---------------------------------------------------------
 
 Create a new place, auto-incremented and filled with defaults.
 
-	places(newplace, <room>, [<specific place number>])
+	places( newplace, <room>, [<specific place number>] )
 
 Returns: #-1 ERROR or place #, if successful.
 
 qn: place number, for return & trigger
 
---
+*/
 
 &action.newplace Places Global Object=
-localize(
-	case(0, 
-		u(f.permission.room_owner, %#, %0), 
-		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
+	localize( 
+		case( 0, 
+			u( f.permission.room_owner, %#, %0 ), 
+			#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
 
-		hasattr(%0, places.1.details), 
-		#-1 PLACES NOT CONFIGURED, 
+			hasattr( %0, places.1.details ), 
+			#-1 PLACES NOT CONFIGURED, 
 
-		cor(not(strlen(%1)), and(gte(%1, 1), isint(%1))), 
-		#-1 PLACE NUMBER NOT VALID, 
+			cor( not( strlen( %1 )), and( gte( %1, 1 ), isint( %1 ))), 
+			#-1 PLACE NUMBER NOT VALID, 
 
-		not(hasattr(%0, places.%1.details)), 
-		#-1 PLACE ALREADY EXISTS, 
+			not( hasattr( %0, places.%1.details )), 
+			#-1 PLACE ALREADY EXISTS, 
 
-		[setr(n, 
-			if(strlen(%1),
-				%1, 
-				u(f.lowest-available-number, 
-					iter(lattr(%0/places.*.details), elements(%i0, 2, .))
+			[setr( n, 
+				if( strlen( %1 ),
+					%1, 
+					u( f.lowest-available-number, 
+						iter( 
+							lattr( %0/places.*.details ), 
+							elements( %i0, 2, . )
+						)
+					)
 				)
-			)
-		)]
-		[trigger(%!/tr.newplace, %0, %qn)]
+			)]
+			[trigger( %!/tr.newplace, %0, %qn )]
+		)
 	)
-)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): del place ---------------------------------------------------------
 
 Deletes a place, unless someone is already there.
 
-	places(delplace, <room>, <specific place number>)
+	places( delplace, <room>, <specific place number> )
 
 Returns: #-1 ERROR or ex-place #, if successful.
 
---
+*/
 
 &action.delplace Places Global Object=
-	case(0, 
-		u(f.permission.room_owner, %#, %0), 
+	case( 0, 
+		u( f.permission.room_owner, %#, %0 ), 
 		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
 
-		hasattr(%0, places.1.details), 
+		hasattr( %0, places.1.details ), 
 		#-1 PLACES NOT CONFIGURED, 
 
-		hasattr(%0, places.%1.details), 
+		hasattr( %0, places.%1.details ), 
 		#-1 PLACE NUMBER NOT VALID, 
 
-		dec(%1), 
+		dec( %1 ), 
 		#-1 CANNOT DELETE PLACE #1, 
 
-		[null(u(action.cleanup, %0))]
-		[not(hasattr(%0, places.%1.occupancy))], 
+		[null( u( action.cleanup, %0 ))]
+		[not( hasattr( %0, places.%1.occupancy ))], 
 		#-1 PLACE IS OCCUPIED, 
 
 		%1
-		[trigger(%!/tr.delplace, %0, %1)]
+		[trigger( %!/tr.delplace, %0, %1 )]
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): set ---------------------------------------------------------------
 
 Set an aspect of an existing place (including "gatherings", when exists).
 
-	places(set, <room>, <place #>, <element> , <info>)
+	places( set, <room>, <place #>, <element> , <info> )
 
 Info cannot be null.
 
 qn: element name
 qe: possible error during set
 
---
+*/
 
 &action.set Places Global Object=
-localize(
-	case(0, 
-		u(f.permission.room_owner, %#, %0), 
-		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
+	localize( 
+		case( 0, 
+			u( f.permission.room_owner, %#, %0 ), 
+			#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
 
-@@ >> check that it's set up
-		hasattr(%0, places.1.details), 
-		#-1 PLACES NOT CONFIGURED, 
+// >> check that it's set up
+			hasattr( %0, places.1.details ), 
+			#-1 PLACES NOT CONFIGURED, 
 
-@@ >> rudamentary '<place>' check
-		hasattr(%0, places.%1.details), 
-		#-1 NO SUCH PLACE, 
+// >> rudamentary '<place>' check
+			hasattr( %0, places.%1.details ), 
+			#-1 NO SUCH PLACE, 
 
-@@ >> '<info> check
-		comp(%3, ), 
-		#-1 ELEMENT MAY NOT BE NULL, 
+// >> '<info> check
+			comp( %3, ), 
+			#-1 ELEMENT MAY NOT BE NULL, 
 
-@@ >> '<element>' check - grab full item name & check null
-		t(setr(n, 
-			grab(
-				|[iter(lattr(%!/f.set.*), last(%i0, .), , |)], 
-				%2*, |
-			)
-		)), 
-		#-1 ELEMENT NOT FOUND, 
+// >> '<element>' check - grab full item name & check null
+			t( setr( n, 
+				grab( 
+					|[iter( lattr( %!/f.set.* ), last( %i0, . ), , | )], 
+					%2*, |
+				)
+			)), 
+			#-1 ELEMENT NOT FOUND, 
 
-@@ >> '<element>' grabbed was null
-		comp(%qn, ), 
-		#-1 ELEMENT NOT FOUND, 
+// >> '<element>' grabbed was null
+			comp( %qn, ), 
+			#-1 ELEMENT NOT FOUND, 
 
-@@ >> validate input
-		not(strlen(setr(e, u(f.validate.%qn, %3)))), 
-		#-1 [ucstr(%qe)], 
+// >> validate input
+			not( strlen( setr( e, u( f.validate.%qn, %3 )))), 
+			#-1 [ucstr( %qe )], 
 
-@@ >> set, check error from set
-		comp(setr(e, u(f.set.%qn, %0, %1, %3)), ), 
-		1, 
+// >> set, check error from set
+			comp( setr( e, u( f.set.%qn, %0, %1, %3 )), ), 
+			1, 
 
-		#-1 [ucstr(%qe)]
+			#-1 [ucstr( %qe )]
+		)
 	)
-)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): join --------------------------------------------------------------
 
 If I'm going to make this a function-based system, I might as well go all the way.
 
-	places(join, <room>, <place #>, <player name or dbref>)
+	places( join, <room>, <place #>, <player name or dbref> )
 
 qp: dbref from pmatch()
 qo: current place occupancy list
 qs: spaces (max)
 qe: possible error from set
 
---
+*/
 
 &action.join Places Global Object=
-localize(
-	case(0, 
-		cand(
-			strmatch(%0, loc(setr(p, pmatch(%2)))), 
-			cor(strmatch(%0, loc(%qp)), u(f.isstaff, %#))
-		), 
-		#-1 JOIN MUST BE TRIGGERED BY PLAYER FOR THAT ROOM, 
+	localize( 
+		case( 0, 
+			cand( 
+				strmatch( %0, loc( setr( p, pmatch( %2 )))), 
+				cor( strmatch( %0, loc( %qp )), u( .isstaff, %# ))
+			), 
+			#-1 JOIN MUST BE TRIGGERED BY PLAYER FOR THAT ROOM, 
 
-@@ >> check that it's set up
-		hasattr(%0, places.1.details), 
-		#-1 PLACES NOT CONFIGURED, 
+// >> check that it's set up
+			hasattr( %0, places.1.details ), 
+			#-1 PLACES NOT CONFIGURED, 
 
-@@ >> if room is set halt, join/leave can't be cleaned up
-		not(hasflag(%0, HALT)), 
-		#-1 JOIN CANNOT BE USED IF ROOM IS SET HALT, 
+// >> if room is set halt, join/leave can't be cleaned up
+			not( hasflag( %0, HALT )), 
+			#-1 JOIN CANNOT BE USED IF ROOM IS SET HALT, 
 
-@@ >> rudamentary '<place>' check
-		hasattr(%0, places.%1.details), 
-		#-1 NO SUCH PLACE, 
+// >> rudamentary '<place>' check
+			hasattr( %0, places.%1.details ), 
+			#-1 NO SUCH PLACE, 
 
-@@ >> already there
-		not(match(
-			setr(o, u(f.get.occupancy, %0, %1)), 
-			%qp
-		)), 
-		#-1 ALREADY AT THAT LOCATION, 
+// >> already there
+			not( match( 
+				setr( o, u( f.get.occupancy, %0, %1 )), 
+				%qp
+			)), 
+			#-1 ALREADY AT THAT LOCATION, 
 
-@@ >> already somewhere
-		not(u(action.whichplace, %0, %qp)), 
-		#-1 PLEASE DEPART BEFORE JOINING, 
+// >> already somewhere
+			not( u( action.whichplace, %0, %qp )), 
+			#-1 PLEASE DEPART BEFORE JOINING, 
 
-@@ >> any space left? (0 spaces = infinite)
-		or(
-			eq(setr(s, u(f.get.spaces, %0, %1)), 0), 
-			lt(words(%qo), %qs)
-		), 
-		#-1 NO SPACES AVAILABLE, 
+// >> any space left? ( 0 spaces = infinite )
+			or( 
+				eq( setr( s, u( f.get.spaces, %0, %1 )), 0 ), 
+				lt( words( %qo ), %qs )
+			), 
+			#-1 NO SPACES AVAILABLE, 
 
-@@ >> dbref has to be player (c.f. pmatch), add it to .occupancy
-		comp(setr(e, u(f.set.occupancy, %0, %1, trim(%qo %qp))), ), 
-@@ .. ojoin - sent to everyone but joiner
-		[pemit(
-			setdiff(lcon(%0), %qp), 
-			[name(%qp)] [u(f.display.element, %0, %1, ojoin)]
-		)]
-@@ .. join - sent to joiner
-		[pemit(
-			%qp, 
-			u(f.display.element, %0, %1, join)
-		)]
-		1, 
+// >> dbref has to be player ( c.f. pmatch ), add it to .occupancy
+			comp( setr( e, u( f.set.occupancy, %0, %1, trim( %qo %qp ))), ), 
+// .. ojoin - sent to everyone but joiner
+			[pemit( 
+				setdiff( lcon( %0 ), %qp ), 
+				[name( %qp )] [u( f.display.element, %0, %1, ojoin )]
+			)]
+// .. join - sent to joiner
+			[pemit( 
+				%qp, 
+				u( f.display.element, %0, %1, join )
+			)]
+			1, 
 
-@@ .. error found on set
-		#-1 [ucstr(%qe)]
+// .. error found on set
+			#-1 [ucstr( %qe )]
+		)
 	)
-)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): whichplace --------------------------------------------------------
 
-Which place# is someone in?  Only available to person in that location. Returns the lowest numbered place, in the incorrect event that the person has joined more than one place.  (This incorrect situation would get fixed via the leave/cleanup code.)
+Which place# is someone in? Only available to person in that location. Returns the lowest numbered place, in the incorrect event that the person has joined more than one place. (This incorrect situation would get fixed via the leave/cleanup code.)
 
-Be Careful: Whichplace has its own validation check.  (If we check for dark players, here's where it should go.)
+Be Careful: Whichplace has its own validation check. (If we check for dark players, here's where it should go.)
 
 	places( whichplace, <loc>, <person> )
 
 qn: place number (localized)
 
---
+*/
 
 &action.whichplace Places Global Object=
-localize(
-	case(0, 
-		cor(strmatch(setr(p, pmatch(%1)), %#), u(f.isstaff, %#)), 
-		#-1 WHICHPLACE MUST BE TRIGGERED BY TARGET, 
+	localize( 
+		case( 0, 
+			cor( strmatch( setr( p, pmatch( %1 )), %# ), u( .isstaff, %# )), 
+			#-1 WHICHPLACE MUST BE TRIGGERED BY TARGET, 
 
-		t(setr(n, first(sort(u(f.get-num-by-player, %0, %qp))))), 
-		#-1 NOT AT ANY PLACE, 
+			t( setr( n, first( sort( u( f.get-num-by-player, %0, %qp ))))), 
+			#-1 NOT AT ANY PLACE, 
 
-		%qn
+			%qn
+		)
 	)
-)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): nameplace ---------------------------------------------------------
 
@@ -1650,22 +1795,23 @@ Returns the place number of a place's name, the name -> num version of 'whichpla
 
 qn: place numbers (localized)
 
---
+*/
 
 &action.nameplace Places Global Object=
-localize(
-	case(0, 
-		cor(strmatch(%0, loc(%#)), u(f.isstaff, %#)), 
-		#-1 NAMEPLACE MUST BE USED IN ROOM, 
+	localize( 
+		case( 0, 
+			cor( strmatch( %0, loc( %# )), u( .isstaff, %# )), 
+			#-1 NAMEPLACE MUST BE USED IN ROOM, 
 
-		t(setr(n, sort(u(f.get-num-by-name, %0, %1)))), 
-		#-1 NO MATCH, 
+			t( setr( n, sort( u( f.get-num-by-name, %0, %1 )))), 
+			#-1 NO MATCH, 
 
-		u(f.crumple, %qn)
+			u( .crumple, %qn )
+		)
 	)
-)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): depart ------------------------------------------------------------
 
@@ -1676,54 +1822,55 @@ If I'm going to make this a function-based system, I might as well go all the wa
 qp: dbref from pmatch()
 qn: current place number
 
-qo: new place occupancy list (sans %qp)
-qs: spaces (max)
+qo: new place occupancy list ( sans %qp )
+qs: spaces ( max )
 qe: possible error from set
 
---
+*/
 
 &action.depart Places Global Object=
-localize(
-	case(0, 
-		cor(strmatch(setr(p, pmatch(%1)), %#), u(f.isstaff, %#)), 
-		#-1 DEPART MUST BE TRIGGERED BY TARGET, 
+	localize( 
+		case( 0, 
+			cor( strmatch( setr( p, pmatch( %1 )), %# ), u( .isstaff, %# )), 
+			#-1 DEPART MUST BE TRIGGERED BY TARGET, 
 
-@@ >> check that it's set up
-		hasattr(%0, places.1.details), 
-		#-1 PLACES NOT CONFIGURED, 
+// >> check that it's set up
+			hasattr( %0, places.1.details ), 
+			#-1 PLACES NOT CONFIGURED, 
 
-@@ >> if room is set halt, join/leave can't be cleaned up
-		not(hasflag(%0, HALT)), 
-		#-1 DEPART CANNOT BE USED IF ROOM IS SET HALT, 
+// >> if room is set halt, join/leave can't be cleaned up
+			not( hasflag( %0, HALT )), 
+			#-1 DEPART CANNOT BE USED IF ROOM IS SET HALT, 
 
-@@ >> check player is at a place - calls 'whichplace' - report #-1 ERROR
-		t(setr(n, ulocal(action.whichplace, %0, %qp))), 
-		%qn, 
+// >> check player is at a place - calls 'whichplace' - report #-1 ERROR
+			t( setr( n, ulocal( action.whichplace, %0, %qp ))), 
+			%qn, 
 
-@@ >> if the character cleanup is okay...
-		not(setr(e, u(action.cleanup, %0, %qp))), 
+// >> if the character cleanup is okay...
+			not( setr( e, u( action.cleanup, %0, %qp ))), 
 
-@@ .. get who's left at that location (edit probably redundant)
-		[setq(o, edit(u(f.get.occupancy, %0, %qn), %qp, ))]
+// .. get who's left at that location ( edit probably redundant )
+			[setq( o, edit( u( f.get.occupancy, %0, %qn ), %qp, ))]
 
-@@ .. odepart - sent to everyone but departer
-		[pemit(
-			setdiff(lcon(%0), %qp), 
-			[name(%qp)] [u(f.display.element, %0, %qn, odepart)]
-		)]
-@@ .. depart - sent to departer
-		[pemit(
-			%qp, 
-			u(f.display.element, %0, %qn, depart)
-		)]
-		1, 
+// .. odepart - sent to everyone but departer
+			[pemit( 
+				setdiff( lcon( %0 ), %qp ), 
+				[name( %qp )] [u( f.display.element, %0, %qn, odepart )]
+			)]
+// .. depart - sent to departer
+			[pemit( 
+				%qp, 
+				u( f.display.element, %0, %qn, depart )
+			)]
+			1, 
 
-@@ .. error from action.cleanup (already has #-1)
-		%qe
+// .. error from action.cleanup ( already has #-1 )
+			%qe
+		)
 	)
-)
 
 
+/*
 --------------------------------------------------------------------------------
 -- places(): tt ----------------------------------------------------------------
 
@@ -1735,90 +1882,94 @@ qn: current place number
 qo: current place occupancy list
 qs: say/pose formatted
 
---
-
+*/
 
 &action.tt Places Global Object=
-localize(
-	case(0, 
-		cor(strmatch(setr(p, pmatch(%1)), %#), and(strmatch(%0, loc(%#))), u(f.isstaff, %#)), 
-		#-1 TT MUST BE USED IN ROOM BY PERSON, 
-
-@@ >> check that it's set up
-		hasattr(%0, places.1.details), 
-		#-1 PLACES NOT CONFIGURED, 
-
-@@ >> if room is set halt, join/leave can't be cleaned up
-		not(hasflag(%0, HALT)), 
-		#-1 TT CANNOT BE USED IF ROOM IS SET HALT, 
-
-@@ >> check player is at a place - calls 'whichplace'
-		t(setr(n, ulocal(action.whichplace, %0, %qp))), 
-		%qn, 
-
-@@ >> talk away
-		[setq(o, u(f.get.occupancy, %0, %qn))]
-		[setq(p, name(%qp))]
-		[setq(s, 
-			objeval(%#, switch(
-				%2, 
-				:*, %qp [rest(%2, :)], 
-				%;*, %qp[rest(%2, %;)], 
-				|*, [rest(%2, |)] [ansi(xh, <from %qp>)], 
-				"*, %qp says%, “[rest(%2, ")]”, 
-				%qp says%, “%2”
-			))
-		)]
-		[case(1, 
-@@ .. >> staff evesdropping? (placeholder)
-
-@@ .. >> ooc?
-			strmatch(%3, ooc), 
-			pemit(%qo, 
-				[u(f.display.element, %0, %qn, say_prefix)]%, 
-				[ansi(xh, <ooc>)]%, %qs
+	localize( 
+		case( 0, 
+			cor( 
+				strmatch( setr( p, pmatch( %1 )), %# ), 
+				cand( strmatch( %0, loc( %# ))), u( .isstaff, %# )
 			), 
+			#-1 TT MUST BE USED IN ROOM BY PERSON, 
 
-@@ .. >> normal
-			pemit(%qo, [u(f.display.element, %0, %qn, say_prefix)] %qs)
-		)]
-		1
+// >> check that it's set up
+			hasattr( %0, places.1.details ), 
+			#-1 PLACES NOT CONFIGURED, 
+
+// >> if room is set halt, join/leave can't be cleaned up
+			not( hasflag( %0, HALT )), 
+			#-1 TT CANNOT BE USED IF ROOM IS SET HALT, 
+
+// >> check player is at a place - calls 'whichplace'
+			t( setr( n, ulocal( action.whichplace, %0, %qp ))), 
+			%qn, 
+
+// >> talk away
+			[setq( o, u( f.get.occupancy, %0, %qn ))]
+			[setq( p, name( %qp ))]
+			[setq( s, 
+				objeval( %#, switch( 
+					%2, 
+					:*, %qp [rest( %2, : )], 
+					%;*, %qp[rest( %2, %; )], 
+					|*, [rest( %2, | )] [ansi( xh, <from %qp> )], 
+					"*, %qp says%, “[rest( %2, " )]”, 
+					%qp says%, “%2”
+				))
+			)]
+			[case( 1, 
+// .. >> staff evesdropping? (placeholder)
+
+// .. >> ooc?
+				strmatch( %3, ooc ), 
+				pemit( %qo, 
+					[u( f.display.element, %0, %qn, say_prefix )]%, 
+					[ansi( xh, <ooc> )]%, %qs
+				), 
+
+// .. >> normal
+				pemit( %qo, [u( f.display.element, %0, %qn, say_prefix )] %qs )
+			)]
+			1
+		)
 	)
-)
 
 
+/*
 ---------------------------------------------------------------------------------- places(): get ---------------------------------------------------------------
 
-A complement to 'set' for people who want to have the place description added to the room description.  Don't error if no such place, just return null.  (This is non-standard behavior, but more end-user friendly.)
+A complement to 'set' for people who want to have the place description added to the room description. Don't error if no such place, just return null. ( This is non-standard behavior, but more end-user friendly. )
 
-	places(get, <loc>, <place>, <element>)
+	places( get, <loc>, <place>, <element> )
 
-e.g., on @succ: places(get, %!, places(whichplace, %!, %#), description)
+e.g., on @succ: places( get, %!, places( whichplace, %!, %# ), description )
 
 qe: element from 'f.get'.
 
---
+*/
 
 &action.get Places Global Object=
-localize(
-	case(0, 
-		cor(strmatch(%0, loc(%#)), u(f.isstaff, %#)), 
-		#-1 GET MUST BE USED IN ROOM, 
+	localize( 
+		case( 0, 
+			cor( strmatch( %0, loc( %# )), u( .isstaff, %# )), 
+			#-1 GET MUST BE USED IN ROOM, 
 
-@@ >> check that it's set up
-		hasattr(%0, places.1.details), 
-		#-1 PLACES NOT CONFIGURED, 
+// >> check that it's set up
+			hasattr( %0, places.1.details ), 
+			#-1 PLACES NOT CONFIGURED, 
 
-@@ >> don't error if no such place, but do error if no such element
-		comp(setr(e, u(f.get, %0, %1, %2)), #-1), 
-		#-1 NO SUCH ELEMENT, 
+// >> don't error if no such place, but do error if no such element
+			comp( setr( e, u( f.get, %0, %1, %2 )), #-1 ), 
+			#-1 NO SUCH ELEMENT, 
 
-		%qe
+			%qe
+		)
 	)
-)
 
 
 
+/*
 ================================================================================
 == HELP FILE ===================================================================
 
@@ -1826,127 +1977,102 @@ http://thereachmux.org/wiki/Mush_help:Places
 
 
 --------------------------------------------------------------------------------
--- Raw version -----------------------------------------------------------------
-
-Places: Virtual Locations
-~
-“Places” are virtual places to sit, stand or occupy. You remain in the same room, but join a group of people within that room who may or may not be having a quiet conversation only with others placed with them. This may be different than the places code you're used to (from AmberMUSH), but all attempts have been made to keep it similar while updating.
-In all instances, the 's' on 'places' is optional.
-
-%% [ansi( h, Basic Commands )]
-To use the system, you need to learn only these commands.
-
-* [ansi( h, places )]: Who's here
-* [ansi( h, place <num or name> )]: Information about that place.
-* [ansi( h, join <num or place name or player name> )]: Go to a certain place.
-* [ansi( h, join at <num or name> )]: Go to a specific place.
-* [ansi( h, join with <player> )]: Go to where they are.
-* [ansi( h, depart )]: Leave your current place
-* [ansi( h, tt <say/pose/emit> )]: Say or pose so only your place can hear. Can use '|<text>' as a tt @emit.
-* [ansi( h, tto <say/pose> )]: OOC say or pose for your place. 'ttooc' also works.
-* [ansi( h, place/cleanup \[<location>\] )]: Clean up disconnected and left players. Cleaning up remotely is staff-only.
-
-%% [ansi( h, Legacy Commands )]
-These commands are to help people familiar with the older 'places' system.
-
-* [ansi( h, plook )]: Same as 'places'.
-* [ansi( h, plook <num or name>)]: Same as 'place <num or name>
-* [ansi( h, sit )]: Same as 'join'
-* [ansi( h, stand%, leave )]: Same as 'depart'
-
-For configuration, see: [ansi( h, +help places 2 )]. For examples, see: [ansi( h, +help places 5 )]
-~
-For the setup and administration of places which may only be done by the room owner or staff. In all instances, the 's' on 'places' is optional.
-
-WARNING: Places uses @startup and @aleave on a room. If there is other code for those attributes, it will need to be re-set after using places/setup and setup/breakdown. If the room is set HALT, the following commands or switches won't work: places/setup, join, depart, tt
-
-%% [ansi( h, Creating & Configuring Places )]
-* [ansi( h, places/configure <location>\[/<number of places>\] )]
-%b Set places up in this location. If <number of places> isn't set, it sets up a single place. For most people, use the <location> of 'here'.
-* [ansi( h, places/breakdown <location> )]
-%b Remove places from this location.
-* [ansi( h, places/newplace \[<location>%, <placenum>%, <location>=<placenum>%, or nothing\] )]
-%b Set up a new place, optionally as <placenum>. If <location> is not used, assumes 'here'.
-* [ansi( h, places/delplace \[<location>=\]<placenum> )]
-%b Removes place <num>. Place '1' cannot be deleted. If <location> is not used, assumes 'here'.
-* [ansi( h, places/compress \[<location>\] )]
-%b Removes any gaps in the list of place numbers. Using <location> is staff-only.
-* [ansi( h, places/set \[<location>\] <num>/<item>=<value> )]
-%b Set an <item> of a particular place. If <location> is not used, assumes 'here'.
-
-For the the places() function, see: [ansi( h, +help places 4 )]. For examples, see: [ansi( h, +help places 5 )]
-~
-The following are used with 'places/set' (see [ansi( h, +help places 2 )]).
-
-%% [ansi( h, Items )]
-For 'places/set', the following items can be set. Partial names can be used, so 'desc' and 'say' are both valid. None of these items may be empty.
-
-* [ansi( h, Name )]: The name of the place, better if lower-case except for proper nouns or Victorianization. (default: a table)
-* [ansi( h, Spaces )]: The number of spaces at a place. If set to '0', there is no limitation. (default: 4)
-* [ansi( h, Description )]: The description of the place. (default: A table with a couple of chairs.)
-* [ansi( h, Say_Prefix )]: What's added to the use of 'tt' or 'tto' at that place. A comma is automatically added. (default: At your table)
-* [ansi( h, Join )]: What a player sees when they join the place. (default: You join #NAME.)
-* [ansi( h, Ojoin )]: What people not at that place when someone joins, prefixed by the joiner's name. (default: joins #NAME (##LOC).)
-* [ansi( h, Depart )]: What a player sees when they depart the place. (default: You depart #NAME.)
-* [ansi( h, Odepart )]: What people not at that place when someone departs, prefixed by the departer's name. (default: departs #NAME (##LOC).)
-
-%% [ansi( h, Tokens )]
-There are some tokens which the system will replace for the <value> of Say_Prefix, Join, Ojoin, Depart, and Odepart. More tokens can be added by player request.
-
-* [ansi( h, #NAME )]: The name of the place.
-* [ansi( h, #LCNAME )]: The name, forced lower-case.
-* [ansi( h, #LOC )]: The number of the place.
-
-For examples, see: [ansi( h, +help places 5 )]
-~
-[ansi( h, places() )]
-
-There is a single function, places(), that gives access to most of this in a raw form. Because of its privileged nature, it will be locked down to limitations such as only being usable in the room or by the owner. Staff is given the ability to bypass all limitations.
-
-Here would be a great place to explain it.
-~
-[ansi( h, Usage Examples )]
-
-* Basics
-
-places: When you first enter a room that announces it has places.
-join 3: I want to join the place numbered '3'
-join Anderson: I want to join wherever Anderson is.
-tt Hello!: Say "Hello!" to everyone at that place.
-tto Is this going to turn into combat?: Say "Is this going to turn into combat?" OOCly at that place.
-depart: Leave that place
-
-* Frills
-tt |Someones knee jams up against the table.: Emit "Someones knee jams up against the table." to everyone at that place.
-places/cleanup: Make sure that the only people you see when you type 'places' are people who are actually there.
-
-[ansi( h, Administration Examples )]
-
-* Configuring Places
-
-places/configure here/5: Set up 5 places here, all with the defaults.
-places/set 1/name=merry-go-round: Place #1 will be named 'merry-go-round'.
-places/set 1/say=On the #NAME: Someone using 'tt <text>' there will say it as: On the merry-go-round, <name> says "<text>"
-places/breakdown: Remove the places system from this room.
-
-* Altering Places
-places/delplace 4: Delete place #4.
-places/compress: Compress it so Place #5 is now Place #4.
-place/newplace: Create a new place to the next available place (#5 in this example).
-place/newplace 10: Create a new place numbered '10' at your current location.
-
-* Staff Frills
-places/configure <dbref>/5: Set up 5 places at <dbref>.
-places/breakdown <dbref>: Remove the places system from <dbref>.
-places/newplace <dbref>: Create a new place to the next available place at <dbref>.
-~
-[ansi( h, Credits )]
-
-This major overhaul of the places command was committed by Thenomain.
-
---------------------------------------------------------------------------------
 -- Compressed Version ----------------------------------------------------------
 
-@@ this is for a softcoded help system
+// this is for a softcoded help system
 
-&help~ic_commands~places xxx=Places: Virtual Locations~“Places” are virtual places to sit, stand or occupy. You remain in the same room, but join a group of people within that room who may or may not be having a quiet conversation only with others placed with them. This may be different than the places code you're used to (from AmberMUSH), but all attempts have been made to keep it similar while updating.%rIn all instances, the 's' on 'places' is optional.%r%r%% [ansi( h, Basic Commands )]%rTo use the system, you need to learn only these commands.%r%r* [ansi( h, places )]: Who's here%r* [ansi( h, place <num or name> )]: Information about that place.%r* [ansi( h, join <num or place name or player name> )]: Go to a certain place.%r* [ansi( h, join at <num or name> )]: Go to a specific place.%r* [ansi( h, join with <player> )]: Go to where they are.%r* [ansi( h, depart )]: Leave your current place%r* [ansi( h, tt <say/pose/emit> )]: Say or pose so only your place can hear. Can use '|<text>' as a tt @emit.%r* [ansi( h, tto <say/pose> )]: OOC say or pose for your place. 'ttooc' also works.%r* [ansi( h, place/cleanup \[<location>\] )]: Clean up disconnected and left players. Cleaning up remotely is staff-only.%r%r%% [ansi( h, Legacy Commands )]%rThese commands are to help people familiar with the older 'places' system.%r%r* [ansi( h, plook )]: Same as 'places'.%r* [ansi( h, plook <num or name>)]: Same as 'place <num or name>%r* [ansi( h, sit )]: Same as 'join'%r* [ansi( h, stand%, leave )]: Same as 'depart'%r%rFor configuration, see: [ansi( h, +help places 2 )]. For examples, see: [ansi( h, +help places 5 )]~For the setup and administration of places which may only be done by the room owner or staff. In all instances, the 's' on 'places' is optional.%r%rWARNING: Places uses @startup and @aleave on a room. If there is other code for those attributes, it will need to be re-set after using places/setup and setup/breakdown. If the room is set HALT, the following commands or switches won't work: places/setup, join, depart, tt%r%r%% [ansi( h, Creating & Configuring Places )]%r* [ansi( h, places/configure <location>\[/<number of places>\] )]%r%b Set places up in this location. If <number of places> isn't set, it sets up a single place. For most people, use the <location> of 'here'.%r* [ansi( h, places/breakdown <location> )]%r%b Remove places from this location.%r* [ansi( h, places/newplace \[<location>%, <placenum>%, <location>=<placenum>%, or nothing\] )]%r%b Set up a new place, optionally as <placenum>. If <location> is not used, assumes 'here'.%r* [ansi( h, places/delplace \[<location>=\]<placenum> )]%r%b Removes place <num>. Place '1' cannot be deleted. If <location> is not used, assumes 'here'.%r* [ansi( h, places/compress \[<location>\] )]%r%b Removes any gaps in the list of place numbers. Using <location> is staff-only.%r* [ansi( h, places/set \[<location>\] <num>/<item>=<value> )]%r%b Set an <item> of a particular place. If <location> is not used, assumes 'here'.%r%rFor the the places() function, see: [ansi( h, +help places 4 )]. For examples, see: [ansi( h, +help places 5 )]~The following are used with 'places/set' (see [ansi( h, +help places 2 )]).%r%r%% [ansi( h, Items )]%rFor 'places/set', the following items can be set. Partial names can be used, so 'desc' and 'say' are both valid. None of these items may be empty.%r%r* [ansi( h, Name )]: The name of the place, better if lower-case except for proper nouns or Victorianization. (default: a table)%r* [ansi( h, Spaces )]: The number of spaces at a place. If set to '0', there is no limitation. (default: 4)%r* [ansi( h, Description )]: The description of the place. (default: A table with a couple of chairs.)%r* [ansi( h, Say_Prefix )]: What's added to the use of 'tt' or 'tto' at that place. A comma is automatically added. (default: At your table)%r* [ansi( h, Join )]: What a player sees when they join the place. (default: You join #NAME.)%r* [ansi( h, Ojoin )]: What people not at that place when someone joins, prefixed by the joiner's name. (default: joins #NAME (##LOC).)%r* [ansi( h, Depart )]: What a player sees when they depart the place. (default: You depart #NAME.)%r* [ansi( h, Odepart )]: What people not at that place when someone departs, prefixed by the departer's name. (default: departs #NAME (##LOC).)%r%r%% [ansi( h, Tokens )]%rThere are some tokens which the system will replace for the <value> of Say_Prefix, Join, Ojoin, Depart, and Odepart. More tokens can be added by player request.%r%r* [ansi( h, #NAME )]: The name of the place.%r* [ansi( h, #LCNAME )]: The name, forced lower-case.%r* [ansi( h, #LOC )]: The number of the place.%r%rFor examples, see: [ansi( h, +help places 5 )]~[ansi( h, places() )]%r%rThere is a single function, places(), that gives access to most of this in a raw form. Because of its privileged nature, it will be locked down to limitations such as only being usable in the room or by the owner. Staff is given the ability to bypass all limitations.%r%rHere would be a great place to explain it.~[ansi( h, Usage Examples )]%r%r* Basics%r%rplaces: When you first enter a room that announces it has places.%rjoin 3: I want to join the place numbered '3'%rjoin Anderson: I want to join wherever Anderson is.%rtt Hello!: Say "Hello!" to everyone at that place.%rtto Is this going to turn into combat?: Say "Is this going to turn into combat?" OOCly at that place.%rdepart: Leave that place%r%r* Frills%rtt |Someones knee jams up against the table.: Emit "Someones knee jams up against the table." to everyone at that place.%rplaces/cleanup: Make sure that the only people you see when you type 'places' are people who are actually there.%r%r[ansi( h, Administration Examples )]%r%r* Configuring Places%r%rplaces/configure here/5: Set up 5 places here, all with the defaults.%rplaces/set 1/name=merry-go-round: Place #1 will be named 'merry-go-round'.%rplaces/set 1/say=On the #NAME: Someone using 'tt <text>' there will say it as: On the merry-go-round, <name> says "<text>"%rplaces/breakdown: Remove the places system from this room.%r%r* Altering Places%rplaces/delplace 4: Delete place #4.%rplaces/compress: Compress it so Place #5 is now Place #4.%rplace/newplace: Create a new place to the next available place (#5 in this example).%rplace/newplace 10: Create a new place numbered '10' at your current location.%r%r* Staff Frills%rplaces/configure <dbref>/5: Set up 5 places at <dbref>.%rplaces/breakdown <dbref>: Remove the places system from <dbref>.%rplaces/newplace <dbref>: Create a new place to the next available place at <dbref>.~[ansi( h, Credits )]%r%rThis major overhaul of the places command was committed by Thenomain.
+&help~ic_commands~places xxx=
+	Places: Virtual Locations~“Places” are virtual places to sit, stand or 
+	occupy. You remain in the same room, but join a group of people within that 
+	room who may or may not be having a quiet conversation only with others 
+	placed with them. This may be different than the places code you're used to 
+	(from AmberMUSH), but all attempts have been made to keep it similar while 
+	updating.%rIn all instances, the 's' on 'places' is optional.%r%r%% [ansi( 
+	h, Basic Commands )]%rTo use the system, you need to learn only these 
+	commands.%r%r* [ansi( h, places )]: Who's here%r* [ansi( h, place <num or 
+	name> )]: Information about that place.%r* [ansi( h, join <num or place name 
+	or player name> )]: Go to a certain place.%r* [ansi( h, join at <num or 
+	name> )]: Go to a specific place.%r* [ansi( h, join with <player> )]: Go to 
+	where they are.%r* [ansi( h, depart )]: Leave your current place%r* [ansi( 
+	h, tt <say/pose/emit> )]: Say or pose so only your place can hear. Can use 
+	'|<text>' as a tt @emit.%r* [ansi( h, tto <say/pose> )]: OOC say or pose for 
+	your place. 'ttooc' also works.%r* [ansi( h, place/cleanup \[<location>\] 
+	)]: Clean up disconnected and left players. Cleaning up remotely is 
+	staff-only.%r%r%% [ansi( h, Legacy Commands )]%rThese commands are to help 
+	people familiar with the older 'places' system.%r%r* [ansi( h, plook )]: 
+	Same as 'places'.%r* [ansi( h, plook <num or name> )]: Same as 'place <num 
+	or name>%r* [ansi( h, sit )]: Same as 'join'%r* [ansi( h, stand%, leave )]: 
+	Same as 'depart'%r%rFor configuration, see: [ansi( h, +help places 2 )]. For 
+	examples, see: [ansi( h, +help places 5 )]~For the setup and administration 
+	of places which may only be done by the room owner or staff. In all 
+	instances, the 's' on 'places' is optional.%r%rWARNING: Places uses @startup 
+	and @aleave on a room. If there is other code for those attributes, it will 
+	need to be re-set after using places/setup and setup/breakdown. If the room 
+	is set HALT, the following commands or switches won't work: places/setup, 
+	join, depart, tt%r%r%% [ansi( h, Creating & Configuring Places )]%r* [ansi( 
+	h, places/configure <location>\[/<number of places>\] )]%r%b Set places up 
+	in this location. If <number of places> isn't set, it sets up a single 
+	place. For most people, use the <location> of 'here'.%r* [ansi( h, 
+	places/breakdown <location> )]%r%b Remove places from this location.%r* 
+	[ansi( h, places/newplace \[<location>%, <placenum>%, 
+	<location>=<placenum>%, or nothing\] )]%r%b Set up a new place, optionally 
+	as <placenum>. If <location> is not used, assumes 'here'.%r* [ansi( h, 
+	places/delplace \[<location>=\]<placenum> )]%r%b Removes place <num>. Place 
+	'1' cannot be deleted. If <location> is not used, assumes 'here'.%r* [ansi( 
+	h, places/compress \[<location>\] )]%r%b Removes any gaps in the list of 
+	place numbers. Using <location> is staff-only.%r* [ansi( h, places/set 
+	\[<location>\] <num>/<item>=<value> )]%r%b Set an <item> of a particular 
+	place. If <location> is not used, assumes 'here'.%r%rFor the the places() 
+	function, see: [ansi( h, +help places 4 )]. For examples, see: [ansi( h, 
+	+help places 5 )]~The following are used with 'places/set' (see [ansi( h, 
+	+help places 2 )]).%r%r%% [ansi( h, Items )]%rFor 'places/set', the 
+	following items can be set. Partial names can be used, so 'desc' and 'say' 
+	are both valid. None of these items may be empty.%r%r* [ansi( h, Name )]: 
+	The name of the place, better if lower-case except for proper nouns or 
+	Victorianization. (default: a table)%r* [ansi( h, Spaces )]: The number of 
+	spaces at a place. If set to '0', there is no limitation. (default: 4)%r* 
+	[ansi( h, Description )]: The description of the place. (default: A table 
+	with a couple of chairs.)%r* [ansi( h, Say_Prefix )]: What's added to the 
+	use of 'tt' or 'tto' at that place. A comma is automatically added. 
+	(default: At your table)%r* [ansi( h, Join )]: What a player sees when they 
+	join the place. (default: You join #NAME.)%r* [ansi( h, Ojoin )]: What 
+	people not at that place when someone joins, prefixed by the joiner's name. 
+	(default: joins #NAME (##LOC).)%r* [ansi( h, Depart )]: What a player sees 
+	when they depart the place. (default: You depart #NAME.)%r* [ansi( h, 
+	Odepart )]: What people not at that place when someone departs, prefixed by 
+	the departer's name. (default: departs #NAME (##LOC).)%r%r%% [ansi( h, 
+	Tokens )]%rThere are some tokens which the system will replace for the 
+	<value> of Say_Prefix, Join, Ojoin, Depart, and Odepart. More tokens can be 
+	added by player request.%r%r* [ansi( h, #NAME )]: The name of the place.%r* 
+	[ansi( h, #LCNAME )]: The name, forced lower-case.%r* [ansi( h, #LOC )]: The 
+	number of the place.%r%rFor examples, see: [ansi( h, +help places 5 
+	)]~[ansi( h, places() )]%r%rThere is a single function, places(), that gives 
+	access to most of this in a raw form. Because of its privileged nature, it 
+	will be locked down to limitations such as only being usable in the room or 
+	by the owner. Staff is given the ability to bypass all limitations.%r%rHere 
+	would be a great place to explain it.~[ansi( h, Usage Examples )]%r%r* 
+	Basics%r%rplaces: When you first enter a room that announces it has 
+	places.%rjoin 3: I want to join the place numbered '3'%rjoin Anderson: I 
+	want to join wherever Anderson is.%rtt Hello!: Say "Hello!" to everyone at 
+	that place.%rtto Is this going to turn into combat?: Say "Is this going to 
+	turn into combat?" OOCly at that place.%rdepart: Leave that place%r%r* 
+	Frills%rtt |Someones knee jams up against the table.: Emit "Someones knee 
+	jams up against the table." to everyone at that place.%rplaces/cleanup: Make 
+	sure that the only people you see when you type 'places' are people who are 
+	actually there.%r%r[ansi( h, Administration Examples )]%r%r* Configuring 
+	Places%r%rplaces/configure here/5: Set up 5 places here, all with the 
+	defaults.%rplaces/set 1/name=merry-go-round: Place #1 will be named 
+	'merry-go-round'.%rplaces/set 1/say=On the #NAME: Someone using 'tt <text>' 
+	there will say it as: On the merry-go-round, <name> says 
+	"<text>"%rplaces/breakdown: Remove the places system from this room.%r%r* 
+	Altering Places%rplaces/delplace 4: Delete place #4.%rplaces/compress: 
+	Compress it so Place #5 is now Place #4.%rplace/newplace: Create a new place 
+	to the next available place ( #5 in this example ).%rplace/newplace 10: 
+	Create a new place numbered '10' at your current location.%r%r* Staff 
+	Frills%rplaces/configure <dbref>/5: Set up 5 places at 
+	<dbref>.%rplaces/breakdown <dbref>: Remove the places system from 
+	<dbref>.%rplaces/newplace <dbref>: Create a new place to the next available 
+	place at <dbref>.~[ansi( h, Credits )]%r%rThis major overhaul of the SGP 
+	places command was committed by Thenomain.
+
+*/
