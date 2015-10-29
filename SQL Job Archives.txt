@@ -1,3 +1,5 @@
+/*
+
 Anomaly Jobs v6 archiving to mySQL
 ----------------------------------
 
@@ -90,6 +92,7 @@ This object does not need to be in the master room, as it holds no commands.
 
 ================================================================================
 == Setup =======================================================================
+*/
 
 @create SQL Jobs Archival <sja>
 @fo me=&d.sja me=num( SQL Jobs Archival <sja> )
@@ -101,6 +104,7 @@ This object does not need to be in the master room, as it holds no commands.
 
 
 
+/*
 ================================================================================
 == Functions ===================================================================
 
@@ -112,43 +116,50 @@ I removed the nested edits, here. Rhost and TinyMUSH will choke here.
 
 (... should ; also be escaped?)
 
---
+*/
 
 &f.sql.escape sja=edit( %0, \\, \\\\\\, ', \\\\', ", \\\\", \%, \\\\\\\% )
 
---
+// -- test --
 
 think u( sja/f.sql.escape, lit(She said, "Oh my god!". \\ I said, "Relax; It's only a test."))
 
 
+/*
 --------------------------------------------------------------------------------
 -- HTML Escape -----------------------------------------------------------------
 
-@@ not needed at this time
+(not needed at this time)
+
+*/
 
 &f.html.escape sja=
 	edit( edit( edit( edit( %0, &, &amp; ), %%, &#37; ), <, &lt; ), >, &gt; )
 
 
+/*
 --------------------------------------------------------------------------------
 -- HTML Unescape ---------------------------------------------------------------
 
-@@ not needed at this time
+(not needed at this time)
+
+*/
 
 &f.html.unescape sja=
 	edit( edit( edit( edit( %0, &#37;, %% ), &lt;, < ), &gt;, > ), &amp;, & )
 
 
+/*
 --------------------------------------------------------------------------------
 -- Time: unix2sql --------------------------------------------------------------
 
 0: secs.
 
---
+*/
 
 &f.time.unix2sql sja=if( %0, timefmt( $Y-$m-$d $H:$M:$S $z, %0 ), none )
 
---
+// -- test -- 
 
 think u( sja/f.time.unix2sql, secs())
 
@@ -156,16 +167,17 @@ think sql( SELECT FROM_UNIXTIME( [secs()] ))
 think timefmt( $Y-$m-$d $H:$M:$S $z, secs())
 
 
+/*
 --------------------------------------------------------------------------------
 -- Time: sql2unix --------------------------------------------------------------
 
 0: SQL Datetime, string output.
 
---
+*/
 
 &f.time.sql2unix sja=sql( SELECT UNIX_TIMESTAMP( '%0' ))
 
---
+// -- test --
 
 think u( sja/f.time.sql2unix, u( sja/f.time.unix2sql, secs() ))
 
@@ -173,13 +185,14 @@ think sql( SELECT UNIX_TIMESTAMP( '[u( sja/f.time.unix2sql, secs() )]' ))
 think secs()
 
 
+/*
 --------------------------------------------------------------------------------
 -- List Names from Dbrefs ------------------------------------------------------
 
 0: #list #of #dbrefs
 output: name (dbref), name (dbref), etc.
 
---	
+*/
 
 &f.list.name-dbref sja=
 	iter( %0, 
@@ -187,17 +200,18 @@ output: name (dbref), name (dbref), etc.
 		, %,%b 
 	)
 
---
+// -- test --
 
 think u( sja/f.list.name-dbref, %# [v( d.sja )] )
 
 
+/*
 --------------------------------------------------------------------------------
 -- Transaction Begin/End -------------------------------------------------------
 
 Technically an sql.* function, but easier to do this way.
 
---
+*/
 
 &f.transaction.begin sja=
 	strcat( 
@@ -205,7 +219,7 @@ Technically an sql.* function, but easier to do this way.
 		sql( SET autocommit = 0 )
 	)
 
---
+// --
 
 &f.transaction.end sja=
 	strcat( 
@@ -215,6 +229,7 @@ Technically an sql.* function, but easier to do this way.
 
 
 
+/*
 ================================================================================
 == GET & MASSAGE DATA FROM AJ6 =================================================
 
@@ -224,7 +239,7 @@ Technically an sql.* function, but easier to do this way.
 
 0: job object dbref
 
---
+*/
 	
 &get.summary.title sja=u( %0/title )
 
@@ -253,13 +268,14 @@ Technically an sql.* function, but easier to do this way.
 &get.summary.tagged_for sja=u( f.list.name-dbref, get( %0/tagged_for ))
 
 
+/*
 --------------------------------------------------------------------------------
 -- Get Comment Info ------------------------------------------------------------
 
 0: job object dbref
 1: comment num
 
---
+*/
 
 &get.comment.published sja=hasflag( %0/comment_%1, NO_INHERIT )
 
@@ -281,35 +297,39 @@ Technically an sql.* function, but easier to do this way.
 
 
 
+/*
 ================================================================================
 == SQL CALLS ===================================================================
 
 --------------------------------------------------------------------------------
 -- Get Last Auto_Incremented ID ------------------------------------------------
+*/
 
 &sql.last_insert_id sja=SELECT LAST_INSERT_ID()
 
 
+/*
 --------------------------------------------------------------------------------
 -- Insert into AJ6_Archive_Summary ---------------------------------------------
 
 0: job object dbref
 
---
+*/
 
 &sql.insert.summary sja=
-INSERT INTO aj6_archive_summary 
-	SET 
-		archive_id=NULL, 
-		title='[u( get.summary.title, %0 )]', 
-		bucket='[u( get.summary.bucket, %0 )]', 
-		priority='[u( get.summary.priority, %0 )]', 
-		status='[u( get.summary.status, %0 )]', 
-		opened_by='[u( get.summary.opened_by, %0 )]', 
-		assigned_to='[u( get.summary.assigned_to, %0 )]', 
-		tagged_for='[u( get.summary.tagged_for, %0 )]'
+	INSERT INTO aj6_archive_summary 
+		SET 
+			archive_id=NULL, 
+			title='[u( get.summary.title, %0 )]', 
+			bucket='[u( get.summary.bucket, %0 )]', 
+			priority='[u( get.summary.priority, %0 )]', 
+			status='[u( get.summary.status, %0 )]', 
+			opened_by='[u( get.summary.opened_by, %0 )]', 
+			assigned_to='[u( get.summary.assigned_to, %0 )]', 
+			tagged_for='[u( get.summary.tagged_for, %0 )]'
 
 
+/*
 --------------------------------------------------------------------------------
 -- Insert into AJ6_Archive_Comment ---------------------------------------------
 
@@ -318,23 +338,24 @@ INSERT INTO aj6_archive_summary
 2: <obj>
 3: <comment line>: <obj>/comment_<comment num>
 
---
+*/
 
 &sql.insert.comment sja=
 
-INSERT INTO aj6_archive_comment 
-	SET 
-		archive_id=%0, 
-		comment_num=%1, 
-		published=[u( get.comment.published, %2, %1 )], 
-		action='[u( get.comment.action, %3 )]', 
-		post_time='[u( get.comment.post_time, %3 )]', 
-		by_whom='[u( get.comment.by_whom, %3 )]', 
-		txt='[u( get.comment.txt, %3 )]', 
-		readers='[u( get.comment.readers, %2, %1 )]'
+	INSERT INTO aj6_archive_comment 
+		SET 
+			archive_id=%0, 
+			comment_num=%1, 
+			published=[u( get.comment.published, %2, %1 )], 
+			action='[u( get.comment.action, %3 )]', 
+			post_time='[u( get.comment.post_time, %3 )]', 
+			by_whom='[u( get.comment.by_whom, %3 )]', 
+			txt='[u( get.comment.txt, %3 )]', 
+			readers='[u( get.comment.readers, %2, %1 )]'
 
 
 
+/*
 ================================================================================
 == Trigger: Post Job ===========================================================
 
@@ -342,22 +363,22 @@ This comes straight from aj6's hooks, below
 
 0: Job dbref 
 
---
+*/
 
 &trig.post_job sja=
 
 	@eval 
 		strcat( 
-@@ .. begin transaction
+// .. begin transaction
 			u( f.transaction.begin ), 
 
-@@ .. insert summary
+// .. insert summary
 			sql( u( sql.insert.summary, %0 )), 
 
-@@ .. get archive_id
+// .. get archive_id
 			setq( i, sql( v( sql.last_insert_id ))), 
 
-@@ .. insert comments
+// .. insert comments
 			iter( edit( lattr( %0/comment_* ), COMMENT_, ), 
 				sql( 
 					u( sql.insert.comment, 
@@ -369,19 +390,22 @@ This comes straight from aj6's hooks, below
 				)
 			), 
 
-@@ .. commit
+// .. commit
 			u( f.transaction.end )
 		); 
 
 
 
 
+/*
 ################################################################################
 ## AJ6 HOOKS ###################################################################
 
-This is stuff that needs hooked into the AJ6 system to make this work
+This is stuff that needs hooked into the AJ6 system to make this work.
 
---
+This can introduce errors to the AJ6 system, so please check at every step.
+
+*/
 
 QUIT
 
@@ -395,10 +419,15 @@ QUIT
 
 
 
+/*
 ################################################################################
 ## REMOVE BBOARD INTEGRATION ###################################################
 
-@@ Turn off bbposting:
+Remove job archiving to Myrddin's Bboards.
+
+Again, pay attention here so you don't delete the wrong boards.
+
+*/
 
 @force me=&d.jgo me=search( object=Job Global Object <JGO> )
 @force me=&d.jt me=locate( v( d.jgo ), Job Tracker, i )
@@ -408,11 +437,11 @@ QUIT
  
 &TRIG_POST [v(JOB_VB)]=+bbpost %0/%1=%2
 
---
+// --
 
-@@ Be careful before doing this!!!
-@@ These are the bbgroups that Anomaly Jobs 6 adds.
-@@ CHECK FIRST that bb 2 and bb 3 are the boards to remove
+// Be careful before doing this!!!
+// These are the bbgroups that Anomaly Jobs 6 adds.
+// CHECK FIRST that bb 2 and bb 3 are the boards to remove
 
 +bbcleargroup 3
 +bbconfirm 3
