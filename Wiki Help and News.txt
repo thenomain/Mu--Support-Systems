@@ -79,6 +79,10 @@ minutes on it; this will guarantee that it's triggered every minute.
 &d.months Wiki News and Help <wnh>=
 	Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
 
+@vz wnh=wiki_
+
+@if strmatch( sql( SELECT * FROM %vzpage ), lit( #-1 QUERY ERROR ))=
+	think ansi( r, I can't find the table '%vzpage'%; check your prefix! %(@vz%) )
 
 
 /* 
@@ -158,10 +162,10 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 &query.categories-in-namespace Wiki News and Help <wnh>=
 	SELECT DISTINCT cat_title 
-	FROM wiki_category 
-	INNER JOIN wiki_categorylinks 
+	FROM %vzcategory 
+	INNER JOIN %vzcategorylinks 
 		ON cat_title = cl_to 
-	INNER JOIN wiki_page 
+	INNER JOIN %vzpage 
 		ON cl_from = page_id 
 	WHERE page_namespace = %0; 
 
@@ -179,8 +183,8 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 &query.pages-in-category Wiki News and Help <wnh>=
 	SELECT page_title 
-	FROM wiki_page 
-	INNER JOIN wiki_categorylinks 
+	FROM %vzpage 
+	INNER JOIN %vzcategorylinks 
 		ON cl_from = page_id 
 	WHERE page_namespace = %0 
 		AND cl_to='%1';
@@ -204,11 +208,11 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 &query.newshelp Wiki News and Help <wnh>=
 	SELECT page_title, page_touched, old_text 
-	FROM wiki_page 
-		INNER JOIN wiki_revision ON page_latest=rev_id 
-		INNER JOIN wiki_text ON rev_text_id=old_id 
+	FROM %vzpage 
+		INNER JOIN %vzrevision ON page_latest=rev_id 
+		INNER JOIN %vztext ON rev_text_id=old_id 
 	WHERE page_namespace=%0 
-		AND page_title COLLATE UTF8_GENERAL_CI LIKE '%1'
+		AND CONVERT( page_title USING UTF8 ) COLLATE UTF8_GENERAL_CI LIKE '%1'
 
 // --
 // 
@@ -222,7 +226,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 &query.post Wiki News and Help <wnh>=
 	SELECT rc_timestamp, rc_user_text, rc_namespace, rc_title, rc_comment 
-	FROM wiki_recentchanges 
+	FROM %vzrecentchanges 
 	WHERE rc_timestamp >= '[u( f.encode.time, %0 )]' 
 	ORDER BY rc_id DESC 
 	LIMIT 0,10
@@ -233,7 +237,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 &query.recent Wiki News and Help <wnh>=
 	SELECT rc_timestamp, rc_user_text, rc_namespace, rc_title, rc_comment 
-	FROM wiki_recentchanges 
+	FROM %vzrecentchanges 
 	GROUP BY rc_user_text, rc_namespace, rc_title 
 	ORDER BY rc_id desc 
 	LIMIT 0,10
@@ -250,18 +254,18 @@ minutes on it; this will guarantee that it's triggered every minute.
 			IF(page_is_redirect, rd_title, page_title) AS new_title, 
 			page_namespace AS old_namespace, 
 			IF(page_is_redirect, rd_namespace, page_namespace) AS new_namespace 
-		FROM wiki_page 
-		LEFT JOIN wiki_redirect ON page_id=rd_from 
+		FROM %vzpage 
+		LEFT JOIN %vzredirect ON page_id=rd_from 
 		WHERE page_namespace=%0
 	) 
-	INNER JOIN wiki_page ON new_title=page_title 
+	INNER JOIN %vzpage ON new_title=page_title 
 		AND new_namespace=page_namespace
 
 // --
 
 // think sql( u( wnh/query.findpage, 3022 ))
 // think sql( u( wnh/query.findpage, 3020 ))
-// this doesn't work << is this the part I broke? >>
+
 
 
 
