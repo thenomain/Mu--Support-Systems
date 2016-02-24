@@ -1,0 +1,139 @@
+/* 
+
+*********************
+TWO SAMPLE HELP FILES
+*********************
+
+*/
+
+
+
+:::::::::::::::::::::::::::::::.  Help for Dir  .:::::::::::::::::::::::::::::::
+
+                              THE DIRECTORY SYSTEM
+ 
+dir                                                                     
+    List all populated locations.
+dir/all                                                                 
+    List all locations.
+dir <name>
+    List details about location <name>, which may be partially typed.
+dir/who <name>                                                          
+    Lists details and who's there, if they are findable.
+ 
+"Population" depends on who you can see normally. It does not hide 'unfindable'
+people or rooms. The directory system is intended to find role-play and 
+facilitate the setting.
+ 
+Some locations will have a "view lock" which will prevent some people from 
+seeing that location or getting details about it. Staff always pass this lock.
+ 
+* Planned: personal location lists, "hangouts"
+ 
+Builder commands listed in: +help Dir 2
+ 
+See Also: +help Travel
+ 
+Category: Who & Where
+
+::::::::::::::.  Tue Feb 24 17:42:57 2015 Eastern (1 minute 15 seconds ago)  .::
+
+
+::::::::::::::::::::::::::::::.  Help for Dir 2  .::::::::::::::::::::::::::::::
+
+                          DIRECTORY: BUILDER COMMANDS
+ 
+The key concept here is that one location may be made up of many rooms. One room 
+must be the primary.
+ 
+After each command description is a shortcut for when you're already in the room 
+you want to add.
+ 
+dir/create <room dbref>=<location name>
+    Create a new location based on the a room.
+    Shortcut: dir/create %L=New Location Name
+ 
+dir/room <location name>=<room dbref>
+    Add a new room to the list of rooms in that location.
+    Shortcut: dir/room New Location Name=%L
+ 
+dir/set <location name>/<element>=<value>
+    Set <element>. Elements are:
+    * Name (already set, but can be changed here)
+    * Type
+    * Availability (in game-terms, the cash needed to go here)
+    * Owner (name of the PC or NPC owner; will be changing sometime)
+    * Lock (view lock, uses %0 as the viewer)
+    Shortcut: There is no shortcut for this.
+ 
+&short-desc <main room dbref>=<a description of the location>           
+    Give people an idea about what that location is for.                    
+ 
+The system also pulls the map location of the main room from the main room. It 
+will complain if it hasn't been set.
+
+::::::::::::::.  Tue Feb 24 17:41:23 2015 Eastern (4 minutes 9 seconds ago)  .::
+
+
+
+/*
+
+Another Sample Help File
+
+*/
+
+-==--==--=-=-==-=--=-=-==-=-=--=-=-==-=-=-=-=--==-=-=-=-=-=-==--=-=-==-=-=-=--==
+HELP: Basic Help
+
+&help~commands~+hangouts #270=Finding People, Being Found~
+
+[ljust(+hangouts, 23)] -- List hangouts with people in them
+[ljust(+hangouts/all, 23)] -- List all hangouts
+[ljust(+hangout <hangout name>, 23)] -- Look into a hangout
+
+You can type the first part of the hangout name and the system will do its best to find your match.
+
+The dbref of a room in a hangout will be visible if it is jump_ok or you are staff.
+
+The population of a hangout or a room is listed regardless of the findability of the people or the room.  It will not list dark staff.
+
+For this command, +hangout and +hangouts are synonymous in all uses.
+
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==--==--==-=--=-==--=-==--=-=-=-=-=-=
+SHELP: How To Make This Work
+
+&shelp~commands~+hangouts #270=Setting Up Hangouts~
+
+Expands: +help +hangouts
+
++hangout/add <main dbref>=<hangout name>/<map loc>%[/<description>%]
+
+<main dbref>: Each hangout relies upon a main room dbref to treat as the main room.  If the main dbref is jump_ok, the hangout is marked as jump_ok.  If the main dbref is a nightzone, the hangout is marked as a nightzone.
+
+<hangout name>: The name as will appear in +hangouts.
+
+<map loc>: A three-letter location of where the hangout can be found on the map.
+
+<description>: A short description of the hangout, shown in +hangout <name>.
+
++hangout/add also allows you to edit a hangout.  If the <main dbref> already exists, the rest of the information you add will overwrite the existing hangout information.  This way, you can change a hangout's name, map location, or description.
+
+WARNING: If you're using +hangout/add to edit, you must enter all the information or that information will be erased.
+~
++hangout/delete <main dbref>
+
+Completely removes a hangout and all attached rooms from the hangouts list.  The only way to change a hangout's <main dbref> is to delete it and add it with a new dbref, and re-add any attached rooms.
+
+[ansi(c, repeat(-, 74))]
+
++hangout/addroom <main dbref|hangout name>=%[!%]<room dbref>
+
+While the <main dbref> is always part of a hangout's room list, you can add other rooms to it with this command.
+
+The optional ! symbol, meaning "not", is how you remove a room from this list.  You can't remove the <main dbref>.
+
+e.g.:
+ %b +hangout/add #666=#254
+ %b +hangout/add devil's cafe=!#254
+
