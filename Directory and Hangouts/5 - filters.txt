@@ -135,3 +135,23 @@ We generally know which element we're grabbing, but this is the full treatment.
 		first( get( v( d.data )/%1 ), | )
 	)
 
+
+
+/*
+--------------------------------------------------------------------------------
+-- Sortby: Elements (Descending) -----------------------------------------------
+
+0: list of <population>:<main dbref>
+qe: element to sort by 
+
+This code is used to better organize the output of 'dir' and 
+especially 'dir/all'. The elements to sort by are probably pulled from 
+'&d.sort.elements' in '1 - info and setup.txt'
+
+*/
+
+&sortby.element.desc [v( d.dah )]=
+	comp( 
+		u( f.get.element, %qe, rest( %1, : )), 
+		u( f.get.element, %qe, rest( %0, : ))
+	)

@@ -62,6 +62,10 @@ We are shifting this to:
 	lock:lock:0 
 
 
+// Sort by population, and then what?
+&d.sort.elements [v( d.dah )]=name type
+
+
 /* 
 --------------------------------------------------------------------------------
 -- Support Functions -----------------------------------------------------------

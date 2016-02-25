@@ -7,24 +7,26 @@ Subsystem that lists pop:hangout for overall hangout list
 0: 1 means "all", 0 (default) means "only those with people in it"
 Returns: Sorted list in following format:
 	<population>:<main dbref> <population>:<main dbref> 
+	
+This also sorts in the order set by '&d.sort.elements' as found in 
+'1 - info and setup.txt'.
 
 */
 
-&f.population.rank Directory and Hangouts <dah>=
-	revwords( sort( 
-		ifelse( %0, 
 
-// 1: give me all of it
-			u( f.population.calculate ), 
-
-// 0: give me only locations with people in them (default)
-			filter( 
-				filter.location.occupied, 
-				u( f.population.calculate )
-			)
+&f.population.rank [v( d.dah )]=
+	strcat( 
+		setq( x, u( f.population.calculate )), 
+		iter( v( d.sort.elements ), 
+			[setq( e, %i0 )][setq( x, sortby( sortby.element.desc, %qx ))], 
+			, @@ 
 		), 
-		n 
-	))
+		setq( x, revwords( sort( %qx, n ))), 
+		if( t( %0 ), 
+			%qx, 
+			filter( filter.location.occupied, %qx )
+		)
+	)
 
 
 /* 
