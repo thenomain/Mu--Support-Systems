@@ -70,12 +70,13 @@ vs.
 // =============================================================================
 // == COMMANDS =================================================================
 
-// +req/<switch>, if no <switch> then default switch is 'request':
+// req[uest]/<switch>, if no <switch> then default switch is 'request':
 
-&c.request jrs=$req*:@trig %!/trig.command.request=%0, %#
+&c.request jrs=
+	$^\+?req(uest)?(.*)$:@trig %!/trig.command.request=objeval( %#, s( %2 )), %#
 
-&c.+request jrs=$+req*:@trig %!/trig.command.request=%0, %#
-
+@set jrs/c.request=regex
+@set jrs/c.request=no_parse
 
 
 // =============================================================================
