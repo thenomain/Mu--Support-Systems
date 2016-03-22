@@ -23,6 +23,7 @@ further systems on top of this one, or asking this system for appropriate player
 object or room information.
 
 
+
 ================================================================================
 == SETUP =======================================================================
 */
@@ -55,9 +56,15 @@ for 'pref.*' attributes, '1' for 'true', '0' for 'false'.
 
 */
 
+@fo me=&d.mushcron [v( d.bnww )]=[search( name=CRON - Myrddin's mushcron )]
+
+
 // make the idlers stand out or are separated from the main who listing
 &pref.segregate.idle [v( d.bnww )]=1
 
+// how idle is idle? 1 hour/2 hours
+&pref.secs.idle [v( d.bnww )]=3600
+&pref.secs.superidle [v( d.bnww )]=7200
 
 
 /*
@@ -111,8 +118,8 @@ for 'pref.*' attributes, '1' for 'true', '0' for 'false'.
 */
 
 // idle checks 
-&f.check.idle [v( d.bnww )]=gte( idle( %0 ), 3600 )
-&f.check.superidle [v( d.bnww )]=gte( idle( %0 ), 7200 )
+&f.check.idle [v( d.bnww )]=gte( idle( %0 ), v( pref.secs.idle ))
+&f.check.superidle [v( d.bnww )]=gte( idle( %0 ), v( pref.secs.superidle ))
 
 // flag checks
 &f.check.on-duty [v( d.bnww )]=not( hasflag( %0, TRANSPARENT ))
@@ -143,8 +150,8 @@ These flags are mainly for '+who', but can be used by any part of the system.
 	case( 1, 
 		isstaff( %0 ), 
 		strcat( 
-			u( format.flags.staff.duty ), 
-			u( format.flags. dark )
+			u( format.flags.staff.duty, %0 ), 
+			u( format.flags.dark, %0 )
 		), 
 		strcat( 
 			u( format.flags.wantrp, %0 ), 
@@ -247,8 +254,8 @@ i: 'super-idle' people (ignore if '&pref.segregate.idle' is 'false')
 		divider( 
 			strcat( 
 				~ Seeking RP%, 
-				* Staff (on duty)%, 
-				x Staff (off duty), 
+				* Staff %(on duty%)%, 
+				x Staff %(off duty%), 
 				if( isstaff( %0 ),%, D Dark )
 			)
 		), %r, 
@@ -256,7 +263,7 @@ i: 'super-idle' people (ignore if '&pref.segregate.idle' is 'false')
 	)
 
 
-// (do not gray out idlers if '&pref.segregate.idle' is 'false')
+// (do not gray out idlers if '&pref.segregate.idle' is '0')
 &display.who.one-line [v( d.bnww )]=
 	localize( strcat( 
 		setq( i, if( v( pref.segregate.idle ), filter( f.check.idle, %0 ))), 
@@ -584,10 +591,11 @@ Also called 'rp' on some games.
 		)
 	);
 
-@set [v( d.bnww )]/C.WANTRP/ON = regexp
+@set [v( d.bnww )]/c.wantrp/on = regexp
 
 
-&C.WANTRP/OFF [v( d.bnww )]=$^\+?wantrp/off$:
+
+&c.wantrp/off [v( d.bnww )]=$^\+?wantrp/off$:
 	@assert u( .isapproved, %# )={ 
 		@pemit %#=u( .msg, wantrp/on, Must be approved ) 
 	}; 
@@ -600,7 +608,7 @@ Also called 'rp' on some games.
 		lists for it 
 	);
 
-@set [v( d.bnww )]/C.WANTRP/OFF = regexp
+@set [v( d.bnww )]/c.wantrp/off = regexp
 
 
 
@@ -618,15 +626,20 @@ Also called 'rp' on some games.
 
 @set [v( d.bnww )]/C.WANTRP = regexp
 
-&filter.wantrp [v( d.bnww )]=u( f.check.wantrp, %0 )
-
-&f.check.wantrp [v( d.bnww )]=
-	cand( hasattr( %0, .prefs.wantrp ), isapproved( %0 ))
+/*
+--------------------------------------------------------------------------------
+-- WantRP: Data & Filters & Functions ------------------------------------------
+*/
 
 &d.channel.rp [v( d.bnww )]=RP Chat
 
 @if not( cwho( get( v( d.bnww )/d.channel.rp )))=
 	think ansi( hr, There is no '[get( v( d.bnww )/d.channel.rp )]' Channel )
+
+&filter.wantrp [v( d.bnww )]=u( f.check.wantrp, %0 )
+
+&f.check.wantrp [v( d.bnww )]=
+	cand( hasattr( %0, .prefs.wantrp ), isapproved( %0 ))
 
 
 
@@ -634,12 +647,25 @@ Also called 'rp' on some games.
 ================================================================================
 == SYSTEM: IDLE SWEEP ==========================================================
 
-Sweep idle players into a room.
+Sweep idle players into a room. Be nice about it. Allow game administration to 
+set criteria about when not to move them, by room, zone, or code.
 
-Where is the rest of this? On Mushcron, probably.
+Time to idle before swept: &f.check.superidle. This is performed regardless of &pref.segregate.idle.
+
+Set up Mushcron:
 */
 
+@fo me=
+	&jobs_1minute [u( [v( d.bnww )]/d.mushcron )]=
+		setunion( 
+			get( u( [v( d.bnww )]/d.mushcron )/jobs_1minute ), 
+			[v( d.bnww )]/trig.idle-sweep.players 
+		)
 
+/*
+--------------------------------------------------------------------------------
+-- Idle Sweep: Trigger (run once per minute) -----------------------------------
+*/
 
 &TRIG.IDLE-SWEEP.PLAYERS [v( d.bnww )]=
 	think strcat( 
@@ -654,24 +680,41 @@ Where is the rest of this? On Mushcron, probably.
 			iter( %qi, 
 				if( 
 					cor( 
-						t( setinter( v( pref.idle-exempt.rooms ), loc( %i0 ))), 
+						t( setinter( 
+							v( pref.idle-exempt.rooms ), 
+							loc( %i0 )
+						)), 
 						t( setinter( 
 							v( pref.idle-exempt.zones ), 
 							zone( loc( %i0 ))
 						)), 
 						t( u( pref.idle-exempt.code, %i0 )), 
-						strmatch( loc( %i0 ), v( pref.idle_room ))
+						strmatch( 
+							loc( %i0 ), 
+							v( pref.idle_room )
+						)
 					), 
 					%i0 
 				)
 			)
 		), %r, 
 
-		people to move:, %b, setr( i, setdiff( %qi, %qh )), %r, 
+		people to move:, %b, 
+		setr( i, setdiff( %qi, %qh )), %r, 
 	); 
-	@dolist %qi={ @oemit ##=msg( zzzz, Moving a sleepy [moniker( ## )]. ); 
-	@tel/quiet ##=v( pref.idle_room ); 
-	@pemit ##=msg( zzzz, Moved you to a safe location till you wake up... )};
+
+	@dolist %qi={ 
+// .. it would be cool if we sent this message only once per room ..
+		@oemit ##=msg( zzzz, Moving a sleepy [moniker( ## )]. ); 
+		@tel/quiet ##=v( pref.idle_room ); 
+		@pemit ##=msg( zzzz, Moved you to a safe location till you wake up... ) 
+	};
+
+
+/*
+--------------------------------------------------------------------------------
+-- Idle Sweep: Preferences -----------------------------------------------------
+*/
 
 &pref.idle-exempt.rooms [v( d.bnww )]=@@( possibly your ooc room )
 
@@ -682,3 +725,11 @@ Where is the rest of this? On Mushcron, probably.
 @fo me=&pref.idle_room [v( d.bnww )]=
 	[search( eroom=strmatch( name( ## ), Quiet Room ))]
 
+
+
+/*
+================================================================================
+== CLEAN UP ====================================================================
+*/
+
+@fo me=@tel Brand New Who-Where <bnww>=[config( master_room )]
