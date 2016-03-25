@@ -91,11 +91,13 @@ for 'pref.*' attributes, '1' for 'true', '0' for 'false'.
 
 &fil.staff [v( d.bnww )]=u( .isstaff, %0 )
 &fil.dark [v( d.bnww )]=hasflag( %0, dark )
-&fil.findable [v( d.bnww )]=findable( %0, %1 )
 &fil.name-match [v( d.bnww )]=strmatch( name( %0 ), %1* )
 &fil.duty [v( d.bnww )]=not( hasflag( %0, transparent ))
 &fil.off-duty [v( d.bnww )]=hasflag( %0, transparent )
 &fil.in-room [v( d.bnww )]=strmatch( room( %0 ), %1 )
+
+// can '%1' find '%0'? (usually '%0' is a list from 'lwho()')
+&fil.findable [v( d.bnww )]=findable( %1, %0 )
 
 
 
@@ -331,7 +333,7 @@ i: 'super-idle' people (ignore if '&pref.segregate.idle' is 'false')
 				case( 1, 
 					cand( t( %qf ), t( %qu )), 
 					strcat( 
-						u( format.where.findable, %qa %qi ), %,, 
+						u( format.where.findable, %qa %qi ), %,%b, 
 						u( format.where.unfindable, %qu )
 					), 
 					t( %qf ), 
