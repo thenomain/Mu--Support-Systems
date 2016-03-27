@@ -11,6 +11,7 @@ current systems:
 planned:
 	hangouts
 	directory
+	watch
 
 A great number of Mush commands are based on a mix of two vertices: Player 
 objects and room objects. These are epitomized by the commands 'who' (who is 
