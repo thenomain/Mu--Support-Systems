@@ -67,7 +67,6 @@ for 'pref.*' attributes, '1' for 'true', '0' for 'false'.
 &pref.secs.idle [v( d.bnww )]=3600
 &pref.secs.superidle [v( d.bnww )]=7200
 
-
 /*
 ================================================================================
 == DOT-FUNCTIONS ===============================================================
@@ -308,16 +307,37 @@ i: 'super-idle' people (ignore if '&pref.segregate.idle' is 'false')
 /*
 ================================================================================
 == SYSTEM: WHERE ===============================================================
+
+
+--------------------------------------------------------------------------------
+-- Where: Preferences ----------------------------------------------------------
 */
 
+// show 'unfindable' count per room? (1 = yes, 0 = no)
+&pref.where.count-unfindable [v( d.bnww )]=1
+
+/* 
+--------------------------------------------------------------------------------
+-- Where: Command --------------------------------------------------------------
+
+r: rooms with people in them (dbref), unfiltered
+
+c: census of room, unfiltered
+f: findable people to %#
+u: unfindable people to %# (difference of %qc and %qf)
+*/
 &c.where [v( d.bnww )]=$^\+?where$:@pemit %#=
 	strcat( 
+		setq( r, u( f.where.rooms, %# )), 
 		wheader( Where ), %r, 
-		iter( setr( r, u( f.where.rooms )), 
+		iter( %qr, 
 			strcat( 
 				setq( c, filter( fil.in-room, lwho(), , , %i0 )), 
 				setq( f, filter( fil.findable, %qc, , , %# )), 
-				setq( u, setdiff( %qc, %qf )), 
+				if( t( v( pref.where.count-unfindable )), 
+					setq( u, setdiff( %qc, %qf )), 
+					setq( u, )
+				), 
 				setq( i, 
 					sortby( sortby.connected, filter( f.check.idle, %qf ))
 				), 
@@ -328,7 +348,7 @@ i: 'super-idle' people (ignore if '&pref.segregate.idle' is 'false')
 						if( t( setr( z, get( %i0/coord ))), 
 							%b%[%qz%] 
 						), %b, 
-						%(pop:, words( %qc ), %)
+						%(pop:, add( words( %qf ), words( %qu )), %)
 					)
 				), %r, 
 				case( 1, 
@@ -341,8 +361,8 @@ i: 'super-idle' people (ignore if '&pref.segregate.idle' is 'false')
 					u( format.where.findable, %qa %qi ), 
 					t( %qu ), 
 					u( format.where.unfindable, %qu ), 
-					<< error: nobody is here so why am I listing this? >> -- 
-					%qc -- %qf -- %qu 
+					<< error: nobody is here so why am I listing this? >> 
+					[if( isstaff( %# ), -- %qc -- %qf -- %qu )]
 				)
 			), , %r 
 		), %r, 
@@ -366,7 +386,26 @@ i: 'super-idle' people (ignore if '&pref.segregate.idle' is 'false')
 -- Where: Functions & Formatting -----------------------------------------------
 */
 
-&f.where.rooms [v( d.bnww )]=setunion( iter( lwho(), room( %i0 )), )
+// &f.where.rooms [v( d.bnww )]=setunion( iter( lwho(), room( %i0 )), )
+
+&f.where.rooms [v( d.bnww )]=
+	filter( fil.room-population, 
+		setunion( iter( lwho(), room( %i0 )), ), 
+		, , %0
+	)
+
+// this is ugly, so ugly, but is used to filter out rooms 
+// when 'pref.where.count-unfindable' is set to 0
+&fil.room-population [v( d.bnww )]=
+  localize( strcat( 
+		setq( c, filter( fil.in-room, lwho(), , , %0 )), 
+		setq( f, filter( fil.findable, %qc, , , %1 )), 
+		if( t( v( pref.where.count-unfindable )), 
+			setq( u, setdiff( %qc, %qf )), 
+			setq( u, )
+		), 
+		t( %qf %qu )
+	))
 
 &format.where.findable [v( d.bnww )]=
 	iter( %0, 
