@@ -33,9 +33,20 @@ Stores on the Faction Object:
 @fo me=&d.afo me=[search( name=Aether Faction Object <afo> )]
 @set Aether Faction Object <afo>=INHERIT SAFE
 
-@parent Aether Faction Object <afo>=[search( name=Code Object Data Parent <codp> )]
+@fo me=@parent Aether Faction Object <afo>=
+	[search( name=Code Object Data Parent <codp> )]
 
 &.msg [v( d.afo )]=ansi( h, <%0>, n, %b%1 )
+
+/*
+Include the following if you allow Wizards access to @function:
+
+@Startup [v( d.afo )]=@function/preserve/privileged isfaction?=%!/f.isfaction?
+
+@trig [v( d.afo )]/startup
+
+*/
+
 
 
 ================================================================================
