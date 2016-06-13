@@ -32,15 +32,16 @@ vs.
 // == SETUP ====================================================================
 
 @create Jobs Request System <jrs>=10
-@set jrs=inherit safe
+@set Jobs Request System <jrs>=inherit safe
+@fo me=&d.jrs me=search( name=Jobs Request System <jrs> )
 
 
 // links to the Anomaly Jobs setup 
 
 @fo me=&d.jgo me=[search( name=Job Global Object <JGO> )]
-@fo me=@va jrs=[get( v( d.jgo )/va )]
-@fo me=@vb jrs=[get( v( d.jgo )/vb )]
-@fo me=@vc jrs=[get( v( d.jgo )/vc )]
+@fo me=@va [v( d.jrs )]=[get( v( d.jgo )/va )]
+@fo me=@vb [v( d.jrs )]=[get( v( d.jgo )/vb )]
+@fo me=@vc [v( d.jrs )]=[get( v( d.jgo )/vc )]
 
 @if not( isdbref( v( d.jgo )))=think ansi( 
 		rh, 
@@ -63,7 +64,7 @@ vs.
 
 // Link to the Code Object Data Parent
 
-@fo me=@parent jrs=[search( name=Code Object Data Parent <codp> )]
+@fo me=@parent [v( d.jrs )]=[search( name=Code Object Data Parent <codp> )]
 
 
 
@@ -72,11 +73,11 @@ vs.
 
 // req[uest]/<switch>, if no <switch> then default switch is 'request':
 
-&c.request jrs=
+&c.request [v( d.jrs )]=
 	$^\+?req(uest)?(.*)$:@trig %!/trig.command.request=objeval( %#, s( %2 )), %#
 
-@set jrs/c.request=regex
-@set jrs/c.request=no_parse
+@set v( d.jrs )/c.request=regex
+@set v( d.jrs )/c.request=no_parse
 
 
 // =============================================================================
@@ -93,7 +94,7 @@ vs.
 // c: contents
 // m: matches
 
-&trig.command.request jrs=
+&trig.command.request [v( d.jrs )]=
 	@break u( %va/FN_GUEST, %1 )={ 
 		@pemit %1=u( .msg, %qr, This command is not available to guests. ) 
 	}; 
@@ -148,7 +149,7 @@ vs.
 // i: +jgroup name
 // j: +jgroup dbref
 
-&trig.create.request jrs=
+&trig.create.request [v( d.jrs )]=
 	think strcat( 
 		a:%b, setr( a, ucstr( u( f.get.bucket, %0 ))), %r, 
 		b:%b, setr( b, u( %va/FN_FIND-BUCKET, %qa )), %r, 
@@ -192,7 +193,7 @@ vs.
 // 4: job contents
 // 5: +jgroup dbref (%qj)
 
-&trig.create.job jrs=
+&trig.create.job [v( d.jrs )]=
 	@trigger %va/TRIG_CREATE=
 		%0, 
 		%1, 
@@ -208,14 +209,14 @@ vs.
 // =============================================================================
 // == FUNCTIONS ================================================================
 
-&.msg jrs=ansi( h, <%0>, n, %b%1 )
+&.msg [v( d.jrs )]=ansi( h, <%0>, n, %b%1 )
 
 
 // -----------------------------------------------------------------------------
 // -- Function: Validations ----------------------------------------------------
 // (used in most, but not all, cases)
 
-&f.validate.access jrs=
+&f.validate.access [v( d.jrs )]=
 	cor( 
 		isstaff( %1 ), 
 		not( udefault( f.%0.staff-only, 0 ))
@@ -229,12 +230,12 @@ vs.
 // returns: what is needed for trig.request.create
 
 
-&f.get.bucket jrs=udefault( d.%0.bucket, REQ )
-&f.get.jgroup jrs=udefault( d.%0.assign, +allstaff )
-&f.get.prefix jrs=udefault( d.%0.prefix, @@( none ), %1 )
-&f.get.level jrs=udefault( d.%0.level, 1 )
+&f.get.bucket [v( d.jrs )]=udefault( d.%0.bucket, REQ )
+&f.get.jgroup [v( d.jrs )]=udefault( d.%0.assign, +allstaff )
+&f.get.prefix [v( d.jrs )]=udefault( d.%0.prefix, @@( none ), %1 )
+&f.get.level [v( d.jrs )]=udefault( d.%0.level, 1 )
 
-&f.get.msg jrs=udefault( 
+&f.get.msg [v( d.jrs )]=udefault( 
 		d.%0.msg, 
 		You have requested 
 		'[u( display.msg.job_title, %1 )]' 
@@ -248,10 +249,10 @@ vs.
 // == DISPLAYS & FORMATTING ====================================================
 
 
-&display.msg.job_title jrs=
+&display.msg.job_title [v( d.jrs )]=
 	ansi( h, secure( u( %va/FN_STRTRUNC, trim( %0 ), 30 )))
 
-&display.generic_msg jrs=
+&display.generic_msg [v( d.jrs )]=
 	You have requested [u( display.msg.job_title, %0 )] 
 	as a '%1' request from staff. Please allow for some time to process it. 
 
@@ -295,19 +296,19 @@ vs.
 // -----------------------------------------------------------------------------
 // -- Switch: Request ----------------------------------------------------------
 
-&d.request.bucket jrs=REQ
-&d.request.jgroup jrs=+allstaff
+&d.request.bucket [v( d.jrs )]=REQ
+&d.request.jgroup [v( d.jrs )]=+allstaff
 
 
 // -----------------------------------------------------------------------------
 // -- Switch: Bug --------------------------------------------------------------
 
-&d.bug.bucket jrs=CODE
-&d.bug.jgroup jrs=+code
-&d.bug.prefix jrs=BUG
-&d.bug.level jrs=3
+&d.bug.bucket [v( d.jrs )]=CODE
+&d.bug.jgroup [v( d.jrs )]=+code
+&d.bug.prefix [v( d.jrs )]=BUG
+&d.bug.level [v( d.jrs )]=3
 
-&d.bug.msg jrs=
+&d.bug.msg [v( d.jrs )]=
 	You have notified production staff of the 
 	[u( display.msg.job_title, %0 )] bug with the details 
 	'[secure( u( %va/FN_STRTRUNC, trim( %1 ), get( %va/BUFFER )))]'. 
@@ -319,19 +320,19 @@ vs.
 // -----------------------------------------------------------------------------
 // -- Switch: Code -------------------------------------------------------------
 
-&d.code.bucket jrs=CODE
-&d.code.jgroup jrs=+code
+&d.code.bucket [v( d.jrs )]=CODE
+&d.code.jgroup [v( d.jrs )]=+code
 
-&d.code.msg jrs=u( display.generic_msg, %0, code )
+&d.code.msg [v( d.jrs )]=u( display.generic_msg, %0, code )
 
 
 // -----------------------------------------------------------------------------
 // -- Switch: Build ------------------------------------------------------------
 
-&d.build.bucket jrs=BUILD
-&d.build.jgroup jrs=+build
+&d.build.bucket [v( d.jrs )]=BUILD
+&d.build.jgroup [v( d.jrs )]=+build
 
-&d.build.msg jrs=u( display.generic_msg, %0, build )
+&d.build.msg [v( d.jrs )]=u( display.generic_msg, %0, build )
 
 
 

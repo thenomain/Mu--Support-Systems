@@ -448,3 +448,24 @@ Again, pay attention here so you don't delete the wrong boards.
 +bbcleargroup 2
 +bbconfirm 2
 
+
+/*
+
+-=-=-==--=-=-=-=-=-==--=-==--=-=-=-=-=-=-=-=--=-=-=-==--=-=-=--==--=-=-=-=-=-=-=
+
+HOW TO PULL JOB ARCHIVE INFO:
+
+
+
+&sql.test me=select archive_id, title from aj6_archive_summary where opened_by='%0 %([pmatch( %0 )]%)'
+think sql( u( sql.test, Katrina ))
+
+
+th %rLet's see them words...%r%r[sql(select by_whom%,post_time%,txt from aj6_archive_comment where archive_id = 1488,%r%r,%r)]
+
+
+
+
+
+
+*/

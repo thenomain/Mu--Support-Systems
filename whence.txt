@@ -4,7 +4,7 @@
 @whence is a soft-coded system of locating commands. This is good for 
 Master Rooms with far too many objects in it, or games with far too much code.
 
-@whence was originally created by Chime (Coventry @ The Reach ) for The Reach.
+@whence was originally created by Chime (Coventry @ The Reach) for The Reach.
 
 @whence is love.
 
