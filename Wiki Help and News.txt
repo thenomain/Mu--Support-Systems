@@ -79,7 +79,8 @@ minutes on it; this will guarantee that it's triggered every minute.
 &d.months Wiki News and Help <wnh>=
 	Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
 
-@vz wnh=wiki_
+// UN-COMMENT IF YOUR WIKI HAS A PREFIX
+// @vz wnh=wiki_
 
 @if strmatch( sql( SELECT * FROM %vzpage ), lit( #-1 QUERY ERROR ))=
 	think ansi( r, I can't find the table '%vzpage'%; check your prefix! %(@vz%) )
