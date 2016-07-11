@@ -25,19 +25,20 @@ Requires:
 @set me=quiet
 
 @create Wiki News and Help <wnh>=10
-@set wnh=INHERIT SAFE
+@fo me=&d.wnh me=search( name=Wiki News and Help <wnh> )
+@set Wiki News and Help <wnh>=INHERIT SAFE
 
 @Desc Wiki News and Help <wnh>=
 	Code for retrieving +news and +help from the mediawiki db. 
 	This is intended for MediaWiki 1.20 and is probably not portable for newer 
 	versions.
 
-@fo me=@parent wnh=[search( object=Code Object Data Parent )]
-&prefix.queries wnh=query.
-&prefix.wiki_formatters wnh=wiki.
-&prefix.displays wnh=display.
-&prefix.namespaces wnh=namespace.
-&prefix.commands wnh=c. cmd.
+@fo me=@parent [v( d.wnh )]=search( object=Code Object Data Parent )
+&prefix.queries [v( d.wnh )]=query.
+&prefix.wiki_formatters [v( d.wnh )]=wiki.
+&prefix.displays [v( d.wnh )]=display.
+&prefix.namespaces [v( d.wnh )]=namespace.
+&prefix.commands [v( d.wnh )]=c. cmd.
 
 @if strmatch( sql( SELECT 1 ), lit( sql( SELECT 1 )))=
 	think ansi( r, SQL was not compiled! Please re-compile the game with SQL. )
@@ -53,19 +54,25 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 */
 
-@fo me=&d.mushcron me=[search( object=CRON - Myrddin's mushcron )]
+@fo me=&d.mushcron me=[search( name=CRON - Myrddin's mushcron )]
 @if not( isdbref( v( d.mushcron )))=
 	think ansi( 
 		r, Mushcron not found%; install will fail!, 
-		n, %(Please type '&d.mushcron me=<dbref>' 
+		n, %b%(Please type '&d.mushcron me=<dbref>' 
 		   and run the rest of this script.%) 
 	)
 
 &cron_job_1minute v( d.mushcron )=@dol v( jobs_1minute )=@trigger ##
 
-@fo me=&jobs_1minute [v( d.mushcron )]=[setunion( [v( d.mushcron )]/trigger_sql [num( wnh )]/tr.post.changes, [get( v( d.mushcron )/jobs_1minute )] )]
+@fo me=&jobs_1minute [v( d.mushcron )]=
+	[setunion( 
+		[v( d.mushcron )]/trigger_sql [v( d.wnh )]/tr.post.changes, 
+		[get( v( d.mushcron )/jobs_1minute )] 
+	)]
 
-&trigger_sql v( d.mushcron )=@assert sql( select 1 )=@cemit Staff=Alert: SQL Connection down. Please @restart.
+&trigger_sql v( d.mushcron )=
+	@assert sql( select 1 )=
+	@cemit Staff=Alert: SQL Connection down. Please @restart.
 
 
 
@@ -74,16 +81,18 @@ minutes on it; this will guarantee that it's triggered every minute.
 == DATA ========================================================================
 */
 
-&d.channel.recent_changes wnh=WikiRecentChanges
+&d.channel.recent_changes [v( d.wnh )]=WikiRecentChanges
 
 &d.months Wiki News and Help <wnh>=
 	Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
 
 // UN-COMMENT IF YOUR WIKI HAS A PREFIX
-// @vz wnh=wiki_
+// @vz [v( d.wnh )]=wiki_
 
 @if strmatch( sql( SELECT * FROM %vzpage ), lit( #-1 QUERY ERROR ))=
-	think ansi( r, I can't find the table '%vzpage'%; check your prefix! %(@vz%) )
+	think ansi( 
+		r, I can't find the table '%vzpage'%; check your prefix! %(@vz%) 
+	)
 
 
 /* 
@@ -94,10 +103,10 @@ minutes on it; this will guarantee that it's triggered every minute.
 // -----------------------------------------------------------------------------
 // -- Simple/Cross-Platform Functions ------------------------------------------
 
-&.msg wnh=ansi( h, <%0>, n, %b%1 )
-&.wheader wnh=wheader( %0 )
-&.wfooter wnh=wfooter( %0 )
-&.wdivider wnh=wdivider( %0 )
+&.msg [v( d.wnh )]=ansi( h, <%0>, n, %b%1 )
+&.wheader [v( d.wnh )]=wheader( %0 )
+&.wfooter [v( d.wnh )]=wfooter( %0 )
+&.wdivider [v( d.wnh )]=wdivider( %0 )
 
 
 // -----------------------------------------------------------------------------
@@ -105,7 +114,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 // 0: namespace id
 // 1: entry name
 
-&f.clean.query Wiki News and Help <wnh>=
+&f.clean.query [v( d.wnh )]=
 	edit( 
 		sql( u( query.newshelp, %0, %1 ), %r, ^ ), 
 		\%, \\\%, 
@@ -118,13 +127,13 @@ minutes on it; this will guarantee that it's triggered every minute.
 	)
 
 // --
-// think u( wnh/f.clean.query, 3022, vitae )
+// think u( v( d.wnh )/f.clean.query, 3022, vitae )
 
 
 // -----------------------------------------------------------------------------
 // -- Encode & Decode Time -----------------------------------------------------
 
-&f.encode.time Wiki News and Help <wnh>=
+&f.encode.time [v( d.wnh )]=
 	strcat( 
 		setq( 0, convsecs( %0, utc )), 
 		mid( %q0, 20, 4 ), 
@@ -137,7 +146,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 // --
 
-&f.decode.time Wiki News and Help <wnh>=
+&f.decode.time [v( d.wnh )]=
 	convtime( 
 		strcat( 
 			mid( %0, 0, 4 ), -, 
@@ -161,7 +170,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 // 
 // 0: Namespace number
 
-&query.categories-in-namespace Wiki News and Help <wnh>=
+&query.categories-in-namespace [v( d.wnh )]=
 	SELECT DISTINCT cat_title 
 	FROM %vzcategory 
 	INNER JOIN %vzcategorylinks 
@@ -172,8 +181,8 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 // --
 // 
-// think sql( u( wnh/query.categories-in-namespace, 3022 ))
-// think sql( u( wnh/query.categories-in-namespace, 3020 ))
+// think sql( u( v( d.wnh )/query.categories-in-namespace, 3022 ))
+// think sql( u( v( d.wnh )/query.categories-in-namespace, 3020 ))
 
 
 // -----------------------------------------------------------------------------
@@ -182,7 +191,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 // 0: Namespace number
 // 1: Category_Name (must be exact)
 
-&query.pages-in-category Wiki News and Help <wnh>=
+&query.pages-in-category [v( d.wnh )]=
 	SELECT page_title 
 	FROM %vzpage 
 	INNER JOIN %vzcategorylinks 
@@ -192,8 +201,8 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 // --
 // 
-// think sql( u( wnh/query.pages-in-category, 3022, Game_Policy ))
-// think sql( u( wnh/query.pages-in-category, 3022, News ))
+// think sql( u( v( d.wnh )/query.pages-in-category, 3022, Game_Policy ))
+// think sql( u( v( d.wnh )/query.pages-in-category, 3022, News ))
 
 
 // -----------------------------------------------------------------------------
@@ -207,7 +216,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 // 0: Namespace number
 // 1: Page Title
 
-&query.newshelp Wiki News and Help <wnh>=
+&query.newshelp [v( d.wnh )]=
 	SELECT page_title, page_touched, old_text 
 	FROM %vzpage 
 		INNER JOIN %vzrevision ON page_latest=rev_id 
@@ -217,7 +226,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 // --
 // 
-// think first( sql( u( wnh/query.newshelp, 3022, viTAe ), | ), | )
+// think first( sql( u( v( d.wnh )/query.newshelp, 3022, viTAe ), | ), | )
 
 
 // -----------------------------------------------------------------------------
@@ -225,7 +234,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 // 
 // 0: seconds, one minute ago (usually)
 
-&query.post Wiki News and Help <wnh>=
+&query.post [v( d.wnh )]=
 	SELECT rc_timestamp, rc_user_text, rc_namespace, rc_title, rc_comment 
 	FROM %vzrecentchanges 
 	WHERE rc_timestamp >= '[u( f.encode.time, %0 )]' 
@@ -236,7 +245,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 // -----------------------------------------------------------------------------
 // -- Get ten most recent wiki page edits --------------------------------------
 
-&query.recent Wiki News and Help <wnh>=
+&query.recent [v( d.wnh )]=
 	SELECT rc_timestamp, rc_user_text, rc_namespace, rc_title, rc_comment 
 	FROM %vzrecentchanges 
 	GROUP BY rc_user_text, rc_namespace, rc_title 
@@ -248,7 +257,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 // -- Find a Page --------------------------------------------------------------
 // 0: list all pages from a namespace
 
-&query.findpage Wiki News and Help <wnh>=
+&query.findpage [v( d.wnh )]=
 	SELECT * FROM(
 		SELECT 
 			page_title AS old_title, 
@@ -264,8 +273,8 @@ minutes on it; this will guarantee that it's triggered every minute.
 
 // --
 
-// think sql( u( wnh/query.findpage, 3022 ))
-// think sql( u( wnh/query.findpage, 3020 ))
+// think sql( u( v( d.wnh )/query.findpage, 3022 ))
+// think sql( u( v( d.wnh )/query.findpage, 3020 ))
 
 
 
@@ -282,7 +291,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 // 0: list
 // --
 
-&filter.no-_num Wiki News and Help <wnh>=not( isint( last( %0, _ )))
+&filter.no-_num [v( d.wnh )]=not( isint( last( %0, _ )))
 
 
 
@@ -310,8 +319,12 @@ minutes on it; this will guarantee that it's triggered every minute.
 // b: rest of the line
 // -- 
 
-&CMD.WIKI.NEWSHELP Wiki News and Help <wnh>=
+&CMD.WIKI.NEWSHELP [v( d.wnh )]=
 	$^(\+?news|\+help)( ([- !(),./;?_A-Za-z0-9]+))?$:
+
+	@assert sql( select 1 )={ 
+		@pemit %#=u( .msg, %1, SQL connection is down%; cannot access the wiki )
+	}; 
 
 	@break eq( strlen( %3 ), 0 )={ 
 		@pemit %#=u( display.index, trim( %1, l, + ))
@@ -555,7 +568,7 @@ To be triggered by mushcron each minute. */
 // c: categories in namespace
 // p: pages in category 
 
-&display.index wnh=
+&display.index [v( d.wnh )]=
 	localize( strcat( 
 		setq( t, 0 ), 
 		setq( n, v( namespace.[trim( %0, l, + )] )), 
@@ -584,8 +597,8 @@ To be triggered by mushcron each minute. */
 	))
 
 // --
-// think u( wnh/display.index, v( namespace.[trim( %0, l, + )] ) )
-// think u( wnh/display.index, help )
+// think u( v( d.wnh )/display.index, v( namespace.[trim( %0, l, + )] ) )
+// think u( v( d.wnh )/display.index, help )
 
 
 
