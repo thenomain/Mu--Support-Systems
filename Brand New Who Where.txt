@@ -335,7 +335,7 @@ a: findable people who are 'active' (!idle)
 &c.where [v( d.bnww )]=$^\+?where$:@pemit %#=
 	strcat( 
 		setq( r, u( f.where.rooms, %# )), 
-		setq( w, setunion( lwho(), )), 
+		setq( w, setunion( objeval( %#, lwho()), )), 
 		wheader( Where ), %r, 
 		iter( %qr, 
 			strcat( 
