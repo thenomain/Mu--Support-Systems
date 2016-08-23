@@ -321,18 +321,25 @@ i: 'super-idle' people (ignore if '&pref.segregate.idle' is 'false')
 -- Where: Command --------------------------------------------------------------
 
 r: rooms with people in them (dbref), unfiltered
+w: lwho()
 
 c: census of room, unfiltered
 f: findable people to %#
 u: unfindable people to %# (difference of %qc and %qf)
+
+i: findable people who are 'idle'
+a: findable people who are 'active' (!idle)
+
 */
+
 &c.where [v( d.bnww )]=$^\+?where$:@pemit %#=
 	strcat( 
 		setq( r, u( f.where.rooms, %# )), 
+		setq( w, setunion( lwho(), )), 
 		wheader( Where ), %r, 
 		iter( %qr, 
 			strcat( 
-				setq( c, filter( fil.in-room, lwho(), , , %i0 )), 
+				setq( c, filter( fil.in-room, %qw, , , %i0 )), 
 				setq( f, filter( fil.findable, %qc, , , %# )), 
 				if( t( v( pref.where.count-unfindable )), 
 					setq( u, setdiff( %qc, %qf )), 
@@ -362,11 +369,11 @@ u: unfindable people to %# (difference of %qc and %qf)
 					t( %qu ), 
 					u( format.where.unfindable, %qu ), 
 					<< error: nobody is here so why am I listing this? >> 
-					[if( isstaff( %# ), -- %qc -- %qf -- %qu )]
+					[if( isstaff( %# ), -- c: %qc -- f: %qf -- u: %qu )]
 				)
 			), , %r 
 		), %r, 
-		setq( u, setdiff( lwho(), filter( fil.findable, lwho(), , , %# ))), 
+		setq( u, setdiff( %qw, filter( fil.findable, %qw, , , %# ))), 
 		setq( i, sortby( sortby.connected, filter( f.check.idle, %qu ))), 
 		setq( a, sortby( sortby.connected, setdiff( %qu, %qi ))), 
 		if( t( %qu ), 
