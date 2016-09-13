@@ -80,11 +80,13 @@ notify the room.
 */
 
 @create Places Global Object <pgo>
-@set pgo=Inherit
-@set pgo=Safe
 
-@parent pgo=Code Object Data Parent <codp>
-&prefix.user_function_actions pgo=action.
+@fo me=&d.pgo me=[search( name=Places Global Object <pgo> )]
+
+@set pgo=Inherit Safe
+
+@parent [v( d.pgo )]=Code Object Data Parent <codp>
+&prefix.user_function_actions [v( d.pgo )]=action.
 
 
 /*
@@ -103,7 +105,7 @@ Using iter() to catch all rooms needing cleaned. Again unlikely, but there.
 
 */
 
-@adisconnect pgo=
+@adisconnect [v( d.pgo )]=
 	@eval 
 		iter( 
 			search( eroom=grep( ##, places.*.occupancy, %# )), 
@@ -136,15 +138,15 @@ If a places element is not set, or while setting up, use these defaults.
 
 */
 
-&d.default.name pgo=a table
-&d.default.spaces pgo=5
-&d.default.description pgo=A table with a couple of chairs.
+&d.default.name [v( d.pgo )]=a table
+&d.default.spaces [v( d.pgo )]=5
+&d.default.description [v( d.pgo )]=A table with a couple of chairs.
 
-&d.default.say_prefix pgo=At your table
-&d.default.join pgo=You join #NAME.
-&d.default.ojoin pgo=joins at #NAME (##LOC).
-&d.default.depart pgo=You depart #NAME.
-&d.default.odepart pgo=departs #NAME (##LOC).
+&d.default.say_prefix [v( d.pgo )]=At your table
+&d.default.join [v( d.pgo )]=You join #NAME.
+&d.default.ojoin [v( d.pgo )]=joins at #NAME (##LOC).
+&d.default.depart [v( d.pgo )]=You depart #NAME.
+&d.default.odepart [v( d.pgo )]=departs #NAME (##LOC).
 
 
 /*
@@ -165,7 +167,7 @@ In the case of the switches, the first valid switch has their command called, if
 
 */
 
-&c.places Places Global Object=$(?s)^\+?places?(.*)$:
+&c.places [v( d.pgo )]=$(?s)^\+?places?(.*)$:
 	@eval setq( n, places ); 
 
 	@pemit %#=
@@ -178,7 +180,7 @@ In the case of the switches, the first valid switch has their command called, if
 
 // --
 
-@set pgo/c.places=regex
+@set v( d.pgo )/c.places=regex
 
 
 /*
@@ -205,7 +207,7 @@ qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
 
 */
 
-&c.places.switch Places Global Object=
+&c.places.switch [v( d.pgo )]=
 	[setq( s, )][setq( p, )][setq( a, lattr( %!/c.%qn/* ))]
 	[iter( rest( %0, / ), 
 		if( 
@@ -243,7 +245,7 @@ ql: location of %#
 
 */
 
-&c.places.default Places Global Object=
+&c.places.default [v( d.pgo )]=
 	case( 0, 
 		not( hasflag( loc( %# ), HALT )), 
 		u( .msg, places, Places cannot work while the room is set HALT ), 
@@ -278,7 +280,7 @@ qn: number of location, if name or #<num> passed
 
 */
 
-&c.places.specific Places Global Object=
+&c.places.specific [v( d.pgo )]=
 	case( 1, 
 		hasflag( loc( %# ), HALT ), 
 		u( .msg, places, Places cannot work while the room is set HALT )
@@ -318,7 +320,7 @@ qn: number of places the player wants configured ( always 1 )
 
 */
 
-&c.places/configure Places Global Object=
+&c.places/configure [v( d.pgo )]=
 	case( 0, 
 		not( comp( rest( %0, = ), YES )), 
 		u( .msg, places/confugure, 
@@ -353,7 +355,7 @@ qf: places() function results
 
 */
 
-&c.places/breakdown Places Global Object=
+&c.places/breakdown [v( d.pgo )]=
 	case( 0, 
 		not( comp( rest( %0, = ), YES )), 
 		u( .msg, places/breakdown, 
@@ -382,7 +384,7 @@ qf: places() function results
 
 */
 
-&c.places/newplace Places Global Object=
+&c.places/newplace [v( d.pgo )]=
 	case( 0, 
 		t( setr( f, 
 			ulocal( ufunc/privileged.places, 
@@ -417,7 +419,7 @@ qf: places() function results
 
 */
 
-&c.places/delplace Places Global Object=
+&c.places/delplace [v( d.pgo )]=
 	case( 0, 
 		t( setr( f, 
 			ulocal( ufunc/privileged.places, 
@@ -448,7 +450,7 @@ qo: output from
 
 */
 
-&c.places/compress Places Global Object=
+&c.places/compress [v( d.pgo )]=
 	case( 0, 
 		or( 
 			strmatch( 
@@ -496,7 +498,7 @@ qo: output from
 
 */
 
-&c.places/cleanup Places Global Object=
+&c.places/cleanup [v( d.pgo )]=
 	case( 0, 
 		t( setr( f, 
 			ulocal( ufunc/privileged.places, 
@@ -526,7 +528,7 @@ qf: function result
 
 */
 
-&c.places/set Places Global Object=
+&c.places/set [v( d.pgo )]=
 	[setq( p, first( %0, / ))]
 	[if( isint( %qp ), 
 		setq( l, loc( %# )), 
@@ -581,7 +583,7 @@ qf: places() function results
 
 */
 
-&c.join Places Global Object=$^join( at| with)?( #?(.*))?$:
+&c.join [v( d.pgo )]=$^join( at| with)?( #?(.*))?$:
 // >> if nothing but 'join', fail
 	@assert t( %3 )={ @pemit %#=u( .msg, places, Join where? }; )
 	@assert not( ulocal( ufunc/privileged.places, whichplace, loc( %# ), %# ))={ 
@@ -666,7 +668,7 @@ qf: places() function results
 
 */
 
-&c.depart Places Global Object=$^depart( for #?(.*))?$:
+&c.depart [v( d.pgo )]=$^depart( for #?(.*))?$:
 	@assert t( ulocal( ufunc/privileged.places, whichplace, loc( %# ), %# ))={ 
 		@pemit %#=
 			u( .msg, places, You're not at a place. Please 'join' first. )
@@ -704,7 +706,7 @@ qf: places() function results
 
 */
 
-&c.tt Places Global Object=$(?s)^tt(o(oc)?)?(.*)?$:
+&c.tt [v( d.pgo )]=$(?s)^tt(o(oc)?)?(.*)?$:
 	@assert strlen( trim( %3 ))={ 
 		@pemit %#=
 			u( .msg, places, You need to 'tt <something>'. )
@@ -741,46 +743,46 @@ notice that the command no longer works.
 
 */
 
-&c.old.plook pgo=$plook*:
+&c.old.plook [v( d.pgo )]=$plook*:
 	@pemit %#=case( 1, t( %0 ), u( c.places.specific, trim( %0 )), 
 	u( c.places.default ))
 
-&c.old.sit pgo=$sit*:
+&c.old.sit [v( d.pgo )]=$sit*:
 	@if hasflag( %#, HALT )=
 	{ @pemit %#=u( .msg, sit, While you are set HALT please use 'join'. ) }, 
 	{ @force %#=join%0 }
 
-&c.old.leave pgo=$leave*:
+&c.old.leave [v( d.pgo )]=$leave*:
 	@if hasflag( %#, HALT )=
 	{ @pemit %#=
 		u( .msg, leave, While you are set HALT please use 'depart'. )
 	}, 
 	{ @force %#=depart%0 }
 
-&c.old.stand pgo=$stand*:
+&c.old.stand [v( d.pgo )]=$stand*:
 	@if hasflag( %#, HALT )=
 		{ @pemit %#=
 			u( .msg, stand, While you are set HALT please use 'depart'. )
 		}, 
 		{ @force %#=depart%0 }
 
-&c.old.mv pgo=$mv from*:
+&c.old.mv [v( d.pgo )]=$mv from*:
 	@pemit %#=u( .msg, places, 
 		Moving vacancies for places has been deprecated. Please ask the room 
 		owner to add more places to this location. 
 	)
 
-&c.old.update pgo=$update */*=*:
+&c.old.update [v( d.pgo )]=$update */*=*:
 	@pemit %#=u( .msg, places, 
 		Update has been deprecated. Please use 'place/set'. 
 	)
 
-&c.old.configure pgo=$configure * places:
+&c.old.configure [v( d.pgo )]=$configure * places:
 	@pemit %#=u( .msg, places, 
 		Configure has been deprecated. Please use 'places/configure'. 
 	)
 
-&c.old.unconfigure pgo=$unconfigure places:
+&c.old.unconfigure [v( d.pgo )]=$unconfigure places:
 	@pemit %#=u( .msg, places, 
 		Unconfigure has been deprecated. Please use 'places/breakdown'. 
 	)
@@ -801,16 +803,16 @@ It's separated out for the ease of adding other types of rooms and locations, e.
 
 */
 
-&f.permission.room_owner Places Global Object=
+&f.permission.room_owner [v( d.pgo )]=
 	cor( strmatch( %0, owner( %1 )), u( .isstaff, %0 ))
 
 /*
 
 To allow places in 'temprooms':
 
-&d.temprooms_master Places Global Object=#1224
+&d.temprooms_master [v( d.pgo )]=#1224
 
-&f.permission.room_owner Places Global Object=
+&f.permission.room_owner [v( d.pgo )]=
 	cor( 
 		strmatch( %0, owner( %1 )), 
 		u( .isstaff, %0 ), 
@@ -843,20 +845,20 @@ If it becomes a problem, start fixing it here.
 
 */
 
-&f.get pgo=
+&f.get [v( d.pgo )]=
 	iter( %2, udefault( first( lattr( %!/f.get.%i0* )), #-1, %0, %1 ), |, | )
 
-&f.get.name pgo=u( f.get-element, %0, details, %1, 1, %2, name )
-&f.get.spaces pgo=u( f.get-element, %0, details, %1, 2, %2, spaces )
-&f.get.description pgo=u( f.get-element, %0, details, %1, 3, %2, description )
+&f.get.name [v( d.pgo )]=u( f.get-element, %0, details, %1, 1, %2, name )
+&f.get.spaces [v( d.pgo )]=u( f.get-element, %0, details, %1, 2, %2, spaces )
+&f.get.description [v( d.pgo )]=u( f.get-element, %0, details, %1, 3, %2, description )
 
-&f.get.say_prefix pgo=elements( get( %0/places.%1.notices ), 1, | )
-&f.get.join pgo=u( f.get-element, %0, notices, %1, 2, %2, join )
-&f.get.ojoin pgo=u( f.get-element, %0, notices, %1, 3, %2, ojoin )
-&f.get.depart pgo=u( f.get-element, %0, notices, %1, 4, %2, depart )
-&f.get.odepart pgo=u( f.get-element, %0, notices, %1, 5, %2, odepart )
+&f.get.say_prefix [v( d.pgo )]=elements( get( %0/places.%1.notices ), 1, | )
+&f.get.join [v( d.pgo )]=u( f.get-element, %0, notices, %1, 2, %2, join )
+&f.get.ojoin [v( d.pgo )]=u( f.get-element, %0, notices, %1, 3, %2, ojoin )
+&f.get.depart [v( d.pgo )]=u( f.get-element, %0, notices, %1, 4, %2, depart )
+&f.get.odepart [v( d.pgo )]=u( f.get-element, %0, notices, %1, 5, %2, odepart )
 
-&f.get.occupancy pgo=
+&f.get.occupancy [v( d.pgo )]=
 	strcat( null( ulocal( action.cleanup, %0 )), get( %0/places.%1.occupancy ))
 
 /*
@@ -869,7 +871,7 @@ If it becomes a problem, start fixing it here.
 
 */
 
-&f.get-element pgo=
+&f.get-element [v( d.pgo )]=
 	localize( 
 		[setq( e, elements( get( %0/places.%2.%1 ), %3, | ))]
 		[if( strlen( %qe ), objeval( %0, s( %qe )), v( d.default.%4 ))]
@@ -893,7 +895,7 @@ Cheap filter(). Returns all matches, unordered - lets calling code decide what t
 
 */
 
-&f.get-num-by-name pgo=
+&f.get-num-by-name [v( d.pgo )]=
 	iter( 
 		lattr( %0/places.*.details ), 
 		if( 
@@ -913,7 +915,7 @@ Pulls the numbers of all locations a particular dbref is at.
 
 */
 
-&f.get-num-by-player pgo=
+&f.get-num-by-player [v( d.pgo )]=
 	iter( 
 		filter( fil.player-at-place, 
 			lattr( %0/places.*.occupancy ), , , %0, %1 
@@ -926,11 +928,11 @@ Pulls the numbers of all locations a particular dbref is at.
 --------------------------------------------------------------------------------
 -- Filter: Player At Place -----------------------------------------------------
 
-think filter( pgo/fil.player-at-place, lattr( here/places.*.occupancy ), , , %L, %! )
+think filter( v( d.pgo )/fil.player-at-place, lattr( here/places.*.occupancy ), , , %L, %! )
 
 */
 
-&fil.player-at-place pgo=t( match( get( %1/%0 ), %2 ))
+&fil.player-at-place [v( d.pgo )]=t( match( get( %1/%0 ), %2 ))
 
 
 
@@ -944,20 +946,20 @@ Replaces elements entirely. No checking first; using this on a place that hasn't
 
 */
 
-&f.set.name pgo=trigger( %!/tr.set-element, %0, details, %1, 1, %2 )
-&f.set.spaces pgo=trigger( %!/tr.set-element, %0, details, %1, 2, %2 )
-&f.set.description pgo=trigger( %!/tr.set-element, %0, details, %1, 3, %2 )
+&f.set.name [v( d.pgo )]=trigger( %!/tr.set-element, %0, details, %1, 1, %2 )
+&f.set.spaces [v( d.pgo )]=trigger( %!/tr.set-element, %0, details, %1, 2, %2 )
+&f.set.description [v( d.pgo )]=trigger( %!/tr.set-element, %0, details, %1, 3, %2 )
 
-&f.set.say_prefix pgo=trigger( %!/tr.set-element, %0, notices, %1, 1, %2 )
-&f.set.join pgo=trigger( %!/tr.set-element, %0, notices, %1, 2, %2 )
-&f.set.ojoin pgo=trigger( %!/tr.set-element, %0, notices, %1, 3, %2 )
-&f.set.depart pgo=trigger( %!/tr.set-element, %0, notices, %1, 4, %2 )
-&f.set.odepart pgo=trigger( %!/tr.set-element, %0, notices, %1, 5, %2 )
+&f.set.say_prefix [v( d.pgo )]=trigger( %!/tr.set-element, %0, notices, %1, 1, %2 )
+&f.set.join [v( d.pgo )]=trigger( %!/tr.set-element, %0, notices, %1, 2, %2 )
+&f.set.ojoin [v( d.pgo )]=trigger( %!/tr.set-element, %0, notices, %1, 3, %2 )
+&f.set.depart [v( d.pgo )]=trigger( %!/tr.set-element, %0, notices, %1, 4, %2 )
+&f.set.odepart [v( d.pgo )]=trigger( %!/tr.set-element, %0, notices, %1, 5, %2 )
 
 // .. "occupancy" sets without a trigger to avoid timing issues w/'tt'
 // .. "cleanup" after for the same reason as &f.get.occupancy, above
 
-&f.set.occupancy pgo=
+&f.set.occupancy [v( d.pgo )]=
 	strcat( 
 		set( %0, places.%1.occupancy:%2 ), 
 		trigger( %!/tr.chown, %0, places.%1.occupancy ), 
@@ -977,11 +979,11 @@ Replaces elements entirely. No checking first; using this on a place that hasn't
 
 */
 
-&tr.set-element pgo=
+&tr.set-element [v( d.pgo )]=
 	&places.%2.%1 %0=replace( get( %0/places.%2.%1 ), %3, %4, | ); 
 	@trigger %!/tr.chown=%0, places.%2.%1; 
 
-&tr.set-direct pgo=&%1 %0=%2; @trigger %!/tr.chown=%0, places.%2.%1; 
+&tr.set-direct [v( d.pgo )]=&%1 %0=%2; @trigger %!/tr.chown=%0, places.%2.%1; 
 
 
 
@@ -995,28 +997,28 @@ Used primarially with &f.set.*, and should relate 1:1
 
 */
 
-&f.validate.text pgo=
+&f.validate.text [v( d.pgo )]=
 	case( 1, 
 		regmatch( %0, :|%\| ), No pipes or colons., 
 		cand( isint( %1 ), gt( strlen( %0 ), %1 )), Keep item to %1 characters 
 	)
 
-&f.validate.num pgo=
+&f.validate.num [v( d.pgo )]=
 	if( or( lt( %0, 0 ), not( isint( %0 ))), Positive integers only )
 
 // --
 
-&f.validate.name pgo=u( f.validate.text, %0, 40 )
-&f.validate.spaces pgo=u( f.validate.num, %0 )
-&f.validate.description pgo=u( f.validate.text, %0 )
+&f.validate.name [v( d.pgo )]=u( f.validate.text, %0, 40 )
+&f.validate.spaces [v( d.pgo )]=u( f.validate.num, %0 )
+&f.validate.description [v( d.pgo )]=u( f.validate.text, %0 )
 
-&f.validate.say_prefix pgo=u( f.validate.text, %0, 30 )
-&f.validate.join pgo=u( f.validate.text, %0, 60 )
-&f.validate.ojoin pgo=u( f.validate.text, %0, 60 )
-&f.validate.depart pgo=u( f.validate.text, %0, 60 )
-&f.validate.odepart pgo=u( f.validate.text, %0, 60 )
+&f.validate.say_prefix [v( d.pgo )]=u( f.validate.text, %0, 30 )
+&f.validate.join [v( d.pgo )]=u( f.validate.text, %0, 60 )
+&f.validate.ojoin [v( d.pgo )]=u( f.validate.text, %0, 60 )
+&f.validate.depart [v( d.pgo )]=u( f.validate.text, %0, 60 )
+&f.validate.odepart [v( d.pgo )]=u( f.validate.text, %0, 60 )
 
-&f.validate.occupancy pgo=
+&f.validate.occupancy [v( d.pgo )]=
 	if( 
 		land( iter( %0, and( isdbref( %i0 ), hastype( %i0, PLAYER )), , | ), | ), 
 		Occupancy must be player dbrefs 
@@ -1045,7 +1047,7 @@ qf: number of spaces free
 
 */
 
-&f.display.one-place-brief Places Global Object=
+&f.display.one-place-brief [v( d.pgo )]=
 	localize( 
 		[setq( i, u( f.get, %0, %1, name|spaces|occupancy ))]
 		[setq( s, elements( %qi, 2, | ))]
@@ -1089,7 +1091,7 @@ qf: number of spaces free
 
 */
 
-&f.display.one-place-detailed Places Global Object=
+&f.display.one-place-detailed [v( d.pgo )]=
 	localize( 
 		[setq( i, u( f.get, %0, %1, name|spaces|occupancy|description ))]
 		[setq( s, elements( %qi, 2, | ))]
@@ -1134,7 +1136,7 @@ Output any known element. Edit any tokens in the text.
 
 */
 
-&f.display.element pgo=
+&f.display.element [v( d.pgo )]=
 	edit( 
 // .. get element - we know we'll get something if valid
 		udefault( 
@@ -1154,9 +1156,9 @@ Output any known element. Edit any tokens in the text.
 -- Elements to display ---------------------------------------------------------
 */
 
-&f.display.element.other pgo=udefault( f.get.%2, #-1 Element Unknown, %0, %1 )
+&f.display.element.other [v( d.pgo )]=udefault( f.get.%2, #-1 Element Unknown, %0, %1 )
 
-&f.display.element.occupancy pgo=
+&f.display.element.occupancy [v( d.pgo )]=
 	itemize( iter( u( f.get.occupancy, %0, %1 ), name( %i0 ), , | ), | )
 
 
@@ -1175,7 +1177,7 @@ Keep Your Room Tidy.
 
 */
 
-&tr.chown pgo=@chown %0/%1=[owner( %0 )]
+&tr.chown [v( d.pgo )]=@chown %0/%1=[owner( %0 )]
 
 
 /*
@@ -1190,7 +1192,7 @@ Setting up WILL clobber a room's @startup & @aleave and set it Monitor and !Halt
 
 */
 
-&tr.configure Places Global Object=
+&tr.configure [v( d.pgo )]=
 	@unlock %0/places_listen; 
 	@unlock %0/startup; 
 
@@ -1218,7 +1220,7 @@ This WILL clobber a room's @aleave and @startup
 
 */
 
-&tr.breakdown Places Global Object=
+&tr.breakdown [v( d.pgo )]=
 	@unlock %0/aleave; 
 	@unlock %0/startup; 
 
@@ -1235,7 +1237,7 @@ Sets up Place #%1 in room %0 with all the defaults.
 
 */
 
-&tr.newplace Places Global Object=
+&tr.newplace [v( d.pgo )]=
 	&places.%1.details %0=
 		[iter( name spaces description, v( d.default.%i0 ), , | )];
 	&places.%1.notices %0=
@@ -1252,7 +1254,7 @@ Removes `Place #%1` in room `%0`.
 
 */
 
-&tr.delplace Places Global Object=
+&tr.delplace [v( d.pgo )]=
 	&places.%1.details %0=; 
 	&places.%1.notices %0=; 
 	&places.%1.occupancy %0=; 
@@ -1268,7 +1270,7 @@ Removes `Place #%1` in room `%0`.
 
 */
 
-&tr.moveplace Places Global Object=
+&tr.moveplace [v( d.pgo )]=
 	@mvattr %0=places.%1.details, places.%2.details; 
 	@mvattr %0=places.%1.notices, places.%2.notices; 
 	@mvattr %0=places.%1.occupancy, places.%2.occupancy; 
@@ -1293,19 +1295,19 @@ For cross-game compatability. Default message formatting goes here.
 
 */
 
-&.isstaff pgo=isstaff( %0 )
-&.lmin pgo=lmin( %0, %1 )
-&.lmax pgo=lmax( %0, %1 )
-&.crumple pgo=trim( squish( %0 ))
-&.plural pgo=if( eq( %0, 1 ), %1, %2 )
+&.isstaff [v( d.pgo )]=isstaff( %0 )
+&.lmin [v( d.pgo )]=lmin( %0, %1 )
+&.lmax [v( d.pgo )]=lmax( %0, %1 )
+&.crumple [v( d.pgo )]=trim( squish( %0 ))
+&.plural [v( d.pgo )]=if( eq( %0, 1 ), %1, %2 )
 
 // -
 
-&.msg pgo=ansi( h, <%0>, n, %b%1 )
+&.msg [v( d.pgo )]=ansi( h, <%0>, n, %b%1 )
 
-&.header pgo=wheader( %0 )
-&.footer pgo=wfooter( %0 )
-&.divider pgo=wdivider( %0 )
+&.header [v( d.pgo )]=wheader( %0 )
+&.footer [v( d.pgo )]=wfooter( %0 )
+&.divider [v( d.pgo )]=wdivider( %0 )
 
 
 /*
@@ -1318,7 +1320,7 @@ Passed a list of integers, it will return the lowest available positive integer.
 
 */
 
-&f.lowest-available-number pgo=
+&f.lowest-available-number [v( d.pgo )]=
 	u( .lmin, setdiff( lnum( 1, inc( u( .lmax, %0 ))), %0 ))
 
 
@@ -1338,7 +1340,7 @@ Rather than have one function per item, let's just have one function.
 
 */
 
-&ufunc/privileged.places Places Global Object=
+&ufunc/privileged.places [v( d.pgo )]=
 	[setq( l, locate( %#, %1, ahR ))]
 	[if( cand( t( %ql ), hastype( %ql, ROOM )), 
 		udefault( @@PLACES@@/action.%0, #-1 ACTION NOT FOUND, %ql, %2, %3, %4 ), 
@@ -1347,13 +1349,13 @@ Rather than have one function per item, let's just have one function.
 
 // --
 
-@startup Places Global Object=@function/privileged/preserve places=
+@startup [v( d.pgo )]=@function/privileged/preserve places=
 	@@PLACES@@/ufunc/privileged.places
 
 // --
 
-@force me=@edit pgo/ufunc/privileged.places=@@PLACES@@, [num( pgo )]
-@force me=@edit pgo/startup=@@PLACES@@, [num( pgo )]
+@force me=@edit v( d.pgo )/ufunc/privileged.places=@@PLACES@@, [v( d.pgo )]
+@force me=@edit v( d.pgo )/startup=@@PLACES@@, [v( d.pgo )]
 
 /*
 @force me=
@@ -1375,7 +1377,7 @@ Returns: #-1 ERROR or '<num>:<name>:<max>:<list of dbrefs>', |-delim
 
 */
 
-&action.list Places Global Object=
+&action.list [v( d.pgo )]=
 	localize( 
 		case( 0, 
 			cor( strmatch( %0, loc( %# )), u( .isstaff, %# )), 
@@ -1430,7 +1432,7 @@ qp: player dbref
 
 */
 
-&action.cleanup Places Global Object=
+&action.cleanup [v( d.pgo )]=
 	localize( 
 		case( 0, 
 			cor( t( %1 ), or( strmatch( %0, loc( %# )), u( .isstaff, %# ))), 
@@ -1484,7 +1486,7 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 
 */
 
-&action.configure Places Global Object=
+&action.configure [v( d.pgo )]=
 	case( 0, 
 		u( f.permission.room_owner, %#, %0 ), 
 		#-1 CONFIGURE MAY BE USED BY ROOM OWNER ONLY, 
@@ -1529,7 +1531,7 @@ Returns: #-1 ERROR or 1 if it believes it was successful.
 
 */
 
-&action.breakdown Places Global Object=
+&action.breakdown [v( d.pgo )]=
 	case( 0, 
 		u( f.permission.room_owner, %#, %0 ), 
 		#-1 BREAKDOWN MAY BE USED BY ROOM OWNER ONLY, 
@@ -1558,7 +1560,7 @@ qn: place number, for return & trigger
 
 */
 
-&action.newplace Places Global Object=
+&action.newplace [v( d.pgo )]=
 	localize( 
 		case( 0, 
 			u( f.permission.room_owner, %#, %0 ), 
@@ -1601,7 +1603,7 @@ Returns: #-1 ERROR or ex-place #, if successful.
 
 */
 
-&action.delplace Places Global Object=
+&action.delplace [v( d.pgo )]=
 	case( 0, 
 		u( f.permission.room_owner, %#, %0 ), 
 		#-1 SET MAY BE USED BY ROOM OWNER ONLY, 
@@ -1639,7 +1641,7 @@ qe: possible error during set
 
 */
 
-&action.set Places Global Object=
+&action.set [v( d.pgo )]=
 	localize( 
 		case( 0, 
 			u( f.permission.room_owner, %#, %0 ), 
@@ -1698,7 +1700,7 @@ qe: possible error from set
 
 */
 
-&action.join Places Global Object=
+&action.join [v( d.pgo )]=
 	localize( 
 		case( 0, 
 			cand( 
@@ -1771,7 +1773,7 @@ qn: place number (localized)
 
 */
 
-&action.whichplace Places Global Object=
+&action.whichplace [v( d.pgo )]=
 	localize( 
 		case( 0, 
 			cor( strmatch( setr( p, pmatch( %1 )), %# ), u( .isstaff, %# )), 
@@ -1797,7 +1799,7 @@ qn: place numbers (localized)
 
 */
 
-&action.nameplace Places Global Object=
+&action.nameplace [v( d.pgo )]=
 	localize( 
 		case( 0, 
 			cor( strmatch( %0, loc( %# )), u( .isstaff, %# )), 
@@ -1828,7 +1830,7 @@ qe: possible error from set
 
 */
 
-&action.depart Places Global Object=
+&action.depart [v( d.pgo )]=
 	localize( 
 		case( 0, 
 			cor( strmatch( setr( p, pmatch( %1 )), %# ), u( .isstaff, %# )), 
@@ -1884,7 +1886,7 @@ qs: say/pose formatted
 
 */
 
-&action.tt Places Global Object=
+&action.tt [v( d.pgo )]=
 	localize( 
 		case( 0, 
 			cor( 
@@ -1949,7 +1951,7 @@ qe: element from 'f.get'.
 
 */
 
-&action.get Places Global Object=
+&action.get [v( d.pgo )]=
 	localize( 
 		case( 0, 
 			cor( strmatch( %0, loc( %# )), u( .isstaff, %# )), 
