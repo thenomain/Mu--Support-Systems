@@ -25,18 +25,13 @@ User-defined commands we'll need:
 (If your game does not have one of these, look for `&.<funcname>`)
 
 	isstaff( <player> ) - return '1' if player has staff access
-	lmax( <list> [, <delimiter>] ) - max() with delimiter
-	lmin( <list> [, <delimiter>] ) - min() with delimiter
 
 	header( <text> ) - game's default command header
 	footer( <text> ) - game's default command footer
 	divider() - minor divider
 	wheader(), wdivider(), wfooter() - A width()-friendly version of the above
 
-	msg( <ansi>, <header>, <text> ) - prefix for command notice
-	plural( <num>, <singular text>, <plural text> ) - does what it looks like
 	titlestr( <string> ) - Display text as something like book-title appropriate
-	crumple( <string> [, <delim>] ) - trim() + squish()
 
 
 --------------------------------------------------------------------------------
@@ -85,7 +80,7 @@ notify the room.
 
 @set pgo=Inherit Safe
 
-@parent [v( d.pgo )]=Code Object Data Parent <codp>
+@parent [v( d.pgo )]=[search( name=Code Object Data Parent <codp> )]
 &prefix.user_function_actions [v( d.pgo )]=action.
 
 
@@ -215,7 +210,7 @@ qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
 			setq( s, %qs/[rest( grab( %qa, c.%qn/%i0* ), / )] ), 
 			setq( p, %qp/%i0 )
 		), 
-		/, @@
+		/, @@ 
 	)]
 	[if( t( %qs ), 
 		ulocal( c.%qn/[extract( %qs, 2, 1, / )], %1, %qp ), 
@@ -651,7 +646,7 @@ qf: places() function results
 
 // --
 
-@set Places Global Object/c.join=regexp
+@set v( d.pgo )/c.join=regexp
 
 
 /*
