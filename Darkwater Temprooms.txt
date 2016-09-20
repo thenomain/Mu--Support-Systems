@@ -34,6 +34,8 @@ The Keeper (Temporary Room Maker <trm>) is the home for the Digger.
 @set Temproom Maker <trm>=inherit
 @set Temproom Maker <trm>=safe
 
+@fo me=@parent [v( d.trm )]=[search( name=Code Object Data Parent <codp> )]
+
 
 /*
 --------------------------------------------------------------------------------
@@ -545,7 +547,7 @@ Because the various platforms are inconsistent about things like, say, Cron, I'm
 	@dolist lattr( %!/room.* )=
 	{ 
 // .. if nobody is in the room and the room is not set 'safe' (permanent)
-		@if cand(
+		@if cand( 
 				not( t( lcon( rest( ##, . ), connect ))), 
 				not( hasflag( rest( ##, . ), safe ))
 			)=
