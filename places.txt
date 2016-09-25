@@ -278,10 +278,10 @@ qn: number of location, if name or #<num> passed
 &c.places.specific [v( d.pgo )]=
 	case( 1, 
 		hasflag( loc( %# ), HALT ), 
-		u( .msg, places, Places cannot work while the room is set HALT )
+		u( .msg, places, Places cannot work while the room is set HALT ), 
 
 		not( attrcnt( [setr( l, loc( %# ))]/places.1.details )), 
-		u( .msg, places, Places not configured )
+		u( .msg, places, Places not configured ), 
 
 		cand( 
 			isint( setr( n, if( strmatch( %0, #* ), rest( %0, # ), %0 ))), 
@@ -678,7 +678,7 @@ qf: places() function results
 
 // -- 
 
-@set Places Global Object/c.depart=regexp
+@set [v( d.pgo )]/c.depart=regexp
 
 
 /*
@@ -726,7 +726,7 @@ qf: places() function results
 
 // --
 
-@set Places Global Object/c.tt=regexp
+@set [v( d.pgo )]/c.tt=regexp
 
 
 /*
