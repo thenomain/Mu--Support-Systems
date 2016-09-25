@@ -391,20 +391,23 @@ a: findable people who are 'active' (!idle)
 /*
 --------------------------------------------------------------------------------
 -- Where: Functions & Formatting -----------------------------------------------
+
+f.where.rooms: remember to ignore what the target can't see.
+
 */
 
 // &f.where.rooms [v( d.bnww )]=setunion( iter( lwho(), room( %i0 )), )
 
 &f.where.rooms [v( d.bnww )]=
 	filter( fil.room-population, 
-		setunion( iter( lwho(), room( %i0 )), ), 
-		, , %0
+		setunion( iter( objeval( %0, lwho()), room( %i0 )), ), 
+		, , %0 
 	)
 
 // this is ugly, so ugly, but is used to filter out rooms 
 // when 'pref.where.count-unfindable' is set to 0
 &fil.room-population [v( d.bnww )]=
-  localize( strcat( 
+	localize( strcat( 
 		setq( c, filter( fil.in-room, lwho(), , , %0 )), 
 		setq( f, filter( fil.findable, %qc, , , %1 )), 
 		if( t( v( pref.where.count-unfindable )), 
