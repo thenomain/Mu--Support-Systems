@@ -45,11 +45,11 @@ $api_token = "xxxxxxxxxxxxx";
 ctrl-d
 
 
-** STEP FIVE: Run the code 
+** STEP FIVE: Run the code *****************************************************
 
 Still logged into the server, type:
 
-php weather.php
+	php weather.php
 
 This runs the very first weather-grabbing from Weather Underground. Hopefully 
 there were no errors.
