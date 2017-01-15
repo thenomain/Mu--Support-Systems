@@ -1,7 +1,7 @@
 The "Hourly Weather Conditions" system, originally by Brus (I'm pretty sure), 
 modified when Yahoo changed their API system to now use Weather Underground.
 
-You will need to have access to the shell and to cron on the shell.
+You will need to have access to edit files and to cron on the server account.
 
 
 ** STEP ONE: Get an API code ***************************************************
@@ -30,7 +30,8 @@ city is "Stowe". Test that you're getting the weather that you need:
 
 ** STEP THREE: Edit and upload weather.php *************************************
 
-At the start of the "weather.php" file will be a few things you'll need to change. 
+At the start of the "weather.php" file will be a few things you'll need to 
+change. Change them.
 
 
 ** STEP FOUR: Create weather_api_token.txt *************************************
@@ -67,7 +68,22 @@ find where to add to the cron in the CPANEL. Enter the above except for the word
 "@hourly", which should be an option similar to "do this once an hour".
 
 
-** STEP SEVEN: Check the game and load the softcode ****************************
+** STEP SEVEN: Introduce the 'weather' file to the game server *****************
+
+Find your game's config file. It's probably '<gamename>.conf'. Add this line:
+
+	helpfile meteo <exact path to where 'weather.txt' lives>/weather
+
+If you don't know where 'weather.txt' lives, you entered that information in the 'weather.php' file in Step Three.
+
+So if 'weather.txt' lives at '/tinymux/text/weather.txt', enter:
+
+	helpfile meteo /tinymux/text/weather
+
+Notice that there is no '.txt' at the end of this!
+
+
+** STEP EIGHT: Check the game and load the softcode ****************************
 
 On the game as a wizard, type "@readcache", then type "meteo". If everything has 
 run properly up until now, you will see the main help file for meteorology.
@@ -77,15 +93,16 @@ If all this is good, upload the softcode system in "weather.txt" and test it by
 typing "weather".
 
 
-** STEP EIGHT: Start the Mushcron **********************************************
+** STEP NINE: Start the Mushcron ***********************************************
 
-The game needs to run "@readcache" once an hour. In your Myrddin's mushcron system, add the following lines:
+The game needs to run "@readcache" once an hour. In your Myrddin's mushcron 
+system, add the following lines:
 
 &CRON_TIME_WEATHER mushcron=||||01 02|
 &CRON_JOB_WEATHER mushcron=@readcache
 
 
-** STEP NINE: Done! ************************************************************
+** STEP TEN: Done! *************************************************************
 
 Check that by 2 minutes after the hour, the weather has been updated. If it has, 
 then you're done. If not, ask your local psychocoder for assistance.
