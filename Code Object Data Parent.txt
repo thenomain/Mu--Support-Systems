@@ -30,7 +30,7 @@ Requires:
 
 @fo me=&d.codp me=[search( name=Code Object Data Parent <codp> )]
 
-@set Code Object Data Parent <codp>=INHERIT PARENT_OK SAFE VISIBLE
+@set Code Object Data Parent <codp>=INHERIT PARENT_OK SAFE VISUAL
 
 &ABOUT [v( d.codp )]=This object is for all other code objects to parent to. 
 	It will format the attributes without clobbering a useful @desc.
