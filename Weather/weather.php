@@ -35,13 +35,17 @@ require "weather_api_token.txt";
 $state = "MD"; 
 $city = "Upper_Marlboro"; 
 
+$has_tides = TRUE; // set to FALSE if your area has no tides
+
 /*
-   Where to put the final file; use exact path.
-   This file name must be in the netmux.conf, for example: 
+   The directory that holds the fine file; use exact path.
+   Must end with /, e.g.:
+       $file_dir = '/home/bitn/game/etc/text/';
+   This directory path must be in the netmux.conf, for example: 
 	   helpfile meteo  /home/bitn/game/etc/text/weather
 */
 
-$file = '/home/bitn/game/etc/text/weather.txt'; 
+$file_dir = './'; 
 
 /******************************************************************************
  *
@@ -51,8 +55,14 @@ $file = '/home/bitn/game/etc/text/weather.txt';
  *
  *****************************************************************************/
 
+$file = $file_dir . 'weather.txt'; 
 $base_string = 'http://api.wunderground.com/api/' . $api_token . 
-	'/conditions/forecast/alert/astronomy/q/' . $state . '/' . $city . '.json';
+	'/conditions/forecast/alert/astronomy';
+if ($has_tides == TRUE) {
+	$base_string .= "/tide/rawtide"; 
+};
+$base_string .= '/q/' . $state . '/' . $city . '.json';
+
 $json_string = file_get_contents( $base_string ); 
 $weather = json_decode( $json_string ); 
 
@@ -65,6 +75,9 @@ if( isset( $error )) {
 	fclose( $fr );
 	die( $error ); 
 }
+
+// force the weather's time zone for any time math we need to do
+date_default_timezone_set( $weather->current_observation->local_tz_long );
 
 /******************************************************************************
  * 
@@ -315,6 +328,38 @@ $file_astronomy .= "Moon Phase: " .
 
 /******************************************************************************
  * 
+ * Tides (high tides & low tides) : $tide, $raw_tide
+ * 
+ * & tides: timestamp|"High Tide" or "Low Tide"|height in feet
+ * & tide heights : timestamp|height in feet
+ * 
+ ******************************************************************************/
+if( $has_tides == TRUE ) {
+	$tide = $weather->tide; 
+	$file_tides = "& tides\n"; 
+
+    foreach ( $tide->tideSummary as $index => $summary ) {
+        if (in_array($summary->data->type, array( 'High Tide', 'Low Tide'))) {
+			$file_tides .= 
+				$summary->date->epoch . "|" .
+				$summary->data->type . "|" . 
+				$summary->data->height . "\n"; 
+			}
+    }; 
+
+	$raw_tide = $weather->rawtide; // giddyup raw tide!
+	$file_tide_heights = "& tide height\n";
+
+	for ( $i = 0; $i <= 23; $i++ ) {
+    	$file_tide_heights .= 
+        	$raw_tide->rawTideObs[$i]->epoch . "|" . 
+        	$raw_tide->rawTideObs[$i]->height . "\n";
+	}; 
+
+}
+
+/******************************************************************************
+ * 
  * Top level of the 'meteo' help file
  * 
  ******************************************************************************/
@@ -326,10 +371,16 @@ Conditions: Current conditions as of the Last Updated time.
 Today: Today's forecast.
 Tomorrow: Tomorrow's forecast.
 Astronomy: Sun & Moon facts.
-Alerts: Emergency weather service alerts.
-Credits: People and things to thank.
+Alerts: Emergency weather service alerts.\n";
 
-" . $weather->current_observation->observation_time . "\n"; // Last Updated on ...
+if( $has_tides == TRUE ){
+	$file_help .= "Tides: High and Low Tides for the next 3 days\n";
+	$file_help .= "Tide Height: Estimates of tide height for the next 2 days\n";
+}; 
+
+$file_help .= "Credits: People and things to thank.
+
+" . $weather->current_observation->observation_time . "\n"; // Last Updated on
 
 $file_credits = "& credits
 Data provided by the Weather Underground under the following terms of service:
@@ -346,6 +397,10 @@ fputs( $fr, $file_conditions );
 fputs( $fr, $file_today );
 fputs( $fr, $file_tomorrow );
 fputs( $fr, $file_astronomy );
+if( $has_tides == TRUE ){
+	fputs( $fr, $file_tides );
+	fputs( $fr, $file_tide_heights );
+}; 
 fputs( $fr, $file_alerts );
 fputs( $fr, $file_credits );
 fclose( $fr );
