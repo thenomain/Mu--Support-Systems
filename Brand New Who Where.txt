@@ -321,7 +321,29 @@ i: 'super-idle' people (ignore if '&pref.segregate.idle' is 'false')
 -- Where: Command --------------------------------------------------------------
 
 r: rooms with people in them (dbref), unfiltered
-w: lwho()
+w: lwho() - as seen by enactor
+
+*/
+
+&c.where [v( d.bnww )]=$^\+?where$:@pemit %#=
+	strcat( 
+		setq( r, u( f.where.rooms, %# )), 
+		setq( w, setunion( objeval( %#, lwho()), )), 
+		u( display.where.complete, %#, %qr, %qw )
+	)
+
+@set [v( d.bnww )]/C.WHERE = regexp
+
+
+/*
+--------------------------------------------------------------------------------
+-- Where: Display Some Rooms & Some People In Them -----------------------------
+
+This allows us to pass a shortened list of 'rooms to list' or even 'who to list'
+
+0: enactor (%#)
+1: rooms to list (%qr)
+2: who to list - probably connected (%qw)
 
 c: census of room, unfiltered
 f: findable people to %#
@@ -332,15 +354,13 @@ a: findable people who are 'active' (!idle)
 
 */
 
-&c.where [v( d.bnww )]=$^\+?where$:@pemit %#=
+&display.where.complete [ v( d.bnww )]=
 	strcat( 
-		setq( r, u( f.where.rooms, %# )), 
-		setq( w, setunion( objeval( %#, lwho()), )), 
 		wheader( Where ), %r, 
-		iter( %qr, 
+		iter( %1, 
 			strcat( 
-				setq( c, filter( fil.in-room, %qw, , , %i0 )), 
-				setq( f, filter( fil.findable, %qc, , , %# )), 
+				setq( c, filter( fil.in-room, %2, , , %i0 )), 
+				setq( f, filter( fil.findable, %qc, , , %0 )), 
 				if( t( v( pref.where.count-unfindable )), 
 					setq( u, setdiff( %qc, %qf )), 
 					setq( u, )
@@ -369,11 +389,11 @@ a: findable people who are 'active' (!idle)
 					t( %qu ), 
 					u( format.where.unfindable, %qu ), 
 					<< error: nobody is here so why am I listing this? >> 
-					[if( isstaff( %# ), -- c: %qc -- f: %qf -- u: %qu )]
+					[if( isstaff( %0 ), -- c: %qc -- f: %qf -- u: %qu )]
 				)
 			), , %r 
 		), %r, 
-		setq( u, setdiff( %qw, filter( fil.findable, %qw, , , %# ))), 
+		setq( u, setdiff( %2, filter( fil.findable, %2, , , %0 ))), 
 		setq( i, sortby( sortby.connected, filter( f.check.idle, %qu ))), 
 		setq( a, sortby( sortby.connected, setdiff( %qu, %qi ))), 
 		if( t( %qu ), 
@@ -382,10 +402,9 @@ a: findable people who are 'active' (!idle)
 				u( format.where.findable, %qa %qi ), %r 
 			)
 		), 
-		wfooter( [words( %qr )] rooms occupied )
+		wfooter( [words( %1 )] rooms occupied )
 	)
 
-@set [v( d.bnww )]/C.WHERE = regexp
 
 
 /*
@@ -658,7 +677,7 @@ d: dark
 -- Staff: Display One Line -----------------------------------------------------
 */
 
-&DISPLAY.STAFF.ONE-LINE [v( d.bnww )]=
+&display.staff.one-line [v( d.bnww )]=
 	strcat( 
 		ljust( u( f.get-who-flags, %0 ), 3 ), 
 		ljust( name( %0 ), 20 ), %b, 
