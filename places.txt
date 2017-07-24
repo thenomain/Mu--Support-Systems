@@ -80,7 +80,7 @@ notify the room.
 
 @set pgo=Inherit Safe
 
-@parent [v( d.pgo )]=[search( name=Code Object Data Parent <codp> )]
+@fo me=@parent [v( d.pgo )]=[search( name=Code Object Data Parent <codp> )]
 &prefix.user_function_actions [v( d.pgo )]=action.
 
 
@@ -203,22 +203,25 @@ qp: /pseudo/switches/found, pass to c.<name>[/<switch>]
 */
 
 &c.places.switch [v( d.pgo )]=
-	[setq( s, )][setq( p, )][setq( a, lattr( %!/c.%qn/* ))]
-	[iter( rest( %0, / ), 
-		if( 
-			t( grab( %qa, c.%qn/%i0* )), 
-			setq( s, %qs/[rest( grab( %qa, c.%qn/%i0* ), / )] ), 
-			setq( p, %qp/%i0 )
+	strcat( 
+		setq( s, ), setq( p, ), 
+		setq( a, lattr( %!/c.%qn/* )), 
+		iter( rest( %0, / ), 
+			if( 
+				t( grab( %qa, c.%qn/%i0* )), 
+				setq( s, %qs/[rest( grab( %qa, c.%qn/%i0* ), / )] ), 
+				setq( p, %qp/%i0 )
+			), 
+			/, @@ 
 		), 
-		/, @@ 
-	)]
-	[if( t( %qs ), 
-		ulocal( c.%qn/[extract( %qs, 2, 1, / )], %1, %qp ), 
-		if( t( %1 ), 
-			ulocal( c.%qn.specific, %1, %qp ), 
-			ulocal( c.%qn.default, %1, %qp )
+		if( t( %qs ), 
+			ulocal( c.%qn/[extract( %qs, 2, 1, / )], %1, %qp ), 
+			if( t( %1 ), 
+				ulocal( c.%qn.specific, %1, %qp ), 
+				ulocal( c.%qn.default, %1, %qp )
+			)
 		)
-	)]
+	)
 
 
 /*
@@ -1970,11 +1973,11 @@ qe: element from 'f.get'.
 ================================================================================
 == HELP FILE ===================================================================
 
-http://thereachmux.org/wiki/Mush_help:Places
+http://bitnmux.com/index.php/MUXhelp:Places
 
 
 --------------------------------------------------------------------------------
--- Compressed Version ----------------------------------------------------------
+-- Softcode Version ------------------------------------------------------------
 
 // this is for a softcoded help system
 
@@ -2053,7 +2056,7 @@ http://thereachmux.org/wiki/Mush_help:Places
 	want to join wherever Anderson is.%rtt Hello!: Say "Hello!" to everyone at 
 	that place.%rtto Is this going to turn into combat?: Say "Is this going to 
 	turn into combat?" OOCly at that place.%rdepart: Leave that place%r%r* 
-	Frills%rtt |Someones knee jams up against the table.: Emit "Someones knee 
+	Frills%rtt |Someone's knee jams up against the table.: Emit "Someone's knee 
 	jams up against the table." to everyone at that place.%rplaces/cleanup: Make 
 	sure that the only people you see when you type 'places' are people who are 
 	actually there.%r%r[ansi( h, Administration Examples )]%r%r* Configuring 
@@ -2071,5 +2074,13 @@ http://thereachmux.org/wiki/Mush_help:Places
 	<dbref>.%rplaces/newplace <dbref>: Create a new place to the next available 
 	place at <dbref>.~[ansi( h, Credits )]%r%rThis major overhaul of the SGP 
 	places command was committed by Thenomain.
+
+
+--------------------------------------------------------------------------------
+-- Hardcode Version ------------------------------------------------------------
+
+// This is for plushelp.txt
+
+
 
 */
