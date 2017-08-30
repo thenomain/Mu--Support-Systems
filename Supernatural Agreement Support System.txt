@@ -1,31 +1,40 @@
+/*
 ################################################################################
 ## SUPERNATURAL AGREEMENT SUPPORT SYSTEM #######################################
 
-With careful application, a lot of this code can go on a parent object, with each specific system (pledges, pacts, baths) can be presented on its own.
+With careful application, a lot of this code can go on a parent object, with 
+each specific system ( pledges, pacts, baths ) can be presented on its own.
 
-For now, the Blood-Bather Ritual system (+baths) is the master prototype.
+For now, the Blood-Bather Ritual system ( +baths ) is the master prototype.
 
 
 ================================================================================
 == SETUP =======================================================================
+*/
 
 @create Supernatural Agreement Support System <SASS>=10
-@set SASS=inherit safe
+&fo me=&d.sass me=[search( name=Supernatural Agreement Support System <SASS> )]
+@set Supernatural Agreement Support System <SASS>=inherit safe
 
-@Desc SASS=localize([ansi(h, SASS Systems)]: [setq(q, iter(children(%!), name(%i0), , lit(%,%b)))][if(t(%qq), %qq, None Yet)])
+@Desc [v( d.sass )]=
+	localize( 
+		[ansi( h, SASS Systems )]: 
+		[setq( q, iter( children( %! ), name( %i0 ), , lit( %,%b )))]
+		[if( t( %qq ), %qq, None Yet )] 
+	)
 
-
+/*
 --------------------------------------------------------------------------------
 -- Optional: Code Object Data Parent -------------------------------------------
+*/
 
-@parent SASS=codp
+@fo me=@parent [v( d.sass )]=[search( name=Code Object Data Parent <codp> )]
 
-&prefix.elements SASS=element.
-&prefix.filters SASS=fil.
-&prefix.displays SASS=display.
-&prefix.cross-platform SASS=.
+&prefix.elements [v( d.sass )]=element.
+&prefix.displays [v( d.sass )]=display. format.
 
 
+/*
 ================================================================================
 == DATA ========================================================================
 
@@ -39,181 +48,179 @@ For now, the Blood-Bather Ritual system (+baths) is the master prototype.
 
 ================================================================================
 == CROSS-PLATFORM FUNCTIONS ====================================================
+*/
 
-&.header SASS=header(%0)
-&.divider SASS=divider(%0)
-&.footer SASS=footer(%0)
+&.header [v( d.sass )]=header( %0 )
+&.divider [v( d.sass )]=divider( %0 )
+&.footer [v( d.sass )]=footer( %0 )
 
-&.isapproved SASS=isapproved(%0, %1)
-&.isstaff SASS=isstaff(%0)
+&.isapproved [v( d.sass )]=isapproved( %0, %1 )
+&.isstaff [v( d.sass )]=isstaff( %0 )
 
-&.alert SASS=[ansi(r, >%b, nh, %0, nr, %b<)] %1
+&.msg [v( d.sass )]=ansi( h, <%0>, n, %b%1 )
 
-&.lmax SASS=lmax(%0, %1)
-&.titlestr SASS=titlestr(%0, %1)
-&.crumple SASS=crumple(%0, %1)
+&.titlestr [v( d.sass )]=titlestr( %0, %1 )
+&.crumple [v( d.sass )]=crumple( %0, %1 )
 
-@@ The following are functions known to cause cross-platform issues
-@@ (originally written for TinyMUX 2.10)
+// lmax() used to not exist for TinyMUX
 
-&.itemize SASS=if(strlen(%1), itemize(%0, %1), itemize(%0))
-&.wrap SASS=wrap(%0, %1, %2, %3, %4, %5, %6, %7)
-&.columns SASS=columns( %0, %1, %2, %3 )
+&.lmax [v( d.sass )]=lmax( %0, %1 )
+
+// The following are functions known to cause cross-platform issues
+// (originally written for TinyMUX 2.10)
+
+&.itemize [v( d.sass )]=if( strlen( %1 ), itemize( %0, %1 ), itemize( %0 ))
+&.wrap [v( d.sass )]=wrap( %0, %1, %2, %3, %4, %5, %6, %7 )
+&.columns [v( d.sass )]=columns( %0, %1, %2, %3 )
 
 
+/*
 ================================================================================
 == ELEMENTS ====================================================================
 
 Position is: <element name> <attribute prefix> <list position>
 Validation takes: %0 - entire item to validate
-Convert takes: 0: single element to convert, if list (e.g., players)
-			   1: should I also display the error text?
+Convert takes: 0: single element to convert, if list ( e.g., players )
+               1: should I also display the error text?
 Set-Check takes: 0: < fill in later >
 Display takes: %0 - list of elements to display
 Filter is: How do I filter() for this? - 0: value, 2: comparison type (optional)
 
-
 --------------------------------------------------------------------------------
 -- Element: Name ---------------------------------------------------------------
 
-The name of the storage group.  Must exist, always.
+The name of the storage group. Must exist, always.
 
---
+*/
 
-&element.name.position SASS=name entry. 1
+&element.name.position [v( d.sass )]=name entry. 1
 
---
-
-&element.name.validate SASS=
-	case(0, 
-		t(%0), #-1 'Name' cannot be empty, 
-		lte(strlen(%0), 30), #-1 'Name' must be 30 characters or less, 
+&element.name.validate [v( d.sass )]=
+	case( 0, 
+		t( %0 ), #-1 'Name' cannot be empty, 
+		lte( strlen( %0 ), 30 ), #-1 'Name' must be 30 characters or less, 
 		1
 	)
 
---
-
-&element.name.display SASS=
-	localize(
-		[setq(t, name)]
-		[setq(v, u(.titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
+&element.name.display [v( d.sass )]=
+	localize( 
+		[setq( t, name )]
+		[setq( v, u( .titlestr, %0 ))]
+		[setq( e, u( f.element.validate, %qt, %0 ))]
+		[if( t( %qe ), 
 			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+			[ansi( r, %qv )]
+			[if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
 		)]
 	)
 
---
-
-&element.name.filter SASS=
-	localize(
-		[setq(t, name)]
-		[setq(e, get(%!/element.%qt.position))]
-		[filter(fil.matches, 
-			lattr(v(d.database)/[elements(%qe, 2)]*), 
+&element.name.filter [v( d.sass )]=
+	localize( 
+		[setq( t, name )]
+		[setq( e, get( %!/element.%qt.position ))]
+		[filter( fil.matches, 
+			lattr( v( d.database )/[elements( %qe, 2 )]* ), 
 			, 
 			, 
-			[elements(%qe, 3)], 
+			[elements( %qe, 3 )], 
 			%0
 		)]
 	)
 
-
+/*
 --------------------------------------------------------------------------------
 -- Element: Expires ------------------------------------------------------------
 
-When does this element expire? In most versions, so kept on the parent.
+When does this element expire? 
+This is in most versions, so it's kept on the parent.
 
---
+*/
 
-&element.expires.position SASS=expires entry. 2
+&element.expires.position [v( d.sass )]=expires entry. 2
 
---
-
-&element.expires.validate SASS=
-	case(0, 
-		comp(%0, ), #-1 'Expires' cannot be empty, 
-		isint(%0), #-1 'Expires' not in the expected format, 
-		gt(%0, secs()), #-1 'Expires' has passed, 
+&element.expires.validate [v( d.sass )]=
+	case( 0, 
+		comp( %0, ), #-1 'Expires' cannot be empty, 
+		isint( %0 ), #-1 'Expires' not in the expected format, 
+		gt( %0, secs()), #-1 'Expires' has passed, 
 		1
 	)
 
---
-
-&element.expires.convert SASS=
-	switch(%0, 
-		@@(null), @@(is null), 
+&element.expires.convert [v( d.sass )]=
+	switch( %0, 
+		@@( null ), @@( is null ), 
 		now, secs(), 
-		da*, add(secs(), 86400), 
-		wee*, add(secs(), 604800), 
-		mon*, add(secs(), 2419200), 
-		qua*, add(secs(), 7689600), 
-		sem*, add(secs(), 15811200), 
-		yea*, add(secs(), 31622400), 
-		fiv*, add(secs(), 158112000), 
-		convtime([mid(%0, 0, 4)]-[mid(%0, 4, 2)]-[mid(%0, 6, 2)] [extract(time(), 4, 1)])
+		da*, add( secs(), 86400 ), 
+		wee*, add( secs(), 604800 ), 
+		mon*, add( secs(), 2419200 ), 
+		qua*, add( secs(), 7689600 ), 
+		sem*, add( secs(), 15811200 ), 
+		yea*, add( secs(), 31622400 ), 
+		fiv*, add( secs(), 158112000 ), 
+		convtime( 
+			[mid( %0, 0, 4 )]-
+			[mid( %0, 4, 2 )]-
+			[mid( %0, 6, 2 )] 
+			[extract( time(), 4, 1 )] 
+		)
 	)
 
---
+&element.expires.display [v( d.sass )]=
+	localize( 
+		[setq( t, expires )]
+		[setq( v, if( isint( %0 ), timefmt( $Y-$m-$d, %0 ), %0 ))]
+		[setq( e, u( f.element.validate, %qt, %0 ))]
+		[if( t( %qe ), 
+			%qv, 
+			[ansi( r, %qv )]
+			[if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
+		)]
+	)
 
-&element.expires.display SASS=
-localize(
-	[setq(t, expires)]
-	[setq(v, if(isint(%0), timefmt($Y-$m-$d, %0), %0))]
-	[setq(e, u(f.element.validate, %qt, %0))]
-	[if(t(%qe), 
-		%qv, 
-		[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
-	)]
-)
+// --
 
---
-
-&element.filter.expires SASS=
-	localize(
-		[setq(t, expires)]
-		[setq(e, get(%!/element.%qt.position))]
-		[setq(k, 
-			case(%2, 
+&element.filter.expires [v( d.sass )]=
+	localize( 
+		[setq( t, expires )]
+		[setq( e, get( %!/element.%qt.position ))]
+		[setq( k, 
+			case( %2, 
 				>, is_more, 
 				<, is_less, 
 				=, is, 
-				switch(%2, gr*, is_more, mo*, is_more, le*, is_less, is)
+				switch( %2, gr*, is_more, mo*, is_more, le*, is_less, is )
 			)
 		)]
-		[filter(fil.%qk, 
-			lattr(v(d.database)/[elements(%qe, 2)]*), 
+		[filter( fil.%qk, 
+			lattr( v( d.database )/[elements( %qe, 2 )]* ), 
 			, 
 			, 
-			[elements(%qe, 3)], 
+			[elements( %qe, 3 )], 
 			%0
 		)]
 	)
 
-
+/*
 --------------------------------------------------------------------------------
 -- Element: Players ------------------------------------------------------------
 
 A list of players associated with the element. Common, so left on parent.
 
---
+*/
 
-&element.players.position SASS=players entry. 3
+&element.players.position [v( d.sass )]=players entry. 3
 
---
-
-&element.players.validate SASS=
-localize(
-	case(0, 
-		t(%0), 
+&element.players.validate [v( d.sass )]=
+localize( 
+	case( 0, 
+		t( %0 ), 
 		#-1 'Players' list cannot be empty, 
 		
-		iter(%0, 
-			case(0, 
-				t(pmatch(%i0)), #-1 Player not found, 
-				u(.isapproved, %i0, approved), #-1 Player not approved, 
-				not(u(.isapproved, %i0, frozen)), #-1 Player is frozen, 
+		iter( %0, 
+			case( 0, 
+				t( pmatch( %i0 )), #-1 Player not found, 
+				u( .isapproved, %i0, approved ), #-1 Player not approved, 
+				not( u( .isapproved, %i0, frozen )), #-1 Player is frozen, 
 				1
 			)
 			, , |
@@ -221,77 +228,67 @@ localize(
 	)
 )
 
---
+&element.players.convert [v( d.sass )]=iter( %0, pmatch( %i0 ))
 
-&element.players.convert SASS=iter(%0, pmatch(%i0))
+// Each system attached to this should check this as their needs.
 
---
+&element.players.set-check [v( d.sass )]=1
 
-@@ Each system attached to this should check this as their needs.
-&element.players.set-check SASS=1
-
---
-
-&element.players.display SASS=
-	localize(
-		[setq(t, players)]
-		[iter(%0, 
-			[setq(e, u(f.element.validate, %qt, %i0))]
-			[setq(v, name(%i0))]
-			[if(strmatch(%qe, #-*), 
-				[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))], 
+&element.players.display [v( d.sass )]=
+	localize( 
+		[setq( t, players )]
+		[iter( %0, 
+			[setq( e, u( f.element.validate, %qt, %i0 ))]
+			[setq( v, name( %i0 ))]
+			[if( strmatch( %qe, #-* ), 
+				[ansi( r, %qv )]
+				[if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))], 
 				%qv
 			)], 
 			, %,%b
 		)]
 	)
 
---
-
-&element.players.filter SASS=
-	localize(
-		[setq(t, players)]
-		[setq(e, get(%!/element.%qt.position))]
-		[filter(fil.is, 
-			lattr(v(d.database)/[elements(%qe, 2)]*), 
+&element.players.filter [v( d.sass )]=
+	localize( 
+		[setq( t, players )]
+		[setq( e, get( %!/element.%qt.position ))]
+		[filter( fil.is, 
+			lattr( v( d.database )/[elements( %qe, 2 )]* ), 
 			, 
 			, 
-			[elements(%qe, 3)], 
+			[elements( %qe, 3 )], 
 			%0
 		)]
 	)
 
-
+/*
 --------------------------------------------------------------------------------
 -- Element: Text ---------------------------------------------------------------
 
 The filler note-text. Always available.
 
---
+*/
 
-&element.text.position SASS=text text. 1
+&element.text.position [v( d.sass )]=text text. 1
 
---
+// text is always valid
+&element.text.validate [v( d.sass )]=1
 
-@@ text is always valid
-&element.text.validate SASS=1
-
---
-
-&element.text.filter SASS=
-	localize(
-		[setq(t, text)]
-		[setq(e, get(%!/element.%qt.position))]
-		[filter(fil.matches, 
-			lattr(v(d.database)/[elements(%qe, 2)]*), 
+&element.text.filter [v( d.sass )]=
+	localize( 
+		[setq( t, text )]
+		[setq( e, get( %!/element.%qt.position ))]
+		[filter( fil.matches, 
+			lattr( v( d.database )/[elements( %qe, 2 )]* ), 
 			, 
 			, 
-			[elements(%qe, 3)], 
+			[elements( %qe, 3 )], 
 			%0
 		)]
 	)
 
-
+/*
 --------------------------------------------------------------------------------
 -- Element: Others -------------------------------------------------------------
 
@@ -307,26 +304,26 @@ Other elements will be generated on each sub-system.
 0: list|of|elements
 returns: The entire data segments from that list, |-delimited, partial-matches
 
---
+*/
 
-&f.list.elements.position SASS=
-	iter(
+&f.list.elements.position [v( d.sass )]=
+	iter( 
 		%0, 
-		iter(
-			lattrp(%!/element.[edit(%i0, %b, _)]*.position), 
-			v(%i0), 
+		iter( 
+			lattrp( %!/element.[edit( %i0, %b, _ )]*.position ), 
+			v( %i0 ), 
 			, |
 		), 
 		, |
 	)
 
---
+/* -- test --
 
-think u(SASS/f.list.elements.position, *)
-think u(SASS/f.list.elements.position, b)
-think u(SASS/f.list.elements.position, b t)
+think u( v( d.sass )/f.list.elements.position, * )
+think u( v( d.sass )/f.list.elements.position, b )
+think u( v( d.sass )/f.list.elements.position, b t )
 
-think u(SASS/f.list.elements.position, p b)
+think u( v( d.sass )/f.list.elements.position, p b )
 
 
 --------------------------------------------------------------------------------
@@ -337,75 +334,79 @@ think u(SASS/f.list.elements.position, p b)
 m: message returned from validation
 returns: list|of|validations, where appropriate
 
---
+*/
 
-&f.element.validate SASS=
-localize(
-	case(1, 
-		strmatch(%1, *|*), #-1 [capstr(lcstr(%0))] may not contain pipe character, 
-		strmatch(setr(m, udefault(element.%0.validate, 1, %1)), *#-*), 
-		%qm, 1
+&f.element.validate [v( d.sass )]=
+	localize( 
+		case( 1, 
+			strmatch( %1, *|* ), 
+			#-1 [capstr( lcstr( %0 ))] may not contain pipe character, 
+
+			strmatch( setr( m, udefault( element.%0.validate, 1, %1 )), *#-* ), 
+			%qm, 
+			
+			1
+		)
 	)
-)
 
---
+/* -- test --
 
-think u(SASS/f.element.validate, name, this|isatest)
-think u(SASS/f.element.validate, name, )
+think u( v( d.sass )/f.element.validate, name, this|isatest )
+think u( v( d.sass )/f.element.validate, name, )
 
-think u(SASS/f.element.validate, expires, 123)
-think u(SASS/f.element.validate, expires, abc)
+think u( v( d.sass )/f.element.validate, expires, 123 )
+think u( v( d.sass )/f.element.validate, expires, abc )
 
-think u(SASS/f.element.validate, players, #1 #999)
+think u( v( d.sass )/f.element.validate, players, #1 #999 )
 
-think u(SASS/f.element.validate, text, )
+think u( v( d.sass )/f.element.validate, text, )
 
 
 --------------------------------------------------------------------------------
 -- Function: Convert Element ---------------------------------------------------
 
-0: element name (validated)
+0: element name ( validated )
 1: data to convert
 returns: conversion process, or %1 if not found
 
 Simple.
 
---
+*/
 
-&f.element.convert SASS=udefault(element.%0.convert, %1, %1)
+&f.element.convert [v( d.sass )]=udefault( element.%0.convert, %1, %1 )
 
---
+/* -- test --
 
-think u(SASS/f.element.convert, name, This is a name)
-think u(SASS/f.element.convert, expires, quarter)
-think u(SASS/f.element.convert, players, thenomain troy)
+think u( v( d.sass )/f.element.convert, name, This is a name )
+think u( v( d.sass )/f.element.convert, expires, quarter )
+think u( v( d.sass )/f.element.convert, players, thenomain troy )
 
 
 --------------------------------------------------------------------------------
 -- Function: Display Element ---------------------------------------------------
 
-0: element name (validated)
+0: element name ( validated )
 1: data to display
 2: 'true' if details about the error are desired
 returns: Processed & errored data, else 
 
---
+*/
 
-&f.element.display SASS=udefault(element.%0.display, %1, %1, %2)
+&f.element.display [v( d.sass )]=udefault( element.%0.display, %1, %1, %2 )
 
---
+/* -- test --
 
-think u(SASS/f.element.display, name, this|isatest)
-think u(SASS/f.element.display, name, this|isatest, 1)
-think u(SASS/f.element.display, name, , 1)
+think u( v( d.sass )/f.element.display, name, this|isatest )
+think u( v( d.sass )/f.element.display, name, this|isatest, 1 )
+think u( v( d.sass )/f.element.display, name, , 1 )
 
-think u(SASS/f.element.display, expires, 1234567)
-think u(SASS/f.element.display, expires, abc, 1)
+think u( v( d.sass )/f.element.display, expires, 1234567 )
+think u( v( d.sass )/f.element.display, expires, abc, 1 )
 
-think u(SASS/f.element.display, players, #1 #999 #188)
-think u(SASS/f.element.display, players, #1 #999 #188, 1)
+think u( v( d.sass )/f.element.display, players, #1 #999 #188 )
+think u( v( d.sass )/f.element.display, players, #1 #999 #188, 1 )
 
-think u(SASS/f.element.display, text, @@(it's null), 1)
+think u( v( d.sass )/f.element.display, text, @@( it's null ), 1 )
 
 
 --------------------------------------------------------------------------------
@@ -414,25 +415,34 @@ think u(SASS/f.element.display, text, @@(it's null), 1)
 0: entry #
 1: element(s)
 
---
+e: element positions list
 
-&f.get.entry.elements SASS=
-localize(
-	[setq(e, u(f.list.elements.position, %1))]
-	[case(0, 
-		comp(%qe, ), #-1 Element(s) requested unknown, 
-		
-		t(get(u(d.database)/entry.%0)), 
-		#-1 Entry #%0 Not Found, 
+*/
 
-		iter(%qe, 
-			extract(u(u(d.database)/[elements(%i0, 2)]%0), last(%i0), 1, |), 
-			|, |
-		)
-	)]
-)
+&f.get.entry.elements [v( d.sass )]=
+	localize( 
+		[setq( e, u( f.list.elements.position, %1 ))]
+		[case( 0, 
+			comp( %qe, ), 
+			#-1 Element(s) requested unknown, 
+
+			t( get( u( d.database )/entry.%0 )), 
+			#-1 Entry #%0 Not Found, 
+
+			iter( %qe, 
+				extract( 
+					u( u( d.database )/[elements( %i0, 2 )]%0 ), 
+					last( %i0 ), 
+					1, 
+					| 
+				), 
+				|, |
+			)
+		)] 
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Function: Set Elements ------------------------------------------------------
 
@@ -446,87 +456,99 @@ a: attribute for element+entry
 w: can't remember
 e: possible error
 
---
+*/
 
-&f.set.entry.element SASS=
-localize(
-	[setq(p, u(f.list.elements.position, %1))]
-	[setq(a, [extract(%qp, 2, 1)]%0)]
-	[setq(w, elements(%qp, 3))]
+&f.set.entry.element [v( d.sass )]=
+	localize( strcat( 
+		setq( p, u( f.list.elements.position, %1 )), 
+		setq( a, [extract( %qp, 2, 1 )]%0 ), 
+		setq( w, elements( %qp, 3 )), 
 
-	[case(0, 
-		comp(%qp, ), #-1 Element requested unknown, 
+		case( 0, 
+			comp( %qp, ), 
+			#-1 Element requested unknown, 
+	
+			eq( words( %qp, | ), 1 ), 
+			#-1 Multiple elements found, 
 
-		eq(words(%qp, |), 1), #-1 Multiple elements found, 
+			hasattr( u( d.database ), entry.%0 ), 
+			#-1 Entry #%0 Not Found, 
 
-		hasattr(u(d.database), entry.%0), 
-		#-1 Entry #%0 Not Found, 
+// if there are special conditions on setting the entry's element
+			t( 
+				setr( e, 
+					udefault( element.[first( %qp )].set-check, 1, %0, %2 )
+				)
+			), 
+			%qe, 
 
-@@ if there are special conditions on setting the entry's element
-		t(setr(e, udefault(element.[first(%qp)].set-check, 1, %0, %2))), 
-		%qe, 
+// default: 
+// if an element hasn't been set on an attribute, assume it's the only one
+// (note: this is done during the setup +command, but we're correcting for 
+// the behavior of 'replace()' with null lists)
 
-		[setq(n, ulocal(u(d.database)/%qa))]
+			strcat( 
+				setq( n, ulocal( u( d.database )/%qa )), 
+				setq( n, 
+					if( strlen( %qn ), 
+						replace( %qn, %qw, %2, | ), 
+						%2
+					)
+				), 
+				setq( e, set( u( d.database ), %qa:%qn )), 
 
-@@ if an element hasn't been set on an attribute, assume it's the only one
-@@ (note: this is done during the setup +command, but we're correcting for 
-@@ the behavior of 'replace()' with null lists)
-
-		[setq(n, 
-			if(strlen(%qn), 
-				replace(%qn, %qw, %2, |), 
-				%2
+				if( comp( %qe, ), 
+					#-1 Error setting the attribute%; aborted, 
+					Set entry #%0's [first( %qp )] to '%2'
+				)
 			)
-		)]
-		[setq(e, set(u(d.database), %qa:%qn))]
-
-		[if(comp(%qe, ), 
-			#-1 Error setting the attribute%; aborted, 
-			Set entry #%0's [first(%qp)] to '%2'
-		)]
-	)]
-)
+		)
+	))
 
 
+/*
 --------------------------------------------------------------------------------
 -- Function: Counter - Entries -------------------------------------------------
 
 List the numbers for all entries, sorted.
 
---
+*/
 
-&f.counter.entries SASS=sort(edit(lattr(u(d.database)/entry.*), ENTRY., ))
+&f.counter.entries [v( d.sass )]=
+	sort( edit( lattr( u( d.database )/entry.* ), ENTRY., ))
 
 
+/*
 --------------------------------------------------------------------------------
 -- Function: Counter - Free ----------------------------------------------------
 
 Return the numerically lowest free entry.
 
---
+*/
 
-&f.counter.free SASS=
-localize(
-	first(
-		setdiff(
-			lnum(1, inc(lmax(setr(n, u(f.counter.entries))))), 
-			%qn, 
-			, , n
+&f.counter.free [v( d.sass )]=
+	localize( 
+		first( 
+			setdiff( 
+				lnum( 1, inc( lmax( setr( n, u( f.counter.entries ))))), 
+				%qn, 
+				, , n
+			)
 		)
 	)
-)
 
---
+/* -- test --
 
-think u(SASS/f.counter.free)
+think u( v( d.sass )/f.counter.free )
 
 
 ================================================================================
 == MISTRESS COMMANDS ===========================================================
 
-The "Mistress" Command structure (from Seth, AetherMux) allows a generic sorting system for easy refactoring.
+The "Mistress" Command structure (from Seth, AetherMux) allows a generic sorting 
+system for easy refactoring.
 
-It is entirely function-based.  Use trigger() when necessary.
+It is entirely function-based. Use trigger( ) when necessary.
 
 
 --------------------------------------------------------------------------------
@@ -535,105 +557,105 @@ It is entirely function-based.  Use trigger() when necessary.
 1: /switches
 2: text
 
---
+*/
 
-&c.sass SASS=$+sass*:@pemit %#=
-	u(.alert, S.A.S.S., 
+&c.sass [v( d.sass )]=$+sass*:@pemit %#=
+	u( .msg, S.A.S.S., 
 		The following Supernatural Agreement systems are known: 
-		[setq(q, iter(children(%!), name(%i0), , |))]
-		[if(t(%qq), u(.itemize, %qq, |), None Yet)]
+		[setq( q, iter( children( %! ), name( %i0 ), , | ))]
+		[if( t( %qq ), u( .itemize, %qq, | ), None Yet )]
 	)
 
---
+// --
 
-@set SASS/c.sass=no_inherit
+@set v( d.sass )/c.sass=no_inherit
 
 
+/*
 --------------------------------------------------------------------------------
 -- Mistress: Switches ----------------------------------------------------------
 
-0: <command name>, passed up from Sub-Mistress systems (e.g., 'baths')
+0: <command name>, passed up from Sub-Mistress systems ( e.g., 'baths' )
 1: /switch/es
-2: text (if passed)
+2: text ( if passed )
 
-n: command name ('baths')
-s: switches found (c.baths/*)
-p: pseudo-switches (others)
-a: attributes to check (c.switch/<switch>)
+n: command name ( 'baths' )
+s: switches found ( c.baths/* )
+p: pseudo-switches ( others )
+a: attributes to check ( c.switch/<switch> )
 
---
+*/
 
-&c.mistress.switch SASS=
-	[setq(n, %0)]
-	[setq(s, )]
-	[setq(p, )]
-	[setq(a, lattrp(%!/c.switch/*))]
+&c.mistress.switch [v( d.sass )]=
+	strcat( 
+		setq( n, %0 ), 
+		setq( s, ), 
+		setq( p, ), 
+		setq( a, lattrp( %!/c.switch/* )), 
 
-@@ filter real (%qs) and psudo-switches (%qp)
-	[iter(
-		rest(%1, /), 
-		if(
-			t(grab(%qa, c.switch/%i0*)), 
-			setq(s, %qs/[rest(grab(%qa, c.switch/%i0*), /)]), 
-			setq(p, %qp/%i0)
+// filter real (%qs) and psudo-switches (%qp)
+		iter( rest( %1, / ), 
+			if( t( grab( %qa, c.switch/%i0* )), 
+				setq( s, %qs/[rest( grab( %qa, c.switch/%i0* ), / )] ), 
+				setq( p, %qp/%i0 )
+			), 
+			/, 
+			@@
 		), 
-		/, 
-		@@
-	)]
 
-@@ process: 
-	[if(t(%qs), 
+// process: 
+		if( t( %qs ), 
 
-@@ .. pass to first real-switch passed
-		ulocal(c.switch/[extract(%qs, 2, 1, /)], %0, %2, %qp), 
+// .. pass to first real-switch passed
+			ulocal( c.switch/[extract( %qs, 2, 1, / )], %0, %2, %qp ), 
 
-@@ .. else pass to '.specific' or '.default' with pseudo-switches
-		if(
-			t(%2), 
-				ulocal(c.mistress.specific, %0, %2, %qp), 
-				ulocal(c.mistress.default, %0, %qp)
+// .. else pass to '.specific' or '.default' with pseudo-switches
+			if( t( %2 ), 
+				ulocal( c.mistress.specific, %0, %2, %qp ), 
+				ulocal( c.mistress.default, %0, %qp )
+			)
 		)
-	)]
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Mistress: Default -----------------------------------------------------------
 
 0: <command name>
 1: psudo-switches, if passed (error'd, for now)
 
---
+*/
 
-&c.mistress.default SASS=
-	if(strlen(%1), 
-@@ error on psudo-switches
-		u(.alert, lcstr(%0), I don't recognize that switch), 
-
-@@ ok
-		u(c.switch/view, %0)
+&c.mistress.default [v( d.sass )]=
+	if( strlen( %1 ), 
+// error on psudo-switches
+		u( .msg, lcstr( %0 ), I don't recognize that switch ), 
+// else: ok
+		u( c.switch/view, %0 )
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Mistress: Specific ----------------------------------------------------------
 
 0: <command name>
 1: text
-2: psudo-switches, if passed (errored, for now)
+2: psudo-switches, if passed ( errored, for now )
 
---
+*/
 
-&c.mistress.specific SASS=
-	if(strlen(%2), 
-@@ error on psudo-switches
-		u(.alert, lcstr(%0), I don't recognize that switch), 
-
-@@ ok
-		u(c.switch/view, %0, %1)
+&c.mistress.specific [v( d.sass )]=
+	if( strlen( %2 ), 
+// error on psudo-switches
+		u( .msg, lcstr( %0 ), I don't recognize that switch ), 
+// else: ok
+		u( c.switch/view, %0, %1 )
 	)
 
 
-
+/*
 ================================================================================
 == SWITCHED COMMANDS ===========================================================
 
@@ -653,37 +675,39 @@ attribute name: &c.switch/<switch name>
 
 Display one or all possible items.
 
---
-
 0: <cmd>
 1: entry num, if any
 2: pseudo-switches, ignored
 
 l: list of pledges visible to the player; sorted by num desc
 
---
+*/
 
-&c.switch/view SASS=
-	if(strlen(%1), 
-@@ >> display one entry
-		case(0, 
-			and(isint(%1), gt(%1, 0)), 
-			u(.alert, %0, Lookup must be a positive number), 
+&c.switch/view [v( d.sass )]=
+	if( strlen( %1 ), 
+// >> display one entry
+		case( 0, 
+			and( isint( %1 ), gt( %1, 0 )), 
+			u( .msg, %0, Lookup must be a positive number ), 
 
-			or(isstaff(%#), t(match(u(f.get.entry.elements, %1, players), %#))), 
-			u(.alert, %0, You may not view someone else's entry), 
+			cor( 
+				isstaff( %# ), 
+				t( match( u( f.get.entry.elements, %1, players ), %# ))
+			), 
+			u( .msg, %0, You may not view someone else's entry ), 
 
-			t(get(u(d.database)/entry.%1)), 
-			u(.alert, %0, Entry not found), 
+			t( get( u( d.database )/entry.%1 )), 
+			u( .msg, %0, Entry not found ), 
 
-			u(display.entry.full, %0, %1, +%0/view %1)
+			u( display.entry.full, %0, %1, +%0/view %1 )
 		), 
 
-@@ >> display all entries
-		u(display.entry.all, %0)
+// >> display all entries
+		u( display.entry.all, %0 )
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- /new ------------------------------------------------------------------------
 
@@ -693,125 +717,143 @@ Create a new element.
 
 e: Possible error
 
-n: name for entry (%0)
+n: name for entry ( %0 )
 c: next available counter
 a: the 'name' position list: name <prefix.> <position #>
 p: <prefix.>
 r: item to set on the attribute '<prefix.>%qc'
 
---
+*/
 
-&c.switch/new SASS=
-	[setq(n, u(.titlestr, %1))]
-	[setq(c, u(f.counter.free))]
-	[setq(a, v(element.name.position))]
-	[setq(p, elements(%qa, 2))]
-	[setq(r, 
-		repeat(|, 
-			add(
-				words(grepi(%!, element.*.position, %qp)), 
-				words(grepi(parent(%!), element.*.position, %qp)), 
-				-1
+&c.switch/new [v( d.sass )]=
+	strcat( 
+		setq( n, u( .titlestr, %1 )), 
+		setq( c, u( f.counter.free )), 
+		setq( a, v( element.name.position )), 
+		setq( p, elements( %qa, 2 )), 
+		setq( r, 
+			repeat( |, 
+				add( 
+					words( grepi( %!, element.*.position, %qp )), 
+					words( grepi( parent( %! ), element.*.position, %qp )), 
+					-1
+				)
+			)
+		), 
+
+		setq( r, replace( %qr, last( %qa ), %qn, |, | )), 
+
+// .. error-check
+		case( 0, 
+			u( .isstaff, %# ), 
+			u( .msg, %0/new, This command is staff-only ), 
+
+			t( setr( e, u( f.element.validate, name, %1 ))), 
+			u( .msg, %0/new, rest( %qe )), 
+
+			not( comp( 
+				set( u( d.database ), %qp%qc:%qr ), 
+				@@( null )
+			)), 
+			u( .msg, %0/new, Could not set initial entry for #%qc%; aborted ), 
+
+// .. ok -- set up any other entry prefixes that need it
+// .. .. for each prefix, scan that prefix and add the |-delims for it
+// .. >> we rely upon replace( ), which needs the delims there first
+
+			[iter( 
+				setdiff( 
+					iter( 
+						lattrp( %!/element.*.position ), 
+						elements( v( %i0 ), 2 )
+					), 
+					entry.
+				), 
+				set( u( d.database ), 
+					%i0%qc:
+					[repeat( |, 
+						dec( words( grepi( %!, element.*.position, %i0 )))
+					)]
+				), 
+				, @@
+			)]
+			u( .msg, %0/new, 
+				Set up new [strtrunc( %0, dec( strlen( %0 )))] 
+				[ansi( h, #%qc )] with name '%qn'
 			)
 		)
-	)]
-
-	[setq(r, replace(%qr, last(%qa), %qn, |, |))]
-
-@@ .. error-check
-	[case(0, 
-		u(.isstaff, %#), 
-		u(.alert, %0/new, This command is staff-only), 
-
-		t(setr(e, u(f.element.validate, name, %1))), 
-		u(.alert, %0/new, rest(%qe)), 
-
-		not(comp(
-			set(u(d.database), %qp%qc:%qr), 
-			@@(null)
-		)), 
-		u(.alert, %0/new, Could not set initial entry for #%qc%; aborted), 
-
-@@ .. ok -- set up any other entry prefixes that need it
-@@ .. .. for each prefix, scan that prefix and add the |-delims for it
-@@ .. >> we rely upon replace(), which needs the delims there first
-
-		[iter(
-			setdiff(
-				iter(lattrp(%!/element.*.position), elements(v(%i0), 2)), 
-				entry.
-			), 
-			set(u(d.database), 
-				%i0%qc:
-				[repeat(|, dec(words(grepi(%!, element.*.position, %i0))))]
-			), 
-			, @@
-		)]
-		u(.alert, %0/new, 
-			Set up new [strtrunc(%0, dec(strlen(%0)))] [ansi(h, #%qc)] 
-			with name '%qn'
-		)
-	)]
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- /delete ---------------------------------------------------------------------
 
 	+<cmd>/delete <number>[=YES]
 
---
+*/
 
-&c.switch/delete SASS=
-	[setq(n, before(%1, =))]
-	[setq(v, rest(%1, =))]
+&c.switch/delete [v( d.sass )]=
+	strcat( 
+		setq( n, before( %1, = )), 
+		setq( v, rest( %1, = )), 
 	
-	[case(0, 
-		u(.isstaff, %#), u(.alert, %0/delete, Staff only), 
+		case( 0, 
+			u( .isstaff, %# ), 
+			u( .msg, %0/delete, Staff only ), 
 
-		eq(attrcnt(u(d.database)/entry.%qn), 1), 
-		u(.alert, bath/delete, Entry not found), 
+			eq( attrcnt( u( d.database )/entry.%qn ), 1 ), 
+			u( .msg, %0/delete, Entry not found ), 
 
-		not(comp(%qv, YES)), 
-		u(.alert, %0/delete, 
-			If you are absolutely sure you want to delete this entry%, 
-			type: +%0/delete %qn=YES
-		), 
+			not( comp( %qv, YES )), 
+			u( .msg, %0/delete, 
+				If you are absolutely sure you want to delete this entry%, 
+				type: +%0/delete %qn=YES
+			), 
 
-		[u(.header, [u(.titlestr, %0)]: Deleting #%qn)]%r
-		[ulocal(display.entry.full, %0, %qn)]%r
+			strcat( 
+				u( .header, [u( .titlestr, %0 )]: Deleting #%qn ), %r, 
+				ulocal( display.entry.full, %0, %qn ), %r, 
 
-@@ find every attribute prefix to clear for this.
-		[setq(a, 
-			setunion(
-				iter(u(f.list.elements.position, *), elements(%i0, 2), |), 
-			)
-		)]
-
-@@ Try to delete them, count the errors
-		[setq(e, 
-			iter(%qa, 
-				set(u(d.database), %i0%qn:), 
-				, |
-			)
-		)]
-
-@@ In footer, report errors found
-		[u(.footer, 
-			if(strlen(edit(%qe, |, )), 
-				iter(%qe, 
-					if(t(%i0), 
-						error clearing 
-						&[capstr(first(elements(%qa, inum()), .))]%b
-					), 
-					|, 
-					@@
+// find every attribute prefix to clear for this.
+				setq( a, 
+					setunion( 
+						iter( 
+							u( f.list.elements.position, * ), 
+							elements( %i0, 2 ), 
+							| 
+						), 
+					)
 				), 
-				Deleted
+
+// Try to delete them, count the errors
+				setq( e, 
+					iter( %qa, 
+						set( u( d.database ), %i0%qn: ), 
+						, |
+					)
+				), 
+
+// In footer, report errors found
+				u( .footer, 
+					if( strlen( edit( %qe, |, )), 
+						iter( %qe, 
+							if( t( %i0 ), 
+								error clearing 
+								&[capstr( first( elements( %qa, inum()), . ))]%b
+							), 
+							|, 
+							@@
+						), 
+						Deleted
+					)
+				), 
 			)
-		)]
-	)]
+		)
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- /prove ----------------------------------------------------------------------
 
@@ -819,65 +861,67 @@ r: item to set on the attribute '<prefix.>%qc'
 
 Prove an entry's element(s) to another player.
 
---
-
 n: entry number
 e: elements to check, else '#-2 full' for all of it
 l: list|of|element|positions
 p: player targets
 d: dbrefs of player targets
 
---
+*/
 
-&c.switch/prove SASS=
-	[setq(n, first(before(%1, =), /))]
-	[setq(e, 
-		if(setr(e, before(rest(%1, /), =)), 
-			%qe, 
-			#-2 Display Entire Entry
-		)
-	)]
-	[setq(l, 
-		u(.crumple, 
-			iter(
-				ulocal(f.list.elements.position, 
-					u(.crumple, 
-						edit(%qe, /, %b)
-					)
+&c.switch/prove [v( d.sass )]=
+	strcat( 
+		setq( n, first( before( %1, = ), / )), 
+		setq( e, 
+			if( setr( e, before( rest( %1, / ), = )), 
+				%qe, 
+				#-2 Display Entire Entry
+			)
+		), 
+
+		setq( l, 
+			u( .crumple, 
+				iter( 
+					ulocal( f.list.elements.position, 
+						u( .crumple, 
+							edit( %qe, /, %b )
+						)
+					), 
+					first( %i0 ), 
+					|, |
 				), 
-				first(%i0), 
-				|, |
-			), 
-			|
+				|
+			)
+		), 
+
+		setq( p, rest( %1, = )), 
+		setq( d, iter( %qp, if( t( setr( d, pmatch( %i0 ))), %qd ))), 
+
+		case( 0, 
+			and( isint( %qn ), gt( %qn, 0 )), 
+			u( .msg, %0/prove, Lookup must be a positive integer ), 
+	
+			t( get( u( d.database )/entry.%qn )), 
+			u( .msg, %0/prove, Entry not found ), 
+	
+			u( fil.entry.can-see, entry.%qn, %# ), 
+			u( .msg, %0/prove, You have no access to that entry ), 
+	
+			cor( not( %qp ), t( %qd )), 
+			u( .msg, %0/prove, No target players matched ), 
+	
+			cor( words( %ql ), strmatch( %qe, #-2* )), 
+			u( .msg, %0/prove, Element(s) not found. ), 
+	
+			pemit( 
+				if( t( %qd ), setunion( %# %qd, ), lcon( loc( %# ))), 
+				u( display.entry.prove, %0, %qn, %ql, %qp )
+			)
 		)
-	)]
-
-	[setq(p, rest(%1, =))]
-	[setq(d, iter(%qp, if(t(setr(d, pmatch(%i0))), %qd)))]
-
-	[case(0, 
-		and(isint(%qn), gt(%qn, 0)), 
-		u(.alert, %0/prove, Lookup must be a positive integer), 
-
-		t(get(u(d.database)/entry.%qn)), 
-		u(.alert, %0/prove, Entry not found), 
-
-		u(fil.entry.can-see, entry.%qn, %#), 
-		u(.alert, %0/prove, You have no access to that entry), 
-
-		or(not(%qp), t(%qd)), 
-		u(.alert, %0/prove, No target players matched), 
-
-		or(words(%ql), strmatch(%qe, #-2*)), 
-		u(.alert, %0/prove, Element(s) not found.), 
-
-		pemit(
-			if(t(%qd), setunion(%# %qd, ), lcon(loc(%#))), 
-			u(display.entry.prove, %0, %qn, %ql, %qp)
-		)
-	)]
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- /set ------------------------------------------------------------------------
 
@@ -889,74 +933,83 @@ n: entry number
 e: element
 v: new value
 
---
+*/
 
-&c.switch/set SASS=
-	[setq(n, first(%1, /))]
-	[setq(e, rest(first(%1, =), /))]
-	[setq(e, u(f.list.elements.position, %qe))]
-	[setq(v, last(%1, =))]
-	[case(0, 
-		u(.isstaff, %#), u(.alert, %0/set, Staff only), 
+&c.switch/set [v( d.sass )]=
+	strcat( 
+		setq( n, first( %1, / )), 
+		setq( e, rest( first( %1, = ), / )), 
+		setq( e, u( f.list.elements.position, %qe )), 
+		setq( v, last( %1, = )), 
+		case( 0, 
+			u( .isstaff, %# ), u( .msg, %0/set, Staff only ), 
 
-		t(%qn), u(.alert, %0/set, Number not entered), 
+			t( %qn ), u( .msg, %0/set, Number not entered ), 
 
-		t(%qe), u(.alert, %0/set, Element not found), 
+			t( %qe ), u( .msg, %0/set, Element not found ), 
 
-		attrcnt(u(d.database)/entry.%qn), u(.alert, %0/set, Entry not found), 
+			attrcnt( u( d.database )/entry.%qn ), 
+			u( .msg, %0/set, Entry not found ), 
 
-		eq(words(%qe, |), 1), 
-		u(.alert, 
-			%0/set, 
-			Multiple elements match: [iter(%qe, first(%i0), |, %,%b)]
-		), 
+			eq( words( %qe, | ), 1 ), 
+			u( .msg, 
+				%0/set, 
+				Multiple elements match: [iter( %qe, first( %i0 ), |, %,%b )]
+			), 
 
-		comp(%qe, ), u(.alert, %0/set, Element not found), 
+			comp( %qe, ), u( .msg, %0/set, Element not found ), 
 
-		u(f.switch/set.workhorse, %0, %qn, first(%qe), %qv)
-	)]
+			u( f.switch/set.workhorse, %0, %qn, first( %qe ), %qv )
+		)
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- /set.workhorse ------------------------------------------------------------
 
 Does most of the checking and heavy lifting of editing an element.
 
 0: <cmd>
-1: entry number (validated)
-2: element name (validated, only one)
-3: new value (not validated)
+1: entry number ( validated )
+2: element name ( validated, only one )
+3: new value ( not validated )
 
 p: existing element's pledge data
 c: converted value
 v: validation result
 e: element's set-check
 
---
+*/
 
-&f.switch/set.workhorse SASS=
-	[setq(p, ulocal(f.get.entry.elements, %1, %2))]
-	[setq(c, ulocal(f.element.convert, %2, %3))]
-	[setq(v, ulocal(f.element.validate, %2, %qc))]
+&f.switch/set.workhorse [v( d.sass )]=
+	strcat( 
+		setq( p, ulocal( f.get.entry.elements, %1, %2 )), 
+		setq( c, ulocal( f.element.convert, %2, %3 )), 
+		setq( v, ulocal( f.element.validate, %2, %qc )), 
+	
+// extra element-based checks, "1" if valid or not checked
+		setq( e, 
+			udefault( element.%2.set-check, 1, %1 )
+		), 
 
-@@ extra element-based checks, "1" if valid or not checked
-	[setq(e, 
-		udefault(element.%2.set-check, 1, %1)
-	)]
-
-@@ process
-	[case(0, 
-		t(%qv), u(.alert, %0/set, rest(%qv)), 
-		not(strmatch(%qe, #-1*)), u(.alert, %0/set, rest(%qe)), 
-@@ .. ok
-		u(f.switch/set.process, %0, %1, %2, %qp, %qc)
-	)]
+// process
+		case( 0, 
+			t( %qv ), u( .msg, %0/set, rest( %qv )), 
+			not( strmatch( %qe, #-1* )), u( .msg, %0/set, rest( %qe )), 
+// .. ok
+			u( f.switch/set.process, %0, %1, %2, %qp, %qc )
+		)
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- /set.process ----------------------------------------------------------------
 
-After the workhorse, set the new elements.  This is separated out because there are times where we want to edit a bad stat, specifically when removing a player from a list where there may still be invalid players in it.
+After the workhorse, set the new elements. This is separated out because there 
+are times where we want to edit a bad stat, specifically when removing a player 
+from a list where there may still be invalid players in it.
 
 0: <cmd>
 1: element number
@@ -966,17 +1019,20 @@ After the workhorse, set the new elements.  This is separated out because there 
 
 e: potential error message
 
---
+*/
 
-&f.switch/set.process SASS=
-	[u(.alert, %0/set)] Changing [ucstr(%2)] 
-	from '[u(f.element.display, %2, %3)]' 
-	to '[u(f.element.display, %2, %4)]' ... 
+&f.switch/set.process [v( d.sass )]=
+	strcat( 
+		u( .msg, %0/set ), %b, Changing, %b, ucstr( %2 ), %b, 
+		from ', u( f.element.display, %2, %3 ), ', %b, 
+		to ', u( f.element.display, %2, %4 ), ' ..., %b, 
 
-	[setq(e, ulocal(f.set.entry.element, %1, %2, %4))]
-	[if(t(%qe), set!, error: [rest(%qe)])]
+		setq( e, ulocal( f.set.entry.element, %1, %2, %4 )), 
+		if( t( %qe ), set!, ansi( r, error:, n, %b[rest( %qe )] ))
+	)
 
 
+/*
 ================================================================================
 == DISPLAY =====================================================================
 
@@ -986,95 +1042,130 @@ e: potential error message
 Display every entry
 
 0: <cmd>
-1: header (optional)
+1: header ( optional )
 
---
+l: list of things to list
 
-&display.entry.all SASS=
-	[setq(l, 
-		sortby(sort.entries, 
-			filter(fil.entry.can-see, lattr(u(d.database)/entry.*), , , %#)
-		)
-	)]
+*/
 
-	[u(.header, if(t(words(%1)), %1, u(.titlestr, %0)))]%r
+&display.entry.all [v( d.sass )]=
+	strcat( 
+		setq( l, 
+			sortby( sort.entries, 
+				filter( fil.entry.can-see, 
+					lattr( u( d.database )/entry.* ), , , %# 
+				)
+			)
+		), 
 
-	[if(t(words(%ql)), 
-		iter(%ql, u(display.entry.line, rest(%i0, .)), , %r), 
-		%b No [lcstr(%0)] to list.
-	)]%r
+		u( .header, if( t( words( %1 )), %1, u( .titlestr, %0 ))), %r, 
 
-	[u(.footer, if(t(words(%ql)), cat(words(%ql), lcstr(%0))))]
+		if( t( words( %ql )), 
+			iter( %ql, u( display.entry.line, rest( %i0, . )), , %r ), 
+			%b No [lcstr( %0 )] to list.
+		), %r, 
+
+		u( .footer, if( t( words( %ql )), cat( words( %ql ), lcstr( %0 ))))
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Display: Full ---------------------------------------------------------------
 
-This is a very generic display, and should be overwritten by the specific system for finer control
+This is a very generic display, and should be overwritten by the specific system 
+for finer control
 
 0: <cmd>
 1: entry number
-2: footer add-on (optional)
+2: footer add-on ( optional )
 
 e: main elements' names
 p: main elements' contents
 
---
+*/
 
-&display.entry.full SASS=
-	[u(.header, cat(u(.titlestr, %0), #%1))]%r
+&display.entry.full [v( d.sass )]=
+	strcat( 
 
-@@ >> section: core elements - display all regarless of errors
-	[setq(e, Name Players Expires)]
-	[setq(p, ulocal(f.get.entry.elements, %1, %qe))]
+// >> section: core elements - display all regarless of errors
 
-	[iter(%qe, 
-		[setq(d, extract(%qp, inum(), 1, |))]
-		[setq(d, cat(ansi(h, %i0:), ulocal(f.element.display, %i0, %qd, true)))]
+		setq( e, Name Players Expires ), 
+		setq( p, ulocal( f.get.entry.elements, %1, %qe )), 
 
-		ulocal(.wrap, 
-			%qd, 
-			sub(74, add(2, strlen(%i0))), 
-			left, %b%b, , add(2, strlen(%i0)), , 74
+		u( .header, cat( u( .titlestr, %0 ), #%1 )), %r, 
+		ulocal( format.entry.full.section, %qe, %qp ), %r, 
+
+// >> section: secondary elements (extrapolated/estimated)
+		setq( e, 
+			setdiff( 
+				u( .titlestr, 
+					iter( 
+						ulocal( f.list.elements.position, * ), 
+						first( %i0 ), 
+						| 
+					)
+				), 
+				%qe Text
+			)
+		), 
+		setq( p, ulocal( f.get.entry.elements, %1, %qe )), 
+
+		u( .divider, Other Elements ), %r, 
+		ulocal( format.entry.full.section, %qe, %qp ), %r, 
+
+// >> section: detailed text
+		u( .divider, Text ), %r, 
+		setq( d, ulocal( f.get.entry.elements, %1, text )), 
+	
+		if( strlen( %qd ), 
+			ulocal( .wrap, %qd, 74, left, %b%b )
+		), %r, 
+	
+		u( .footer, %2 )
+	)
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Format: Entry, A List Of Sections -------------------------------------------
+
+Called from 'display.entry.full' to list a number of pre-defined sections
+
+0: main elements' names
+1: main elements' contents
+
+d: element to display
+
+*/
+
+&format.entry.full.section [v( d.sass )]=
+	iter( %0, 
+		strcat( 
+			setq( d, elements( %1, inum(), | )), 
+			setq( d, 
+				ansi( 
+					h, %i0:, 
+					n, %b, 
+					n, ulocal( f.element.display, %i0, %qd, true )
+				)
+			), 
+			ulocal( .wrap, 
+				%qd, 
+				sub( 74, add( 2, strlen( %i0 ))), 
+				left, 
+				%b%b, 
+				, 
+				add( 2, strlen( %i0 )), 
+				, 
+				74
+			)
 		), 
 		, %r
-	)]%r
-
-@@ >> section: secondary elements (extrapolated/estimated)
-	[setq(e, 
-		setdiff(
-			u(.titlestr, 
-				iter(ulocal(f.list.elements.position, *), first(%i0), |)
-			), 
-			%qe Text
-		)
-	)]
-	[setq(p, ulocal(f.get.entry.elements, %1, %qe))]
-
-	[u(.divider, Other Elements)]%r
-
-	[iter(%qe, 
-		[setq(d, elements(%qp, inum(), |))]
-		[setq(d, cat(ansi(h, %i0:), ulocal(f.element.display, %i0, %qd, true)))]
-		[ulocal(.wrap, 
-			%qd, 
-			sub(74, add(2, strlen(%i0))), 
-			left, %b%b, , add(2, strlen(%i0)), , 74
-		)], 
-		, %r
-	)]%r
-
-@@ >> section: detailed text
-	[u(.divider, Text)]%r
-	[setq(d, ulocal(f.get.entry.elements, %1, text))]
-	
-	[if(strlen(%qd), 
-		[ulocal(.wrap, %qd, 74, left, %b%b)]
-	)]%r
-	
-	[u(.footer, %2)]
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Display: One Line -----------------------------------------------------------
 
@@ -1082,41 +1173,42 @@ This section should be re-written per system.
 
 0: element number
 
---
+*/
 
-&display.entry.line SASS=
+&display.entry.line [v( d.sass )]=
 
-@@ >> element number
-	[rjust(%0, 4)]) 
+// >> element number
+	[rjust( %0, 4 )]%) 
 
-@@ >> element name
-	[ljust(
-		ulocal(f.element.display, 
+// >> element name
+	[ljust( 
+		ulocal( f.element.display, 
 			name, 
-			ulocal(f.get.entry.elements, %0, name)
+			ulocal( f.get.entry.elements, %0, name )
 		), 
 		39
 	)] - 
 
-@@ >> player name
-	[ljust(
-		ulocal(f.element.display, 
+// >> player name
+	[ljust( 
+		ulocal( f.element.display, 
 			players, 
-			ulocal(f.get.entry.elements, %0, players)
+			ulocal( f.get.entry.elements, %0, players )
 		), 
 		16
 	)] - 
 
-@@ >> expires
-	[ljust(
-		ulocal(f.element.display, 
+// >> expires
+	[ljust( 
+		ulocal( f.element.display, 
 			expires, 
-			ulocal(f.get.entry.elements, %0, expires)
+			ulocal( f.get.entry.elements, %0, expires )
 		), 
 		11
 	)]
 
 
+/*
 --------------------------------------------------------------------------------
 -- Display: Prove --------------------------------------------------------------
 
@@ -1125,45 +1217,48 @@ The "prove to player" display checker.
 0: <cmd>
 1: entry number
 2: list|of|element|positions -- if none, display entire entry
-3: list of dbrefs to send to (used to determine if private/public)
+3: list of dbrefs to send to ( used to determine if private/public )
 
---
+*/
 
-&display.entry.prove SASS=
-	if(not(strlen(%2)), 
+&display.entry.prove [v( d.sass )]=
+	if( not( strlen( %2 )), 
 
-@@ No elements passed -- show entire entry
-		u(display.entry.full, 
+// No elements passed -- show entire entry
+		u( display.entry.full, 
 			%0, 
 			%1, 
-			if(t(%3), Sent by %N (Private), Sent by %N (Public))
+			if( t( %3 ), Sent by %N ( Private ), Sent by %N ( Public ))
 		), 
 
-@@ Elements passed -- go through them one at a time
-		[u(.header, [u(.titlestr, %0)] #%1)]%r
+// Elements passed -- go through them one at a time
+		strcat( 
+			u( .header, [u( .titlestr, %0 )] #%1 ), %r, 
 
-		[iter(%2, 
-			ansi(
-				h, ucstr(%i0), 
-				h, :%b, 
-				n, 
-				ulocal(f.element.display, 
-					%i0, 
-					ulocal(f.get.entry.elements, %1, %i0)
+			iter( %2, 
+				ansi( 
+					h, ucstr( %i0 ), 
+					h, :%b, 
+					n, 
+					ulocal( f.element.display, 
+						%i0, 
+						ulocal( f.get.entry.elements, %1, %i0 )
+					)
+				), 
+				|, %r%r
+			), %r, 
+
+			u( .footer, 
+				if( t( %3 ), 
+					Sent by %N ( Private ), 
+					Sent by %N ( Public )
 				)
-			), 
-			|, %r%r
-		)]%r
-
-		[u(.footer, 
-			if(t(%3), 
-				Sent by %N (Private), 
-				Sent by %N (Public)
 			)
-		)]
+		)
 	)
 
 
+/*
 ================================================================================
 == Filters =====================================================================
 
@@ -1174,53 +1269,68 @@ The "prove to player" display checker.
 
 --------------------------------------------------------------------------------
 -- Filter: Contains ------------------------------------------------------------
+*/
 
-&fil.contains SASS=t(match(elements(get(u(d.database)/%0), %1, |), %2))
+&fil.contains [v( d.sass )]=
+	t( match( elements( get( u( d.database )/%0 ), %1, | ), %2 ))
 
 
+/*
 --------------------------------------------------------------------------------
 -- Filter: Contains ------------------------------------------------------------
+*/
 
-&fil.matches SASS=t(strmatch(elements(get(u(d.database)/%0), %1, |), *%2*))
+&fil.matches [v( d.sass )]=
+	t( strmatch( elements( get( u( d.database )/%0 ), %1, | ), *%2* ))
 
 
+/*
 --------------------------------------------------------------------------------
 -- Filter: Is ------------------------------------------------------------------
+*/
 
-&fil.is SASS=eq(comp(elements(get(u(d.database)/%0), %1, |), %2), 0)
+&fil.is [v( d.sass )]=
+	eq( comp( elements( get( u( d.database )/%0 ), %1, | ), %2 ), 0 )
 
 
+/*
 --------------------------------------------------------------------------------
 -- Filter: Is More -------------------------------------------------------------
+*/
 
-&fil.is_more SASS=eq(comp(elements(get(u(d.database)/%0), %1, |), %2), 1)
+&fil.is_more [v( d.sass )]=
+	eq( comp( elements( get( u( d.database )/%0 ), %1, | ), %2 ), 1 )
 
 
+/*
 --------------------------------------------------------------------------------
 -- Filter: Is Less -------------------------------------------------------------
+*/
 
-&fil.is_less SASS=eq(comp(elements(get(u(d.database)/%0), %1, |), %2), -1)
+&fil.is_less [v( d.sass )]=
+	eq( comp( elements( get( u( d.database )/%0 ), %1, | ), %2 ), -1 )
 
-
+/*
 --------------------------------------------------------------------------------
 -- Filter: Can See -------------------------------------------------------------
 
 Can the player see this entry?
 
-This looks complicated because we want it to rely entirely upon the data elements entered for differing systems.
+This looks complicated because we want it to rely entirely upon the data 
+elements entered for differing systems.
 
 0: entry.<num>
 1: player dbref to check
 
---
+*/
 
-&fil.entry.can-see SASS=
-	or(
-		u(.isstaff, %1), 
-		strmatch(
-			elements(
-				get(u(d.database)/%0), 
-				elements(v(element.players.position), 3), 
+&fil.entry.can-see [v( d.sass )]=
+	cor( 
+		u( .isstaff, %1 ), 
+		strmatch( 
+			elements( 
+				get( u( d.database )/%0 ), 
+				elements( v( element.players.position ), 3 ), 
 				|
 			), 
 		%1
@@ -1228,6 +1338,7 @@ This looks complicated because we want it to rely entirely upon the data element
 	)
 
 
+/*
 ================================================================================
 == SORTBYS =====================================================================
 
@@ -1237,11 +1348,15 @@ This looks complicated because we want it to rely entirely upon the data element
 
 Sort entries by entry #
 
---
+*/
 
-&sort.entries SASS=comp(rpad(last(%0, .), 3, 0), rpad(last(%1, .), 3, 0))
+&sort.entries [v( d.sass )]=
+	comp( rpad( last( %0, . ), 3, 0 ), rpad( last( %1, . ), 3, 0 ))
 
 
+
+
+/*
 ################################################################################
 ## BATHS #######################################################################
 
@@ -1250,35 +1365,40 @@ The S.A.S.S. for Blood Bather's bath rituals.
 
 ================================================================================
 == SETUP =======================================================================
+*/
 
 @create Blood Bather Baths <bbb>=10
-@set bbb=inherit safe
-@Desc bbb=Num entries: [attrcnt(u(d.database)/entry.*)]
+@fo me=&d.sass.bbb me=[search( name=Blood Bather Baths <bbb> )]
+@set Blood Bather Baths <bbb>=inherit safe
+@Desc Blood Bather Baths <bbb>=Num entries: [attrcnt( u( d.database )/entry.* )]
 
 @create Blood Bath Database <bbd>=10
-@set bbd=safe
+@set Blood Bath Database <bbd>=safe
 
-@fo me=@parent bbb=search(name=Supernatural Agreement Support System <sass>)
+@fo me=@parent [v( d.sass.bbb )]=[v( d.sass )]
 
 
+/*
 --------------------------------------------------------------------------------
 -- Optional: Code Object Data Parent -------------------------------------------
 
-&prefix.elements bbb=element.
-&prefix.filters bbb=fil.
-&prefix.displays bbb=display.
-&prefix.cross-platform bbb=.
+&prefix.elements [v( d.sass.bbb )]=element.
+&prefix.displays [v( d.sass.bbb )]=display. format.
 
+
+/*
 ================================================================================
 == DATA ========================================================================
 
 
 --------------------------------------------------------------------------------
 -- Data: Basic -----------------------------------------------------------------
+*/
 
-@fo me=&d.database bbb=num(Blood Bath Database <bbd>)
+@fo me=&d.database [v( d.sass.bbb )]=[search( name=Blood Bath Database <bbd> )]
 
 
+/*
 ================================================================================
 == ELEMENTS ====================================================================
 
@@ -1303,24 +1423,26 @@ Position: expires entry. 2
 A list of players associated with the element. Parented from S.A.S.S.
 Position: players entry. 3
 
---
+*/
 
-&element.players.set-check bbb=
-localize(
-	[setq(m, expires bath blood frequency effects preparation)]
-	[if(
-		land(
-			iter(u(f.get.entry.elements, %0, %qm), 
-				t(%i0), 
-				|
-			)
-		), 
-		1, 
-		#-1 An entry must have [u(.itemize, %qm)] set before you can set players.
-	)]
-)
+&element.players.set-check [v( d.sass.bbb )]=
+	localize( strcat( 
+		setq( m, expires bath blood frequency effects preparation ), 
+		if( 
+			land( 
+				iter( u( f.get.entry.elements, %0, %qm ), 
+					t( %i0 ), 
+					|
+				)
+			), 
+			1, 
+			#-1 An entry must have [u( .itemize, %qm )] set 
+			before you can set players.
+		)
+	))
 
 
+/*
 --------------------------------------------------------------------------------
 -- Element: Text ---------------------------------------------------------------
 
@@ -1333,109 +1455,129 @@ Postition: text text. 1
 
 The bath tub needed.
 
---
+*/
 
-&element.bath.position bbb=bath entry. 4
+&element.bath.position [v( d.sass.bbb )]=
+	bath entry. 4
 
-&element.bath.validate bbb=case(0, t(%0), #-1 'Bath' cannot be empty, 1)
+&element.bath.validate [v( d.sass.bbb )]=
+	case( 0, t( %0 ), #-1 'Bath' cannot be empty, 1 )
 
-&element.bath.display bbb=
-	localize(
-		[setq(t, bath)]
-		[setq(v, u(.titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
+&element.bath.display [v( d.sass.bbb )]=
+	localize( 
+		[setq( t, bath )]
+		[setq( v, u( .titlestr, %0 ))]
+		[setq( e, u( f.element.validate, %qt, %0 ))]
+		[if( t( %qe ), 
 			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+			[ansi( r, %qv )]
+			[if( t( %1 ), ansi( xh, %b%([rest( %qe )]%) ))]
 		)]
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Element: Blood --------------------------------------------------------------
 
 Kind of blood needed for the ritual.
 
---
+*/
 
-&element.blood.position bbb=blood entry. 5
+&element.blood.position [v( d.sass.bbb )]=
+	blood entry. 5
 
-&element.blood.validate bbb=case(0, t(%0), #-1 'Blood' cannot be empty, 1)
+&element.blood.validate [v( d.sass.bbb )]=
+	case( 0, t( %0 ), #-1 'Blood' cannot be empty, 1 )
 
-&element.blood.display bbb=
-	localize(
-		[setq(t, blood)]
-		[setq(v, u(.titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
+&element.blood.display [v( d.sass.bbb )]=
+	localize( 
+		[setq( t, blood )]
+		[setq( v, u( .titlestr, %0 ))]
+		[setq( e, u( f.element.validate, %qt, %0 ))]
+		[if( t( %qe ), 
 			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
 		)]
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Element: Frequency ----------------------------------------------------------
 
-How often? (Text; easily copy/pasted to update the 'expires'.)
+How often? ( Text; easily copy/pasted to update the 'expires'. )
 
---
+*/
 
-&element.frequency.position bbb=frequency entry. 6
-&element.frequency.validate bbb=case(0, t(%0), #-1 'Frequency' cannot be empty, 1)
-&element.frequency.display bbb=
-	localize(
-		[setq(t, frequency)]
-		[setq(v, u(.titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
+&element.frequency.position [v( d.sass.bbb )]=
+	frequency entry. 6
+&element.frequency.validate [v( d.sass.bbb )]=
+	case( 0, t( %0 ), #-1 'Frequency' cannot be empty, 1 )
+&element.frequency.display [v( d.sass.bbb )]=
+	localize( 
+		[setq( t, frequency )]
+		[setq( v, u( .titlestr, %0 ))]
+		[setq( e, u( f.element.validate, %qt, %0 ))]
+		[if( t( %qe ), 
 			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
 		)]
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Element: Effects ------------------------------------------------------------
 
 What does the Bather get out of it?
 
---
+*/
 
-&element.effects.position bbb=effects entry. 7
-&element.effects.validate bbb=case(0, t(%0), #-1 'Effects' cannot be empty, 1)
-&element.effects.display bbb=
-	localize(
-		[setq(t, effects)]
-		[setq(v, u(.titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
+&element.effects.position [v( d.sass.bbb )]=
+	effects entry. 7
+
+&element.effects.validate [v( d.sass.bbb )]=
+	case( 0, t( %0 ), #-1 'Effects' cannot be empty, 1 )
+
+&element.effects.display [v( d.sass.bbb )]=
+	localize( 
+		[setq( t, effects )]
+		[setq( v, u( .titlestr, %0 ))]
+		[setq( e, u( f.element.validate, %qt, %0 ))]
+		[if( t( %qe ), 
 			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
 		)]
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Element: Preparation --------------------------------------------------------
 
 What else does the Bather need to do?
 
-&element.preparation.position bbb=preparation entry. 8
-&element.preparation.validate bbb=case(0, t(%0), #-1 'Preparation' cannot be empty, 1)
-&element.preparation.display bbb=
-	localize(
-		[setq(t, preparation)]
-		[setq(v, u(.titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
+*/
+
+&element.preparation.position [v( d.sass.bbb )]=
+	preparation entry. 8
+&element.preparation.validate [v( d.sass.bbb )]=
+	case( 0, t( %0 ), #-1 'Preparation' cannot be empty, 1 )
+
+&element.preparation.display [v( d.sass.bbb )]=
+	localize( 
+		[setq( t, preparation )]
+		[setq( v, u( .titlestr, %0 ))]
+		[setq( e, u( f.element.validate, %qt, %0 ))]
+		[if( t( %qe ), 
 			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
 		)]
 	)
 
 
-
+/*
 ================================================================================
 == DISPLAYS ====================================================================
 
@@ -1447,75 +1589,76 @@ Baths-specific display elements, replacing those on the SASS parent.
 
 0: <cmd> - safely ignored, we know this is +baths
 1: entry number
-2: footer add-on (optional)
+2: footer add-on ( optional )
 
 e: main elements' names
 p: main elements' contents
 
---
+*/
 
-&display.entry.full bbb=
-	[u(.header, Bath #%1)]%r
+&display.entry.full [v( d.sass.bbb )]=
+	[u( .header, Bath #%1 )]%r
 
-@@ >> section: core elements
-	[setq(e, Name Players Expires)]
-	[setq(p, ulocal(f.get.entry.elements, %1, %qe))]
+// >> section: core elements
+	[setq( e, Name Players Expires )]
+	[setq( p, ulocal( f.get.entry.elements, %1, %qe ))]
 
-	[iter(%qe, 
-		[setq(d, extract(%qp, inum(), 1, |))]
-		[setq(v, ulocal(f.element.validate, %i0, %qd))]
-		[setq(d, ulocal(f.element.display, %i0, %qd, true))]
-		[if(strlen(%qd), setq(d, [ansi(h, %i0:)] %qd))]
-		[if(t(strlen(%qd)), 
-			[ulocal(.wrap, 
+	[iter( %qe, 
+		[setq( d, extract( %qp, inum(), 1, | ))]
+		[setq( v, ulocal( f.element.validate, %i0, %qd ))]
+		[setq( d, ulocal( f.element.display, %i0, %qd, true ))]
+		[if( strlen( %qd ), setq( d, [ansi( h, %i0: )] %qd ))]
+		[if( t( strlen( %qd )), 
+			[ulocal( .wrap, 
 				%qd, 
-				sub(74, add(2, strlen(%i0))), 
-				left, %b%b, , add(2, strlen(%i0)), , 74
+				sub( 74, add( 2, strlen( %i0 ))), 
+				left, %b%b, , add( 2, strlen( %i0 )), , 74
 			)]%r
 		)], 
 		, @@
 	)]
 
-@@ >> section: secondary elements (must have at least one for display purposes)
-	[setq(e, Bath Blood Frequency Effects Preparation)]
-	[setq(p, ulocal(f.get.entry.elements, %1, %qe))]
+// >> section: secondary elements (must have at least one for display purposes)
+	[setq( e, Bath Blood Frequency Effects Preparation )]
+	[setq( p, ulocal( f.get.entry.elements, %1, %qe ))]
 
-	[u(.divider, 
-		if(strlen(edit(%qp, |, )), 
+	[u( .divider, 
+		if( strlen( edit( %qp, |, )), 
 			Benefits, 
 			%xr( Err: No Benefits Entered )%xn
 		)
 	)]%r
 
-	[iter(%qe, 
-		[setq(d, elements(%qp, inum(), |))]
-		[setq(d, ulocal(f.element.display, %i0, %qd, true))]
+	[iter( %qe, 
+		[setq( d, elements( %qp, inum(), | ))]
+		[setq( d, ulocal( f.element.display, %i0, %qd, true ))]
 
-		[if(strlen(%qd), setq(d, [ansi(h, %i0:)] %qd))]
-		[if(
-			t(strlen(%qd)), 
-			[ulocal(.wrap, 
+		[if( strlen( %qd ), setq( d, [ansi( h, %i0: )] %qd ))]
+		[if( 
+			t( strlen( %qd )), 
+			[ulocal( .wrap, 
 				%qd, 
-				sub(74, add(2, strlen(%i0))), 
-				left, %b%b, , add(2, strlen(%i0)), , 74
+				sub( 74, add( 2, strlen( %i0 ))), 
+				left, %b%b, , add( 2, strlen( %i0 )), , 74
 			)]%r
 		)], 
 		, @@
 	)]
 
-@@ >> section: detailed text
-	[setq(d, ulocal(f.get.entry.elements, %1, text))]
-	[setq(v, ulocal(f.element.validate, text, %qd))]
+// >> section: detailed text
+	[setq( d, ulocal( f.get.entry.elements, %1, text ))]
+	[setq( v, ulocal( f.element.validate, text, %qd ))]
 	
-	[if(strlen(%qd), 
-		[u(.divider, Text)]%r
-		[ulocal(.wrap, %qd, 74, left, %b%b)]%r
+	[if( strlen( %qd ), 
+		[u( .divider, Text )]%r
+		[ulocal( .wrap, %qd, 74, left, %b%b )]%r
 	)]
 	
-	[u(.footer, %2)]
+	[u( .footer, %2 )]
 
 
 
+/*
 ================================================================================
 == SUB-MISTRESS COMMANDS =======================================================
 
@@ -1528,25 +1671,26 @@ Set up enough to let the S.A.S.S. Mistress code process the rest.
 1: /switches
 2: text
 
---
+*/
 
-&c.baths bbb=$^\+bath[s]?(/[^ ]*)?( .*)?$:
+&c.baths [v( d.sass.bbb )]=$^\+bath[s]?(/[^ ]*)?(.*)?$:
 	@pemit %#=
-		switch(1, 
-			t(strlen(%1)), 
-			u(c.mistress.switch, baths, %1, trim(%2)), 
+		switch( 1, 
+			t( strlen( %1 )), 
+			u( c.mistress.switch, baths, %1, trim( %2 )), 
 
-			t(strlen(trim(%2))), 
-			u(c.mistress.specific, baths, trim(%2), @@(pseudo-switches)), 
+			t( strlen( trim( %2 ))), 
+			u( c.mistress.specific, baths, trim( %2 ), @@( pseudo-switches )), 
 
-			u(c.mistress.default, baths)
+			u( c.mistress.default, baths )
 		)
 
---
+// --
 
 @set bbb/c.baths=regexp
 
 
+/*
 --------------------------------------------------------------------------------
 -- Sub-Mistress: Other ---------------------------------------------------------
 
@@ -1558,6 +1702,8 @@ The rest of the system will use the functions on its parent.
 ## WARDS #######################################################################
 
 The S.A.S.S. for supernatural, timed wards.
+
+This is sloppier, but you get the idea.
 
 Will need:
 	Title -> 'Name'
@@ -1584,44 +1730,47 @@ Will need:
 
 ================================================================================
 == SETUP =======================================================================
+*/
 
 @create Magical Wards <mw>=10
 @set mw=inherit safe
-@Desc Magical Wards <mw>=Num entries: [attrcnt(u(d.database)/entry.*)]
+@Desc Magical Wards <mw>=Num entries: [attrcnt( u( d.database )/entry.* )]
 
-@fo me=@parent Magical Wards <mw>=search(name=Blood Bather Baths <bbb>)
+@fo me=@parent Magical Wards <mw>=search( name=Blood Bather Baths <bbb> )
 
 @create Magical Wards Database <mwdb>=10
 @set Magical Wards Database <mwdb>=safe
 
-
+/*
 --------------------------------------------------------------------------------
 -- Optional: Code Object Data Parent -------------------------------------------
+*/
 
 &prefix.elements Magical Wards <mw>=element.
-&prefix.filters Magical Wards <mw>=fil.
-&prefix.displays Magical Wards <mw>=display.
-&prefix.cross-platform Magical Wards <mw>=.
+&prefix.displays Magical Wards <mw>=display. format.
 
 
+/*
 ================================================================================
 == DATA ========================================================================
 
 
 --------------------------------------------------------------------------------
 -- Data: Basic -----------------------------------------------------------------
+*/
 
-@fo me=&d.database Magical Wards <mw>=num(Magical Wards Database <mwdb>)
+@fo me=&d.database Magical Wards <mw>=num( Magical Wards Database <mwdb> )
 @fo me=@tel mwdb=Magical Wards <mw>
 
 
+/*
 ================================================================================
 == ELEMENTS ====================================================================
 
 Position is: <element name> <attribute prefix> <list position>
 Validation takes: %0 - entire item to validate
-Convert takes: 0: single element to convert, if list (e.g., players)
-			   1: should I also display the error text?
+Convert takes: 0: single element to convert, if list ( e.g., players )
+               1: should I also display the error text?
 Display takes: %0 - list of elements to display
 Filter is: How do I filter() for this? - 0: value, 2: comparison type (optional)
 
@@ -1629,72 +1778,88 @@ Filter is: How do I filter() for this? - 0: value, 2: comparison type (optional)
 --------------------------------------------------------------------------------
 -- Element: Name ---------------------------------------------------------------
 
-@@ all parts of this inherited from SASS - not going to be overwritten
+// all parts of this inherited from SASS - not going to be overwritten
 
 
 --------------------------------------------------------------------------------
 -- Element: Expires ------------------------------------------------------------
 
-@@ all parts of this inherited from SASS - not going to be overwritten
+// all parts of this inherited from SASS - not going to be overwritten
 
 
 --------------------------------------------------------------------------------
 -- Element: Players ------------------------------------------------------------
 
-@@ a single player is set for this, inherited from SASS
-@@ before 'players' can be set, 'expires' must also be set
+a single player is set for this, inherited from SASS before 'players' 
+can be set, 'expires' must also be set
+
+*/
+
 
 &element.players.set-check mw=
-localize(
-	[setq(m, expires)]
-	[if(
-		land(
-			iter(ulocal(f.get.entry.elements, %0, %qm), 
-				t(%i0), 
-				|
-			)
-		), 
-		1, 
-		#-1 An entry must have [u(.itemize, %qm)] set before you can set players.
-	)]
-)
+	localize( 
+		[setq( m, expires )]
+		[if( 
+			land( 
+				iter( ulocal( f.get.entry.elements, %0, %qm ), 
+					t( %i0 ), 
+					|
+				)
+			), 
+			1, 
+			#-1 An entry must have [u( .itemize, %qm )] set 
+			before you can set players.
+		)]
+	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Element: Text ---------------------------------------------------------------
 
-@@ see above
+// see above
 
 
 --------------------------------------------------------------------------------
 -- Element: Others -------------------------------------------------------------
+*/
 
-&element.location.position mw=location entry. 4
-&element.location.validate mw=case(0, t(%0), #-1 'Location' cannot be empty, 1)
+&element.location.position mw=
+	location entry. 4
+
+&element.location.validate mw=
+	case( 0, t( %0 ), #-1 'Location' cannot be empty, 1 )
+
 &element.location.display mw=
-	localize(
-		[setq(t, location)]
-		[setq(v, u(.titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
+	localize( 
+		[setq( t, location )]
+		[setq( v, u( .titlestr, %0 ))]
+		[setq( e, u( f.element.validate, %qt, %0 ))]
+		[if( t( %qe ), 
 			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
 		)]
 	)
 
---
+// --
 
-&element.whitelist.position mw=whitelist entry. 5
-&element.whitelist.validate mw=u(element.players.validate, %0)
-&element.whitelist.convert mw=u(element.players.convert, %0)
+&element.whitelist.position mw=
+	whitelist entry. 5
+
+&element.whitelist.validate mw=
+	u( element.players.validate, %0 )
+
+&element.whitelist.convert mw=
+	u( element.players.convert, %0 )
+
 &element.whitelist.display mw=
-	localize(
-		[setq(t, whitelist)]
-		[iter(%0, 
-			[setq(e, u(f.element.validate, %qt, %i0))]
-			[setq(v, name(%i0))]
-			[if(strmatch(%qe, #-*), 
-				[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))], 
+	localize( 
+		[setq( t, whitelist )]
+		[iter( %0, 
+			[setq( e, u( f.element.validate, %qt, %i0 ))]
+			[setq( v, name( %i0 ))]
+			[if( strmatch( %qe, #-* ), 
+				[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))], 
 				%qv
 			)], 
 			, %,%b
@@ -1702,12 +1867,13 @@ localize(
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Element: Source -------------------------------------------------------------
 
 The source of the ward, what kind of power or item created it
 
---
+*/
 
 &d.source-types mw=
 	Ritual (Werewolf)|
@@ -1722,50 +1888,42 @@ The source of the ward, what kind of power or item created it
 	Ceremony (Geist)|
 	Magic Item
 
---
-
 &element.source.position mw=source entry. 6
 
---
-
 &element.source.validate mw=
-	case(0, 
-		t(%0), #-1 'Source' cannot be empty, 
-		t(match(v(d.source-types), %0, |)), #-1 'Source' type not known, 
+	case( 0, 
+		t( %0 ), #-1 'Source' cannot be empty, 
+		t( match( v( d.source-types ), %0, | )), #-1 'Source' type not known, 
 		1
 	)
 
---
-
 &element.source.convert mw=
-localize(
-	strcat(
-		setq(g, 
-			grab(
-				strcat(|, sort(v(d.source-types), , |, |)), 
-				%0*, |
-			)
-		), 
+	localize( 
+		strcat( 
+			setq( g, 
+				grab( 
+					strcat( |, sort( v( d.source-types ), , |, | )), 
+					%0*, |
+				)
+			), 
 
-		if(t(%qg), %qg, %0)
+			if( t( %qg ), %qg, %0 )
+		)
 	)
-)
-
---
 
 &element.source.display mw=
-	localize(
-		[setq(t, source)]
-		[setq(v, u(.titlestr, %0))]
-		[setq(e, u(f.element.validate, %qt, %0))]
-		[if(t(%qe), 
+	localize( 
+		[setq( t, source )]
+		[setq( v, u( .titlestr, %0 ))]
+		[setq( e, u( f.element.validate, %qt, %0 ))]
+		[if( t( %qe ), 
 			%qv, 
-			[ansi(r, %qv)][if(t(%1), ansi(xh, %b%([rest(%qe)]%)))]
+			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
 		)]
 	)
 
 
-
+/*
 ================================================================================
 == FUNCTIONS ===================================================================
 
@@ -1783,149 +1941,156 @@ Wards-specific display elements, replacing those on the SASS parent.
 
 0: <cmd> - safely ignored, we know this is +baths
 1: entry number
-2: footer add-on (optional)
+2: footer add-on ( optional )
 
 e: main elements' names
 p: main elements' contents
 
---
+*/
 
 &display.entry.full mw=
-	[u(.header, cat(Ward, #%1))]%r
+	[u( .header, cat( Ward, #%1 ))]%r
 
-@@ >> section: core elements - display all regarless of errors
-	[setq(e, Name Players Expires)]
-	[setq(p, ulocal(f.get.entry.elements, %1, %qe))]
+// >> section: core elements - display all regarless of errors
+	[setq( e, Name Players Expires )]
+	[setq( p, ulocal( f.get.entry.elements, %1, %qe ))]
 
-	[iter(%qe, 
-		[setq(d, extract(%qp, inum(), 1, |))]
-		[setq(d, cat(ansi(h, %i0:), ulocal(f.element.display, %i0, %qd, true)))]
+	[iter( %qe, 
+		[setq( d, extract( %qp, inum(), 1, | ))]
+		[setq( d, 
+			cat( ansi( h, %i0: ), ulocal( f.element.display, %i0, %qd, true ))
+		)]
 
-		ulocal(.wrap, 
+		ulocal( .wrap, 
 			%qd, 
-			sub(74, add(2, strlen(%i0))), 
-			left, %b%b, , add(2, strlen(%i0)), , 74
+			sub( 74, add( 2, strlen( %i0 ))), 
+			left, %b%b, , add( 2, strlen( %i0 )), , 74
 		), 
 		, %r
 	)]%r
 
-@@ >> section: secondary elements (must have at least one for display purposes)
-	[setq(e, Bath Blood Frequency Effects Preparation)]
-	[setq(p, ulocal(f.get.entry.elements, %1, %qe))]
+// >> section: secondary elements (must have at least one for display purposes)
+	[setq( e, Bath Blood Frequency Effects Preparation )]
+	[setq( p, ulocal( f.get.entry.elements, %1, %qe ))]
 
-	[u(.divider, 
-		if(strlen(edit(%qp, |, )), 
+	[u( .divider, 
+		if( strlen( edit( %qp, |, )), 
 			Benefits, 
 			%xr( Err: No Benefits Entered )%xn
 		)
 	)]%r
 
-	[iter(%qe, 
-		[setq(d, elements(%qp, inum(), |))]
-		[setq(d, cat(ansi(h, %i0:), ulocal(f.element.display, %i0, %qd, true)))]
-		[ulocal(.wrap, 
+	[iter( %qe, 
+		[setq( d, elements( %qp, inum(), | ))]
+		[setq( d, 
+			cat( ansi( h, %i0: ), ulocal( f.element.display, %i0, %qd, true ))
+		)]
+		[ulocal( .wrap, 
 			%qd, 
-			sub(74, add(2, strlen(%i0))), 
-			left, %b%b, , add(2, strlen(%i0)), , 74
+			sub( 74, add( 2, strlen( %i0 ))), 
+			left, %b%b, , add( 2, strlen( %i0 )), , 74
 		)], 
 		, %r
 	)]%r
 
-@@ >> section: detailed text
-	[u(.divider, Text)]%r
-	[setq(d, ulocal(f.get.entry.elements, %1, text))]
+// >> section: detailed text
+	[u( .divider, Text )]%r
+	[setq( d, ulocal( f.get.entry.elements, %1, text ))]
 	
-	[if(strlen(%qd), 
-		[ulocal(.wrap, %qd, 74, left, %b%b)]
+	[if( strlen( %qd ), 
+		[ulocal( .wrap, %qd, 74, left, %b%b )]
 	)]%r
 	
-	[u(.footer, %2)]
+	[u( .footer, %2 )]
 
 
+/*
 --------------------------------------------------------------------------------
 -- Display: One Line -----------------------------------------------------------
 
 0: element number
 
---
+*/
 
 &display.entry.line mw=
 
-@@ >> element number
-	[rjust(%0, 4)]) 
+// >> element number
+	[rjust( %0, 4 )] ) 
 
-@@ >> element name
-	[ljust(
-		ulocal(f.element.display, 
+// >> element name
+	[ljust( 
+		ulocal( f.element.display, 
 			name, 
-			ulocal(f.get.entry.elements, %0, name)
+			ulocal( f.get.entry.elements, %0, name )
 		), 
 		39
 	)] - 
 
-@@ >> source
-	[ljust(
-		ulocal(f.element.display, 
+// >> source
+	[ljust( 
+		ulocal( f.element.display, 
 			source, 
-			ulocal(f.get.entry.elements, %0, source)
+			ulocal( f.get.entry.elements, %0, source )
 		), 
 		16
 	)] - 
 
-@@ >> expires
-	[ljust(
-		ulocal(f.element.display, 
+// >> expires
+	[ljust( 
+		ulocal( f.element.display, 
 			expires, 
-			ulocal(f.get.entry.elements, %0, expires)
+			ulocal( f.get.entry.elements, %0, expires )
 		), 
 		11
 	)]
 
 
+/*
 ================================================================================
 == MISTRESS COMMANDS ===========================================================
 
 Triggers the SASS parent
 
---
+*/
 
-&c.wards mw=$^\+ward[s]?(/[^ ]*)?( .*)?$:
+&c.wards mw=$^\+ward[s]?(/[^ ]*)?(.*)?$:
 	@pemit %#=
-		switch(1, 
-			t(strlen(%1)), 
-			u(c.mistress.switch, wards, %1, trim(%2)), 
+		switch( 1, 
+			t( strlen( %1 )), 
+			u( c.mistress.switch, wards, %1, trim( %2 )), 
 
-			t(strlen(trim(%2))), 
-			u(c.mistress.specific, wards, trim(%2), @@(pseudo-switches)), 
+			t( strlen( trim( %2 ))), 
+			u( c.mistress.specific, wards, trim( %2 ), @@( pseudo-switches )), 
 
-			u(c.mistress.default, wards)
+			u( c.mistress.default, wards )
 		)
 
---
+// --
 
 @set mw/c.wards=regexp
 
 
+/*
 --------------------------------------------------------------------------------
 -- Switch: Options -------------------------------------------------------------
 
 &c.switch/options mw=
-	[u(.header, Options for Wards)]%r
-	[setq(m, Wards has the following elements with special settings:)]
-	[u(.wrap, %qm, 76, , %b%b)]%r
+	[u( .header, Options for Wards )]%r
+	[setq( m, Wards has the following elements with special settings: )]
+	[u( .wrap, %qm, 76, , %b%b )]%r
 
-	[u(.divider, Expires)]%r
-	[setq(m, u(.itemize, Day|Week|Month|Quarter|Semi-Annual|Year|Five Years|<time fmt>, |))]
-	[u(.wrap, %qm, 76, , %b%b)]%r
+	[u( .divider, Expires )]%r
+	[setq( m, u( .itemize, Day|Week|Month|Quarter|Semi-Annual|Year|Five Years|<time fmt>, | ))]
+	[u( .wrap, %qm, 76, , %b%b )]%r
 
-	[u(.divider, Source)]%r
-	[u(.columns, 
-		v(d.source-types), 
-		add(u(.lmax, iter(v(d.source-types), strlen(%i0), |)), 6), 
+	[u( .divider, Source )]%r
+	[u( .columns, 
+		v( d.source-types ), 
+		add( u( .lmax, iter( v( d.source-types ), strlen( %i0 ), | )), 6 ), 
 		|, 2
 	)]
 
-	[u(.footer)]
+	[u( .footer )]
 	
 
 
@@ -1937,7 +2102,7 @@ Triggers the SASS parent
 
 
 
-
+/*
 ################################################################################
 ## NOTES FROM PREVIOUS SYSTEM ##################################################
 
@@ -1948,18 +2113,18 @@ Triggers the SASS parent
 
 
 * Bath
-	None (+3)
-	Any Tub (+3)
-	Specific Material (-1 to -5)
-	Unique Tub (-5)
-	Symbols and Carvings (-1, -2)
-	Attendants (-2, -3, -5)
-	Any Hour (+2)
-	Day or Night (+1)
-	Sunlight/Moonlight (0)
-	Moon Phase (-1)
-	Seasonal (-1)
-	Stars Are Right (-2, -3)
+	None ( +3 )
+	Any Tub ( +3 )
+	Specific Material ( -1 to -5 )
+	Unique Tub ( -5 )
+	Symbols and Carvings ( -1, -2 )
+	Attendants ( -2, -3, -5 )
+	Any Hour ( +2 )
+	Day or Night ( +1 )
+	Sunlight/Moonlight ( 0 )
+	Moon Phase ( -1 )
+	Seasonal ( -1 )
+	Stars Are Right ( -2, -3 )
 * Blood
 * Frequency
 	Strict Timeline
@@ -1975,106 +2140,17 @@ Triggers the SASS parent
 
 -----------
 
-&F.FILTER Blood Bather Baths <bbb>=localize([setq(e, u(f.data-elements.list, %0))][setq(n, first(%qe))][setq(c, u(f.convert-element, %qn, %1))][setq(v, u(f.element.validate, %qn, %qc))][case(0, eq(words(%0), 1), #-1 Filter only one element, eq(words(%qe, |), 1), #-1 Element not found, t(%qe), #-1 Elements: [rest(%qe)], t(%qc), #-1 Convert: [rest(%qc)], or(strmatch(%qe, date*), t(%qv)), %qv, ulocal(f.filter-workhorse, %qn, %qe, %qc, %2))])
+&F.FILTER Blood Bather Baths <bbb>=localize( [setq( e, u( f.data-elements.list, %0 ))][setq( n, first( %qe ))][setq( c, u( f.convert-element, %qn, %1 ))][setq( v, u( f.element.validate, %qn, %qc ))][case( 0, eq( words( %0 ), 1 ), #-1 Filter only one element, eq( words( %qe, | ), 1 ), #-1 Element not found, t( %qe ), #-1 Elements: [rest( %qe )], t( %qc ), #-1 Convert: [rest( %qc )], or( strmatch( %qe, date* ), t( %qv )), %qv, ulocal( f.filter-workhorse, %qn, %qe, %qc, %2 ))] )
 
 -----------
 
-&F.FILTER-WORKHORSE Blood Bather Baths <bbb>=case(0, strlen(setr(f, udefault(f.filter.%0, #-1 No filter for %0, %1, %2, %3))), #-1 No results, %qf)
-
------------
-
------------
-
-&display.bath.PROVE Blood Bather Baths <bbb>=[setq(p, ulocal(f.get.entry.elements, %0, edit(%1, |, %b)))][u(.header, Bath #%0 (from %N))]%r[iter(%1, [setq(d, extract(%qp, inum(), 1, |))][setq(v, ulocal(f.element.validate, %i0, %qd))][setq(d, [ansi(h, [u(.titlestr, %i0)]:)] [ulocal(display.element, %i0, %qd, true)])][ulocal(.wrap, %qd, sub(74, add(2, strlen(%i0))), left, %b%b, , add(2, strlen(%i0)), , 74)], |, %r)]%r[u(.footer, +bath/prove %0)]
-
------------
-
-
------------
-
-
------------
-
-&C.BATH/EDIT Blood Bather Baths <bbb>=[setq(n, first(%0, /))][setq(e, rest(first(%0, =), /))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, t(%qe), [alert(bath)] Element not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, eq(words(%qe), 1), [alert(bath)] Enter only one element, comp(setr(e, u(f.data-elements.list, %qe)), ), [alert(bath/edit)] Element not found, u(f.bath/edit.workhorse, %qn, first(%qe), %qv))]
-
------------
-
-&F.BATH/EDIT.WORKHORSE Blood Bather Baths <bbb>=[setq(p, ulocal(f.get.entry.elements, %0, %1))][setq(c, ulocal(f.convert-element, %1, %2))][setq(v, ulocal(f.element.validate, %1, %qc))][setq(e, case(%1, player, if(land([iter(demon rank, [t(setr(z, ulocal(f.get.entry.elements, %0, %i0)))] [t(ulocal(f.element.validate, %i0, %qz))])]), 1, #-1 Can't edit player until demon and rank are set and valid), 1))][case(0, t(%qv), [alert(bath)] [rest(%qv)], t(%qe), [alert(bath)] [rest(%qe)], u(f.bath/edit.process, %0, %1, %qp, %qc))]
-
------------
-
-&F.BATH/EDIT.PROCESS Blood Bather Baths <bbb>=[alert(bath)] Changing [ucstr(%1)] from '[u(display.element, %1, %2)]' to '[u(display.element, %1, %3)]' ... [setq(e, ulocal(f.set.entry.element, %0, %1, %3))][if(t(%qe), set!, error: [rest(%qe)])]
+&F.FILTER-WORKHORSE Blood Bather Baths <bbb>=case( 0, strlen( setr( f, udefault( f.filter.%0, #-1 No filter for %0, %1, %2, %3 ))), #-1 No results, %qf )
 
 -----------
 
 -----------
 
-&C.BATH/DELETE Blood Bather Baths <bbb>=[setq(n, before(%0, =))][setq(v, rest(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, eq(attrcnt([u(d.database)]/bath.%qn), 1), [alert(bath)] Bath not found, not(comp(%qv, YES)), [alert(bath)] If you are absolutely sure you want to delete this bath%, type: +bath/delete %qn=YES, [u(.header, Deleting Bath #%qn)]%r[ulocal(display.entry.full, %qn)]%r[setq(p, set([u(d.database)], bath.%qn:))][setq(b, set([u(d.database)], benedits.%qn:))][setq(t, set([u(d.database)], text.%qn:))][u(.footer, case(1, comp(%qp, ), Error Clearing &Bath: %qp, comp(%qb, ), Error Clearing &Benefits: %qb, comp(%qt, ), Error Clearing &Text: %qt, Deleted))])]
-
------------
-
-&C.BATH/PROVE Blood Bather Baths <bbb>=[setq(n, first(before(%0, =), /))][setq(e, if(setr(e, before(rest(%0, /), =)), %qe, Name Demon Rank Sacrifices Date Player Trait Supernatural Service Artifact Text))][setq(l, crumple(iter(ulocal(f.data-elements.list, %qe), first(%i0), |, |), |))][setq(p, rest(%0, =))][setq(d, iter(%qp, if(t(setr(d, pmatch+(%i0))), %qd)))][case(0, and(isint(%qn), gt(%qn, 0)), [alert(+bath)] Bath lookup must be a positive number., t(get([u(d.database)]/bath.%qn)), [alert(+bath)] Bath not found., or(isstaff(%#), t(match(u(f.get.entry.elements, %qn, players), %#))), [alert(+bath)] You have no access to that bath., or(not(%qp), t(%qd)), [alert(+bath)] No target players matched., words(%ql), [alert(+bath)] Element(s) not found., pemit(if(t(%qd), setunion(%# %qd, ), lcon(loc(%#), connect)), u(display.bath.prove, %qn, %ql)))]
-
------------
-
-
-
-
-
-
-&C.BATH/PLAYER Blood Bather Baths <bbb>=[setq(t, player)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
-
------------
-
-&C.BATH/TEXT Blood Bather Baths <bbb>=[setq(t, text)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
-
------------
-
-&C.BATH/NAME Blood Bather Baths <bbb>=[setq(t, name)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
-
------------
-
-&C.BATH/DEMON Blood Bather Baths <bbb>=[setq(t, demon)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
-
------------
-
-&C.BATH/RANK Blood Bather Baths <bbb>=[setq(t, rank)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
-
------------
-
-&C.BATH/DATE Blood Bather Baths <bbb>=[setq(t, date)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
-
------------
-
-&C.BATH/TRAIT Blood Bather Baths <bbb>=[setq(t, trait)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
-
------------
-
-&C.BATH/SUPERNATURAL Blood Bather Baths <bbb>=[setq(t, supernatural)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
-
------------
-
-&C.BATH/DURATION Blood Bather Baths <bbb>=[u(c.bath/date, %0)]
-
------------
-
-&C.BATH/SERVICE Blood Bather Baths <bbb>=[setq(t, service)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
-
------------
-
-&C.BATH/ARTIFACT Blood Bather Baths <bbb>=[setq(t, artifact)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
-
------------
-
-&C.BATH/RAW Blood Bather Baths <bbb>=[setq(n, first(%0, /))][setq(e, rest(%0, /))][setq(p, ulocal(f.get.entry.elements, %qn, %qe))][case(0, isstaff(%#), [alert(bath)] Staff only., t(%qn), [alert(bath)] Number not entered, t(%qe), [alert(bath)] Element not entered, eq(words(%qe)), [alert(bath)] One element only, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, comp(setr(e, first(u(f.data-elements.list, %qe))), ), [alert(bath)] Element not found, [alert(bath #%qn)] [ansi(h, u(.titlestr, %qe))]: %qp)]
-
------------
-
-&C.BATH/FILTER Blood Bather Baths <bbb>=[setq(m, regmatch(%0, (.*)(\[<>=\])(.*), m e c v))][setq(e, trim(%qe))][setq(v, trim(%qv))][setq(f, u(f.filter, %qe, %qv, %qc))][case(0, t(%qm), [alert(bath)] Filter format: <element> <comparison> <value>, t(%qf), [alert(bath)] [rest(%qf)], [setq(f, iter(%qf, bath.[last(%i0, .)]))][setq(l, sortby(sort.entries, filter(fil.entry.can-see, %qf, , , %#)))][u(.header, baths: Filtered by '%qv')]%r[if(t(words(%ql)), iter(%ql, u(display.entry.line, rest(%i0, .)), , %r), %b No baths to list.)]%r[u(.footer, if(t(words(%ql)), [words(%ql)] baths))])]
-
------------
-
------------
+&display.bath.PROVE Blood Bather Baths <bbb>=[setq( p, ulocal( f.get.entry.elements, %0, edit( %1, |, %b )))][u( .header, Bath #%0 ( from %N ))]%r[iter( %1, [setq( d, extract( %qp, inum(), 1, | ))][setq( v, ulocal( f.element.validate, %i0, %qd ))][setq( d, [ansi( h, [u( .titlestr, %i0 )]: )] [ulocal( display.element, %i0, %qd, true )] )][ulocal( .wrap, %qd, sub( 74, add( 2, strlen( %i0 ))), left, %b%b, , add( 2, strlen( %i0 )), , 74 )], |, %r )]%r[u( .footer, +bath/prove %0 )]
 
 -----------
 
@@ -2084,7 +2160,96 @@ Triggers the SASS parent
 
 -----------
 
-&C.BATH/SACRIFICES Blood Bather Baths <bbb>=[setq(t, sacrifices)][setq(n, first(%0, =))][setq(v, last(%0, =))][case(0, isstaff(%#), [alert(bath)] Staff only, t(%qn), [alert(bath)] Number not entered, attrcnt([u(d.database)]/bath.%qn), [alert(bath)] Bath not found, [u(f.bath/edit.workhorse, %qn, %qt, %qv)])]
+&C.BATH/EDIT Blood Bather Baths <bbb>=[setq( n, first( %0, / ))][setq( e, rest( first( %0, = ), / ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, t( %qe ), [alert( bath )] Element not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, eq( words( %qe ), 1 ), [alert( bath )] Enter only one element, comp( setr( e, u( f.data-elements.list, %qe )), ), [alert( bath/edit )] Element not found, u( f.bath/edit.workhorse, %qn, first( %qe ), %qv ))]
+
+-----------
+
+&F.BATH/EDIT.WORKHORSE Blood Bather Baths <bbb>=[setq( p, ulocal( f.get.entry.elements, %0, %1 ))][setq( c, ulocal( f.convert-element, %1, %2 ))][setq( v, ulocal( f.element.validate, %1, %qc ))][setq( e, case( %1, player, if( land( [iter( demon rank, [t( setr( z, ulocal( f.get.entry.elements, %0, %i0 )))] [t( ulocal( f.element.validate, %i0, %qz ))] )] ), 1, #-1 Can't edit player until demon and rank are set and valid ), 1 ))][case( 0, t( %qv ), [alert( bath )] [rest( %qv )], t( %qe ), [alert( bath )] [rest( %qe )], u( f.bath/edit.process, %0, %1, %qp, %qc ))]
+
+-----------
+
+&F.BATH/EDIT.PROCESS Blood Bather Baths <bbb>=[alert( bath )] Changing [ucstr( %1 )] from '[u( display.element, %1, %2 )]' to '[u( display.element, %1, %3 )]' ... [setq( e, ulocal( f.set.entry.element, %0, %1, %3 ))][if( t( %qe ), set!, error: [rest( %qe )] )]
+
+-----------
+
+-----------
+
+&C.BATH/DELETE Blood Bather Baths <bbb>=[setq( n, before( %0, = ))][setq( v, rest( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, eq( attrcnt( [u( d.database )]/bath.%qn ), 1 ), [alert( bath )] Bath not found, not( comp( %qv, YES )), [alert( bath )] If you are absolutely sure you want to delete this bath%, type: +bath/delete %qn=YES, [u( .header, Deleting Bath #%qn )]%r[ulocal( display.entry.full, %qn )]%r[setq( p, set( [u( d.database )], bath.%qn: ))][setq( b, set( [u( d.database )], benedits.%qn: ))][setq( t, set( [u( d.database )], text.%qn: ))][u( .footer, case( 1, comp( %qp, ), Error Clearing &Bath: %qp, comp( %qb, ), Error Clearing &Benefits: %qb, comp( %qt, ), Error Clearing &Text: %qt, Deleted ))] )]
+
+-----------
+
+&C.BATH/PROVE Blood Bather Baths <bbb>=[setq( n, first( before( %0, = ), / ))][setq( e, if( setr( e, before( rest( %0, / ), = )), %qe, Name Demon Rank Sacrifices Date Player Trait Supernatural Service Artifact Text ))][setq( l, crumple( iter( ulocal( f.data-elements.list, %qe ), first( %i0 ), |, | ), | ))][setq( p, rest( %0, = ))][setq( d, iter( %qp, if( t( setr( d, pmatch+( %i0 ))), %qd )))][case( 0, and( isint( %qn ), gt( %qn, 0 )), [alert( +bath )] Bath lookup must be a positive number., t( get( [u( d.database )]/bath.%qn )), [alert( +bath )] Bath not found., or( isstaff( %# ), t( match( u( f.get.entry.elements, %qn, players ), %# ))), [alert( +bath )] You have no access to that bath., or( not( %qp ), t( %qd )), [alert( +bath )] No target players matched., words( %ql ), [alert( +bath )] Element(s) not found., pemit( if( t( %qd ), setunion( %# %qd, ), lcon( loc( %# ), connect )), u( display.bath.prove, %qn, %ql )))]
+
+-----------
+
+
+
+
+
+
+&C.BATH/PLAYER Blood Bather Baths <bbb>=[setq( t, player )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
+
+-----------
+
+&C.BATH/TEXT Blood Bather Baths <bbb>=[setq( t, text )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
+
+-----------
+
+&C.BATH/NAME Blood Bather Baths <bbb>=[setq( t, name )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
+
+-----------
+
+&C.BATH/DEMON Blood Bather Baths <bbb>=[setq( t, demon )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
+
+-----------
+
+&C.BATH/RANK Blood Bather Baths <bbb>=[setq( t, rank )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
+
+-----------
+
+&C.BATH/DATE Blood Bather Baths <bbb>=[setq( t, date )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
+
+-----------
+
+&C.BATH/TRAIT Blood Bather Baths <bbb>=[setq( t, trait )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
+
+-----------
+
+&C.BATH/SUPERNATURAL Blood Bather Baths <bbb>=[setq( t, supernatural )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
+
+-----------
+
+&C.BATH/DURATION Blood Bather Baths <bbb>=[u( c.bath/date, %0 )]
+
+-----------
+
+&C.BATH/SERVICE Blood Bather Baths <bbb>=[setq( t, service )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
+
+-----------
+
+&C.BATH/ARTIFACT Blood Bather Baths <bbb>=[setq( t, artifact )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
+
+-----------
+
+&C.BATH/RAW Blood Bather Baths <bbb>=[setq( n, first( %0, / ))][setq( e, rest( %0, / ))][setq( p, ulocal( f.get.entry.elements, %qn, %qe ))][case( 0, isstaff( %# ), [alert( bath )] Staff only., t( %qn ), [alert( bath )] Number not entered, t( %qe ), [alert( bath )] Element not entered, eq( words( %qe )), [alert( bath )] One element only, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, comp( setr( e, first( u( f.data-elements.list, %qe ))), ), [alert( bath )] Element not found, [alert( bath #%qn )] [ansi( h, u( .titlestr, %qe ))]: %qp )]
+
+-----------
+
+&C.BATH/FILTER Blood Bather Baths <bbb>=[setq( m, regmatch( %0, ( .* )( \[<>=\] )( .* ), m e c v ))][setq( e, trim( %qe ))][setq( v, trim( %qv ))][setq( f, u( f.filter, %qe, %qv, %qc ))][case( 0, t( %qm ), [alert( bath )] Filter format: <element> <comparison> <value>, t( %qf ), [alert( bath )] [rest( %qf )], [setq( f, iter( %qf, bath.[last( %i0, . )] ))][setq( l, sortby( sort.entries, filter( fil.entry.can-see, %qf, , , %# )))][u( .header, baths: Filtered by '%qv' )]%r[if( t( words( %ql )), iter( %ql, u( display.entry.line, rest( %i0, . )), , %r ), %b No baths to list. )]%r[u( .footer, if( t( words( %ql )), [words( %ql )] baths ))] )]
+
+-----------
+
+-----------
+
+-----------
+
+
+-----------
+
+
+-----------
+
+&C.BATH/SACRIFICES Blood Bather Baths <bbb>=[setq( t, sacrifices )][setq( n, first( %0, = ))][setq( v, last( %0, = ))][case( 0, isstaff( %# ), [alert( bath )] Staff only, t( %qn ), [alert( bath )] Number not entered, attrcnt( [u( d.database )]/bath.%qn ), [alert( bath )] Bath not found, [u( f.bath/edit.workhorse, %qn, %qt, %qv )] )]
 
 -----------
 
@@ -2093,47 +2258,47 @@ Triggers the SASS parent
 
 BLOOD BATHERS
 
-+blood_ritual system (+pacts/+pledges)
++blood_ritual system ( +pacts/+pledges )
 
 BODY THIEF
 
 Talent: Mental/Magical
 Society: 
-	The Club (Mental)
+	The Club ( Mental )
 		- Underaged, not allowed
-	The Seekers of Knowledge (Mental)
+	The Seekers of Knowledge ( Mental )
 		Means of Body Transfer: Mental Possession
 		Defining Merit: Willpower Drain
-	The Avalon House Wardrobe (Magical)
+	The Avalon House Wardrobe ( Magical )
 		- Too far away
 		Method of Transference: Mystic Transference
 		Defining Merit: Amulet Making
-	The Archer Family (Magical)
+	The Archer Family ( Magical )
 		- Too specific
 		Defining Merit: Sleight of Hand
 
 Merits:
-	Cultural Language (•) - All
-	Support Network (•• Social Merit) - Prereq: Status •+ in the group - All
-	Amulet (•• or ••••) - Body Thief
-	Emotional Urging (••••) - Body Thief
-	Luck Drain (••••) - Body Thief
-	Morality Sap (••••) - Body Thief
-	Sleight of Hand (••••) - Body Thief
-	Steal Sense (•••) - Body Thief
-	Theft of the Sublime (•••••) - Body Thief
-	Unobtrusiveness (••) - Body Thief
-	Vitality Drain (•••) - Body Thief
-	Willpower Drain (••••) - Body Thief
+	Cultural Language ( • ) - All
+	Support Network ( •• Social Merit ) - Prereq: Status •+ in the group - All
+	Amulet ( •• or •••• ) - Body Thief
+	Emotional Urging ( •••• ) - Body Thief
+	Luck Drain ( •••• ) - Body Thief
+	Morality Sap ( •••• ) - Body Thief
+	Sleight of Hand ( •••• ) - Body Thief
+	Steal Sense ( ••• ) - Body Thief
+	Theft of the Sublime ( ••••• ) - Body Thief
+	Unobtrusiveness ( •• ) - Body Thief
+	Vitality Drain ( ••• ) - Body Thief
+	Willpower Drain ( •••• ) - Body Thief
 
 
-PURIFIED (major template)
+PURIFIED ( major template )
 
-Chi: 1-5 (power stat)
+Chi: 1-5 ( power stat )
 Spirit Level: derived from Chi, 2/2/3/3/4
 Essence: derived from Chi, 6/9/12/15/20
 
-Siddhi: (powers)
+Siddhi: ( powers )
 	Command: 1-3
 	Piercing the Distance: 1-3
 	Projection: 1-3
@@ -2142,7 +2307,7 @@ Siddhi: (powers)
 	Summoning: 1-3
 	Warding: 1-3
 
-Numina: (other powers)
+Numina: ( other powers )
 	Blast
 	Camouflage
 	Commune
@@ -2156,14 +2321,14 @@ Numina: (other powers)
 	Wilds Sense
 
 Merits:
-	Dream (• to •••••) - Purified
-	Essence Reservoir (• or ••) - Purified
-	Familiar (•••) - Purified
-	Locus (• to •••) - Purified
-	Occultation (• to •••) - Purified
-	Ritual Crypt (•) - Purified
-	Shadow Sanctum (• to ••••) - Purified
-	Alternate Identity (•, •• or ••••) - All (already in)
+	Dream ( • to ••••• ) - Purified
+	Essence Reservoir ( • or •• ) - Purified
+	Familiar ( ••• ) - Purified
+	Locus ( • to ••• ) - Purified
+	Occultation ( • to ••• ) - Purified
+	Ritual Crypt ( • ) - Purified
+	Shadow Sanctum ( • to •••• ) - Purified
+	Alternate Identity ( •, •• or •••• ) - All ( already in )
 
 ********************************************************************************
 * TEMPLATE *********************************************************************
@@ -2178,12 +2343,12 @@ Merits:
 
 &LIST_TEMPLATE #89=Blood_Bather Body_Thief Changeling Fae-Touched Geist Ghoul Hunter Immortal Mage Mortal Possessed Proximus Psychic Purified Purified Shifter Slasher Thaumaturge Vampire Werewolf Wolfblooded
 
---
+// --
 
 
---
+// --
 
-&F.SWITCH.TEMPLATE #4017=[switch(%0, vampire, Vampire Clan Covenant, mage, Mage Path Order, werewolf, Werewolf Auspice Tribe, geist, Geist Threshold Archetype, changing breeds, Shifter Breed Accord, changeling, Changeling Seeming Kith, hunter, Hunter Conspiracy, body_thief, Body_Thief Talent Society, #-1)]
+&F.SWITCH.TEMPLATE #4017=[switch( %0, vampire, Vampire Clan Covenant, mage, Mage Path Order, werewolf, Werewolf Auspice Tribe, geist, Geist Threshold Archetype, changing breeds, Shifter Breed Accord, changeling, Changeling Seeming Kith, hunter, Hunter Conspiracy, body_thief, Body_Thief Talent Society, #-1 )]
 
 ********************************************************************************
 * SPHERE ***********************************************************************
@@ -2219,14 +2384,9 @@ ex #130/CMD.SPEND
 ex #130/CMD.REGAIN
 
 
-&F.CALC.MAX-POOL #130=case(lcstr(%2), fast, ulocal(#89/fct.superstat.calc, %0, fast, _%1), normal, ulocal(#89/fct.superstat.calc, %0, normal, _%1), minor, ulocal(#89/fct.superstat.calc, %0, @@(unused), @@(unused)), #-1)
+&F.CALC.MAX-POOL #130=case( lcstr( %2 ), fast, ulocal( #89/fct.superstat.calc, %0, fast, _%1 ), normal, ulocal( #89/fct.superstat.calc, %0, normal, _%1 ), minor, ulocal( #89/fct.superstat.calc, %0, @@( unused ), @@( unused )), #-1 )
 
 
-&FCT.SUPERSTAT.CALC #89=case(lcstr(u(%0/_TEMPLATE)), ghoul, extract(u(%0/_ATTRIBUTES), 8, 1), proximus, 5, fae-touched, 1, possessed, rest(grab(get(%0/_vice-powers), [get(%0/_vice)]:*), :), purified, extract(u(data.superstat.max.purified), get(%0/_CHI), 1, |), extract(u(data.superstat.max.%1), get(%0/%2), 1, |))
+&FCT.SUPERSTAT.CALC #89=case( lcstr( u( %0/_TEMPLATE )), ghoul, extract( u( %0/_ATTRIBUTES ), 8, 1 ), proximus, 5, fae-touched, 1, possessed, rest( grab( get( %0/_vice-powers ), [get( %0/_vice )]:* ), : ), purified, extract( u( data.superstat.max.purified ), get( %0/_CHI ), 1, | ), extract( u( data.superstat.max.%1 ), get( %0/%2 ), 1, | ))
 
-
-Dublin Rd. Auto
-Clark Auto Repair
-Auto Dr - 1133 Goodale - 
-
-ssh -L 2009:thereachmux.org:2009 jenkins@mux.net
+*/
