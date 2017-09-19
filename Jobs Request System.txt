@@ -34,6 +34,15 @@ vs.
 @create Jobs Request System <jrs>=10
 @set Jobs Request System <jrs>=inherit safe
 @fo me=&d.jrs me=search( name=Jobs Request System <jrs> )
+@desc Jobs Request System <jrs>=
+	I know the following request types: %r
+	[titlestr( 
+		iter( 
+			lattr( %!/d.*.bucket ), 
+			edit( elements( %i0, 2, . ), _, %b ), 
+			, %,%b 
+		)
+	)]
 
 
 // links to the Anomaly Jobs setup 
