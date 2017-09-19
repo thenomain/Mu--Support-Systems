@@ -1,0 +1,109 @@
+/*
+################################################################################
+## SYSTEM: WHO #################################################################
+
+	who[ <partial name>]
+
+w: who, as can be seen by the enactor (optionally filtered by name input)
+u: unique logins, regardless of enactor
+f: footer
+
+*/
+
+&c.who [v( d.bnww )]=$^\+?who( .*)?$:
+	@pemit %#=strcat( 
+		setq( w, setunion( u( .lwho, %# ), )), 
+		setq( u, setunion( iter( lwho(), get( %i0/lastip )), )), 
+		setq( f, 
+			cat( 
+				words( %qw ), Connected, /, 
+				words( %qu ), Unique, /, 
+				connrecord(), Record 
+			)
+		), 
+		if( t( trim( %1 )), 
+			setq( w, filter( fil.name-match, %qw, , , trim( %1 )))
+		), 
+		u( display.who.complete, %#, Who - [poll()], %qf, %qw )
+	)
+
+@set [v( d.bnww )]/c.who = regexp
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Who: Display & Format -------------------------------------------------------
+
+0: enactor dbref (%#)
+1: header text
+2: footer text
+3: dbrefs to list
+
+i: 'super-idle' people (ignore if '&pref.segregate.idle' is 'false')
+
+*/
+
+&display.who.complete [v( d.bnww )]=
+	strcat( 
+		setq( i, 
+			if( v( pref.segregate.idle ), filter( f.check.superidle, %3 ))
+		), 
+		header( %1 ), %r, 
+		iter( u( sortby.connect-time, setdiff( %3, %qi )), 
+			u( display.who.one-line, %i0, %0 ), , %r 
+		), %r, 
+		if( t( %qi ), 
+			strcat( 
+				divider( idle players ), %r, 
+				iter( %qi, u( display.who.one-line, %i0, %0 ), , %r ), 
+				%r, 
+			)
+		), 
+		divider( 
+			strcat( 
+				~ Seeking RP%, 
+				* Staff %(on duty%)%, 
+				x Staff %(off duty%), 
+				if( isstaff( %0 ),%, D Dark )
+			)
+		), %r, 
+		footer( %2 )
+	)
+
+
+// (do not gray out idlers if '&pref.segregate.idle' is '0')
+&display.who.one-line [v( d.bnww )]=
+	localize( strcat( 
+		setq( i, if( v( pref.segregate.idle ), filter( f.check.idle, %0 ))), 
+		setq( s, 
+			if( v( pref.segregate.idle ), filter( f.check.superidle, %0 ))
+		), 
+		setq( a, if( t( %qi ), xh, n )), 
+		ljust( u( f.get-who-flags, %i0 ), 2 ), %b, 
+		ljust( ansi( %qa, moniker( %0 )), 14 ), %b, 
+		ljust( ansi( %qa, get( %0/alias )), 7 ), %b, 
+		rjust( 
+			if( cor( not( %qs ), isstaff( %1 )), 
+				ansi( %qa, singletime( idle( %0 ))), 
+				ansi( xh, -- )
+			), 
+			3 
+		), %b%b, 
+		rjust( 
+			if( cor( not( %qs ), isstaff( %1 )), 
+				ansi( %qa, singletime( conn( %0 ))), 
+				ansi( xh, -- )
+			), 
+			3 
+		), %b%b, 
+		ljust( 
+			ansi( %qa, 
+				if( findable( %1, %0 ), 
+					name( where( %0 )), 
+					* Unfindable * 
+				)
+			), 
+			39 
+		), 
+		%xn 
+	))

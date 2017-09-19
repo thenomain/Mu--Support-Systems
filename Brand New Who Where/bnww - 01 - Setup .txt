@@ -1,0 +1,220 @@
+/*
+current systems:
+	who
+	where
+	finger
+	staff
+	duty
+	name
+	idle sweep
+
+planned:
+	hangouts
+	directory
+	watch
+
+A great number of Mush commands are based on a mix of two vertices: Player 
+objects and room objects. These are epitomized by the commands 'who' (who is 
+connected, and some light information about them) and 'where' (which rooms are 
+populated with player objects, and some information about them).
+
+The goal of the "Brand New Who/Where" system is to be game setup independent (as 
+long the game is running TinyMUX), and to be easily extendable by writing 
+further systems on top of this one, or asking this system for appropriate player 
+object or room information.
+
+
+
+
+################################################################################
+## SETUP #######################################################################
+
+The items in the setup file are used across many systems.
+
+*/
+
+@create Brand New Who-Where <bnww>
+@fo me=&d.bnww me=[search( name=Brand New Who-Where <bnww> )]
+
+@set [v( d.bnww )]=INHERIT SAFE VISUAL
+
+
+// Code Object Data Parent setup; optional
+
+@fo me=@parent [v( d.bnww )]=[search( name=Code Object Data Parent <codp> )]
+&prefix.finger_fields [v( d.bnww )]=finger.
+&prefix.preferences [v( d.bnww )]=pref.
+
+// -- Triggers ----------------------------------------------------------------
+
+@aconnect [v( d.bnww )]=
+	@dolist lattr( %!/aconnect.* )={ @trigger %!/##=%# };
+
+@adisconnect [v( d.bnww )]=
+	@dolist lattr( %!/adisconnect.* )={ @trigger %!/##=%# };
+
+
+
+/*
+================================================================================
+== DATA ========================================================================
+*/
+
+@fo me=&d.mushcron [v( d.bnww )]=[search( name=CRON - Myrddin's mushcron )]
+
+
+
+/* 
+================================================================================
+== PREFERENCES =================================================================
+
+Preferences (&pref.*) are for easily changing behaviors of the system.
+
+*/
+
+// Preference: Segregate Idle? (1 = yes, 0 = no)
+// make the idlers stand out or are separated from the main who listing
+
+&pref.segregate.idle [v( d.bnww )]=1
+
+
+// Preference: Seconds Idle/Seconds Superidle
+// how idle is idle? (default: 1 hour/2 hours)
+
+&pref.secs.idle [v( d.bnww )]=3600
+&pref.secs.superidle [v( d.bnww )]=7200
+
+
+
+/*
+================================================================================
+== DOT-FUNCTIONS ===============================================================
+*/
+
+&.msg [v( d.bnww )]=ansi( h, <%0>, n, %b%1 )
+&.plural [v( d.bnww )]=strcat( %0, %b, if( eq( %0, 1 ), %1, %2 ))
+&.lwho [v( d.bnww )]=objeval( %0, lwho())
+&.isstaff [v( d.bnww )]=isstaff( %0 )
+&.isapproved [v( d.bnww )]=isapproved( %0 )
+
+// remove elements from a delimited list of elements without upsetting the order
+&.remove_elements [v( d.bnww )]=
+	ldelete( %0, iter( %1, matchall( %0, %i0, %2 ), %2 ), %2, %2 )
+
+
+
+/*
+================================================================================
+== FILTERS =====================================================================
+*/
+
+&fil.staff [v( d.bnww )]=u( .isstaff, %0 )
+&fil.dark [v( d.bnww )]=hasflag( %0, dark )
+&fil.name-match [v( d.bnww )]=strmatch( name( %0 ), %1* )
+&fil.duty [v( d.bnww )]=not( hasflag( %0, transparent ))
+&fil.off-duty [v( d.bnww )]=hasflag( %0, transparent )
+&fil.in-room [v( d.bnww )]=strmatch( room( %0 ), %1 )
+
+// can '%1' find '%0'? (usually '%0' is a list from 'lwho()')
+&fil.findable [v( d.bnww )]=findable( %1, %0 )
+
+
+
+/*
+================================================================================
+== SORTBYS =====================================================================
+*/
+
+&sortby.connected [v( d.bnww )]=comp( conn( %0 ), conn( %1 ))
+
+// ... this isn't really a sortby, it's a function that sorts?
+&sortby.connect-time [v( d.bnww )]=
+	iter( sort( iter( %0, [conn(%i0)]:%i0 ), n ), rest( %i0, : ))
+
+
+
+/* 
+================================================================================
+== CHECK FOR GENERAL CONDITIONS ================================================
+*/
+
+// idle checks 
+&f.check.idle [v( d.bnww )]=gte( idle( %0 ), v( pref.secs.idle ))
+&f.check.superidle [v( d.bnww )]=gte( idle( %0 ), v( pref.secs.superidle ))
+
+// flag checks -- should this be &f.check.flag.<flag-name>???
+&f.check.on-duty [v( d.bnww )]=not( hasflag( %0, TRANSPARENT ))
+&f.check.wikisprite [v( d.bnww )]=@@( <is a wikisprite> )
+&f.check.storyteller [v( d.bnww )]=@@( <is a storyteller> )
+
+
+
+/*
+================================================================================
+== FLAGS =======================================================================
+
+Sometimes we want to display a single character describing duty status, desire 
+for RP, or other similar elements in a condensed format.
+
+Staff: Duty & Dark
+Player: Wants RP & Responsibilities
+
+
+--------------------------------------------------------------------------------
+-- Flags: Who Flags ------------------------------------------------------------
+
+These flags are mainly for '+who', but can be used by any part of the system.
+
+*/
+
+&f.get-who-flags [v( d.bnww )]=
+	case( 1, 
+		isstaff( %0 ), 
+		strcat( 
+			u( format.flags.staff.duty, %0 ), 
+			u( format.flags.dark, %0 )
+		), 
+		strcat( 
+			u( format.flags.wantrp, %0 ), 
+			u( format.flags.wikisprite, %0 ), 
+			u( format.flags.storyteller, %0 )
+		)
+	)
+
+
+/*
+--------------------------------------------------------------------------------
+-- Flags: Formatting -----------------------------------------------------------
+*/
+
+&format.flags.staff.duty [v( d.bnww )]=
+	case( 1, 
+		u( f.check.idle, %0 ), ansi( xh, ! ), 
+		u( f.check.on-duty, %0 ), ansi( h, * ), 
+		ansi( xh, x )
+	)
+
+&format.flags.dark [v( d.bnww )]=
+	if( hasflag( %0, DARK ), ansi( xh, D ))
+
+&format.flags.wantrp [v( d.bnww )]=if( u( f.check.wantrp, %0 ), ~ )
+
+&format.flags.wikisprite [v( d.bnww )]=
+	if( u( f.check.wikisprite, %0 ), 
+		if( u( f.check.on-duty, %0 ), ansi( h, ? ), ansi( xh, ? ))
+	)
+
+&format.flags.storyteller [v( d.bnww )]=
+	if( u( f.check.storyteller, %0 ), 
+		if( u( f.check.on-duty, %0 ), ansi( h, + ), ansi( xh, + ))
+	)
+
+
+
+
+/*
+################################################################################
+## CLEAN UP ####################################################################
+*/
+
+@fo me=@tel [v( d.bnww )]=[config( master_room )]

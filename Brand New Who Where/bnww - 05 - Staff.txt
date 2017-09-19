@@ -1,0 +1,68 @@
+/* 
+################################################################################
+## SYSTEM: STAFF ###############################################################
+
+A tiny 'who' for staff. 
+
+Ignores the 'dark' flag for now, because I have a mild moral objection to games 
+where staff spend their lives dark. I understand sometimes you can't get 
+anything done otherwise, but I will need to take some time later to add a 
+preference for this behavior.
+
+--
+
+w: on duty
+o: off duty
+d: dark
+
+*/
+
+&C.STAFF [v( d.bnww )]=$^\+?staff$: @pemit %#=
+	strcat( 
+		setq( w, filter( fil.staff, lwho())), 
+		setq( d, sortby( sortby.connected, filter( fil.dark, %qw ))), 
+		setq( w, setdiff( %qw, %qd )), 
+		setq( o, filter( fil.off-duty, %qw, %qd )), 
+		setq( w, sortby( sortby.connected, setdiff( %qw, %qo ))), 
+		wheader( [mudname()] Staff ), %r, 
+		iter( %qw, 
+			u( display.staff.one-line, %i0, singletime( idle( %i0 )), %# ), 
+			, %r 
+		), %r, 
+		if( words( %qo ), 
+			strcat( 
+				wdivider( Off-Duty ), %r, 
+				iter( %qo, 
+					u( display.staff.one-line, 
+						%i0, singletime( idle( %i0 )), %# 
+					), , %r 
+				), %r 
+			), 
+		), 
+		if( words( %qd ), 
+			strcat( 
+				wdivider( Dark Staff -- Super-Off-Duty ), %r, 
+				iter( %qd, 
+					ansi( xh, u( display.staff.one-line, %i0, , %# )), 
+					, %r 
+				), %r 
+			)
+		), 
+		wfooter()
+	)
+
+@set [v( d.bnww )]/C.STAFF=regexp
+
+
+/*
+--------------------------------------------------------------------------------
+-- Staff: Display One Line -----------------------------------------------------
+*/
+
+&display.staff.one-line [v( d.bnww )]=
+	strcat( 
+		ljust( u( f.get-who-flags, %0 ), 3 ), 
+		ljust( name( %0 ), 20 ), %b, 
+		ljust( %1 , 4 ), %b, 
+		ljust( get( %i0/position ), sub( width( %2 ), 47 ))
+	)

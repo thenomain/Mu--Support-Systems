@@ -1,0 +1,77 @@
+/*
+################################################################################
+## SYSTEM: WANT RP #############################################################
+
+Also called 'rp' on some games.
+
+*/
+
+&adisconnect.wantrp [v( d.bnww )]=@set %0=.prefs.wantrp:;
+
+&c.wantrp/on [v( d.bnww )]=$^\+?wantrp/on$:
+	@assert u( .isapproved, %# )={ 
+		@pemit %#=u( .msg, wantrp/on, Must be approved ) 
+	}; 
+	@assert not( hasattr( %#, .prefs.wantrp ))={ 
+		@pemit %#=u( .msg, wantrp/on, Already on ) 
+	}; 
+	@set %#=.prefs.wantrp:yes; 
+	@pemit %#=u( .msg, wantrp/on, 
+		strcat( 
+			You are now set to seeking RP, 
+			if( not( match( cwho( v( d.channel.rp )), %# )), 
+				%; to talk to other people about RP and current plots%, 
+				join our '[v( d.channel.rp )]' channel 
+			)
+		)
+	);
+
+@set [v( d.bnww )]/c.wantrp/on = regexp
+
+
+
+&c.wantrp/off [v( d.bnww )]=$^\+?wantrp/off$:
+	@assert u( .isapproved, %# )={ 
+		@pemit %#=u( .msg, wantrp/on, Must be approved ) 
+	}; 
+	@assert hasattr( %#, .prefs.wantrp )={ 
+		@pemit %#=u( .msg, wantrp/on, Already off ) 
+	}; 
+	@set %#=.prefs.wantrp:; 
+	@pemit %#=u( .msg, wantrp/off, 
+		You are no longer seeking RP and will not show up on the various 
+		lists for it 
+	);
+
+@set [v( d.bnww )]/c.wantrp/off = regexp
+
+
+
+&c.wantrp [v( d.bnww )]=$^\+?wantrp( .*)?$:@pemit %#=
+	strcat( 
+		setq( w, setunion( filter( filter.wantrp, u( .lwho, %# )), )), 
+		setq( c, v( d.channel.rp )), 
+		setq( a, if( setr( a, comalias( %#, %qc )), %qa, %qc )), 
+		setq( f, [u( .plural, words( setinter( cwho( %qc ), u( .lwho, %# ))), person, people )] on the '%qa' channel ), 
+		if( t( trim( %1 )), 
+			setq( w, filter( fil.name-match, %qw, , , trim( %1 )))
+		), 
+		u( display.who.complete, %#, Who Wants RP, %qf, %qw )
+	)
+
+@set [v( d.bnww )]/C.WANTRP = regexp
+
+/*
+--------------------------------------------------------------------------------
+-- WantRP: Data & Filters & Functions ------------------------------------------
+*/
+
+&d.channel.rp [v( d.bnww )]=RP Chat
+
+@if not( cwho( get( v( d.bnww )/d.channel.rp )))=
+	think ansi( hr, There is no '[get( v( d.bnww )/d.channel.rp )]' Channel )
+
+&filter.wantrp [v( d.bnww )]=u( f.check.wantrp, %0 )
+
+&f.check.wantrp [v( d.bnww )]=
+	cand( hasattr( %0, .prefs.wantrp ), isapproved( %0 ))

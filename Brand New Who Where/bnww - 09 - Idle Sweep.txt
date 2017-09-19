@@ -1,0 +1,83 @@
+/* 
+################################################################################
+## SYSTEM: IDLE SWEEP ##########################################################
+
+Sweep idle players into a room. Be nice about it. Allow game administration to 
+set criteria about when not to move them, by room, zone, or code.
+
+Time to idle before swept: &f.check.superidle. 
+This is performed regardless of &pref.segregate.idle.
+
+Set up Mushcron:
+*/
+
+@fo me=
+	&jobs_1minute [u( [v( d.bnww )]/d.mushcron )]=
+		setunion( 
+			get( u( [v( d.bnww )]/d.mushcron )/jobs_1minute ), 
+			[v( d.bnww )]/trig.idle-sweep.players 
+		)
+
+
+/*
+--------------------------------------------------------------------------------
+-- Idle Sweep: Preferences -----------------------------------------------------
+*/
+
+&pref.idle-exempt.rooms [v( d.bnww )]=@@( possibly your ooc room )
+&pref.idle-exempt.zones [v( d.bnww )]=@@( ooc room or zones )
+&pref.idle-exempt.code [v( d.bnww )]=strmatch( loc( %0 ), home( %0 ))
+
+@fo me=&pref.idle_room [v( d.bnww )]=
+	[search( eroom=strmatch( name( ## ), Quiet Room ))]
+
+
+/*
+--------------------------------------------------------------------------------
+-- Idle Sweep: Trigger (run once per minute) -----------------------------------
+*/
+
+&TRIG.IDLE-SWEEP.PLAYERS [v( d.bnww )]=
+	think strcat( 
+		super-idle:, %b, 
+		setr( i, filter( f.check.superidle, u( .lwho, %@ ))), %r, 
+
+		excuse staff:, %b, 
+		setr( i, setdiff( %qi, filter( fil.staff, %qi ))), %r, 
+
+		people to leave alone:, %b, 
+		setr( h, 
+			iter( %qi, 
+				if( 
+					cor( 
+						t( setinter( 
+							v( pref.idle-exempt.rooms ), 
+							loc( %i0 )
+						)), 
+						t( setinter( 
+							v( pref.idle-exempt.zones ), 
+							zone( loc( %i0 ))
+						)), 
+						t( u( pref.idle-exempt.code, %i0 )), 
+						strmatch( 
+							loc( %i0 ), 
+							v( pref.idle_room )
+						)
+					), 
+					%i0 
+				)
+			)
+		), %r, 
+
+		people to move:, %b, 
+		setr( i, setdiff( %qi, %qh )), %r, 
+	); 
+
+	@dolist %qi={ 
+// .. it would be cool if we sent this message only once per room ..
+		@oemit ##=msg( zzzz, Moving a sleepy [moniker( ## )]. ); 
+		@tel/quiet ##=v( pref.idle_room ); 
+		@pemit ##=msg( zzzz, Moved you to a safe location till you wake up... ) 
+	};
+
+

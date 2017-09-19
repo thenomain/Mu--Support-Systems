@@ -1,0 +1,166 @@
+/*
+################################################################################
+## SYSTEM: FINGER ##############################################################
+
+The finger part of the Who-Where setup. Finger is a list of detailed information 
+about a specific player-object.
+
+*/
+
+&c.finger [v( d.bnww )]=$^\+?finger(.*)$:
+	think strcat( 
+		p:, setr( p, if( t( %1 ), pmatch( trim( %1 )), %# ))
+	); 
+	
+	@assert hastype( %qp, PLAYER )={ 
+		@pemit %#=u( .msg, finger, Target not found )
+	}; 
+
+	@pemit %#=strcat( 
+		wheader( u( display.finger.header, %qp )), %r, 
+
+		u( display.finger.main, %qp ), %r, 
+
+		if( setr( x, u( display.finger.user, %qp )), 
+			strcat( 
+				wdivider( User ), %r, 
+				%qx, %r 
+			)
+		), 
+
+		if( isstaff( %# ), 
+			strcat( 
+				wdivider( Staff ), %r, 
+				u( display.finger.staff, %qp ), %r 
+			)
+		), 
+
+		wfooter( u( display.finger.footer, %qp ))
+	); 
+
+@set Brand New Who-Where [v( d.bnww )]/c.finger=regex
+
+
+/*
+--------------------------------------------------------------------------------
+-- Finger: Data ----------------------------------------------------------------
+*/
+
+&d.finger.max-fields [v( d.bnww )]=3
+
+&d.finger.section.main [v( d.bnww )]=
+	full_name location wiki last_connected
+&d.finger.section.staff [v( d.bnww )]=
+	template last_ip
+
+
+/* 
+--------------------------------------------------------------------------------
+-- Finger: Displays & Formatting -----------------------------------------------
+
+-- Format: One Finger Section --------------------------------------------------
+*/
+
+&format.finger.one-section [v( d.bnww )]=
+	iter( %1, 
+		strcat( 
+			u( format.finger.title, %i0 ), %b, 
+			wrap( 
+				udefault( finger.%i0, get( %0/finger.%i0 ), %0 ), 
+				55, left, , , 16 
+			)
+		), , %r 
+	)
+
+// -- Format: Entry Title ------------------------------------------------------
+
+&format.finger.title [v( d.bnww )]=
+	ljust( ansi( h, [titlestr( edit( %0, _, %b ))]: ), 15 )
+
+// -- Display: Header ----------------------------------------------------------
+
+&display.finger.header [v( d.bnww )]=
+	strcat( 
+		u( finger.name, %0 ), 
+		if( isstaff( %# ), %b%(%0%)), 
+		if( strlen( setr( a, u( finger.alias, %0 ))), %b%[%qa%] )
+	)
+
+// -- Display: Footer ----------------------------------------------------------
+
+&display.finger.footer [v( d.bnww )]=
+	strcat( %[, u( finger.approval, %0 ), %] )
+
+// -- Display: Main Section ----------------------------------------------------
+
+&display.finger.main [v( d.bnww )]=
+	u( format.finger.one-section, %0, u( d.finger.section.main ))
+
+// -- Display: User Section ----------------------------------------------------
+
+&display.finger.user [v( d.bnww )]=
+	u( format.finger.one-section, %0, u( f.finger.get-user-fields, %0 ))
+
+// -- Display: Staff Section ---------------------------------------------------
+
+&display.finger.staff [v( d.bnww )]=
+	u( format.finger.one-section, %0, u( d.finger.section.staff ))
+
+
+/*
+--------------------------------------------------------------------------------
+-- Finger: Functions -----------------------------------------------------------
+*/
+
+// cut off the first 'd.max_fields' fields that are not in the 'default' list
+&f.finger.get-user-fields [v( d.bnww )]=
+	extract( 
+		u( .remove_elements, 
+			lcstr( edit( lattr( %0/finger.* ), FINGER., )), 
+			iter( lattr( %!/d.finger.section.* ), lcstr( v( %i0 )))
+		), 
+		1, 
+		v( d.finger.max-fields )
+	)
+
+
+/*
+--------------------------------------------------------------------------------
+-- Finger: Fields --------------------------------------------------------------
+*/
+
+&finger.name [v( d.bnww )]=name( %0 )
+
+&finger.alias [v( d.bnww )]=get( %0/alias )
+
+&finger.approval [v( d.bnww )]=isapproved( %0, status )
+
+&finger.location [v( d.bnww )]=
+	if( t( setr( l, objeval( %#, loc( %0 )))), 
+		strcat( 
+			name( %ql ), 
+			if( hasattr( %ql, coord ), 
+				strcat( %b, %[, get( %ql/coord ), %] )
+			)
+		), 
+		ansi( xh, <unknown> )
+	)
+
+&finger.wiki [v( d.bnww )]=
+	default( %0/finger.wiki, 
+		ansi( xh, %(use '&finger.wiki me=<url>' to set this.%))
+	)
+
+&finger.last_connected [v( d.bnww )]=
+	if( 
+		hasflag( %0, connected ), Connected, 
+		strcat( 
+			setr( c, get( %0/last )), %b, 
+			%(, first( exptime( sub( secs(), convtime( %qc )))), %) 
+		)
+	)
+
+&finger.last_ip [v( d.bnww )]=get( %0/lastip )
+
+&finger.full_name [v( d.bnww )]=
+	if( setr( t, getstat( %0/full_name )), %qt, ansi( xh, <not set on sheet> ))

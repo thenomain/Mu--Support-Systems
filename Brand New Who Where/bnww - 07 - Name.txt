@@ -1,0 +1,91 @@
+/*
+################################################################################## SYSTEM: NAME ################################################################
+
+Find all matches of 'name' or 'name*' or '*name*' against @name player objects.
+Includes @alias.
+
+*/
+
+&C.NAME [v( d.bnww )]=$^\+?name( .+)?$:
+	@assert strlen( %1 )={ 
+		@pemit %#=u( .msg, name, Please supply a search prefix ) 
+	}; 
+	think strcat( 
+		n:, setr( n, squish( edit( secure( trim( %1 )), *, ))), %r, 
+		r:, setr( r, 
+			search( eplayer=
+				cor( 
+					strmatch( name( ## ), %qn* ), 
+					strmatch( get( ##/alias ), %qn* )
+				)
+			)
+		), %r, 
+		w:, setr( w, words( %qr )), %r, 
+	); 
+	@assert t( %qw )={ 
+		@pemit %#=u( .msg, name, No names match ) 
+	}; 
+	@assert lte( %qw, 20 )={ 
+		@pemit %#=u( .msg, name, That filter is too vague%; %qw names match ) 
+	}; 
+	@pemit %#=
+		strcat( 
+			header( Names matching '%qn' ), %r, 
+			ansi( xh, u( format.name.header, Name, Alias, Location, Active )), 
+			%r, 
+			divider(), %r, 
+			iter( %qr, u( display.name.line, %i0 ), , %r ), %r, 
+			footer( %qw names )
+		);
+
+@set [v( d.bnww )]/C.NAME = regexp
+
+
+/*
+--------------------------------------------------------------------------------
+-- Name: Displays & Formating --------------------------------------------------
+*/
+
+&format.name.header [v( d.bnww )]=
+	trim( 
+		strtrunc( 
+			cat( 
+				ljust( %0, 20 ), 
+				ljust( %1, 10 ), 
+				ljust( %2, 35 ), 
+				%3 
+			), 
+			width( %# )
+		), 
+		r 
+	)
+
+&format.name.one-line [v( d.bnww )]=
+	trim( 
+		strtrunc( 
+			cat( 
+				ljust( %0, 20 ), 
+				ljust( %1, 10 ), 
+				ljust( %2, 35 ), 
+				%3 
+			), 
+			width( %# )
+		), 
+		r 
+	)
+
+// I know both of those are the same
+
+&display.name.line [v( d.bnww )]=
+	u( format.name.one-line, 
+		moniker( %0 ), 
+		default( %0/alias, ansi( xh, %(none%) )), 
+		if( 
+			cor( hasflag( %0, unfindable ), hasflag( loc( %0 ), unfindable )), 
+			Unfindable, name( loc( %0 ))
+		), 
+		if( andflags( %0, c!D ), 
+			%xhidle [singletime( idle( %0 ))], 
+			singletime( sub( secs( ), convtime( get( %0/last )))) ago 
+		)
+	)

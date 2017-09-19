@@ -1,0 +1,19 @@
+/*
+################################################################################
+## SYSTEM: DUTY ################################################################
+
+Go on or off duty. Can be used by players but is meaningless unless another 
+system uses it, such as 'wikisprite' or 'storyteller'.
+
+*/
+
+&C.STAFF.DUTY [v( d.bnww )]=$^\+?duty$:
+	think setr( d, hasflag( %#, transparent )); 
+	@break %qd={ 
+		@set %#=!transparent; 
+		@pemit %#=u( .msg, duty, You have gone ON duty. ) 
+	}; 
+	@set %#=transparent; 
+	@pemit %#=u( .msg, duty, You have gone OFF duty. )
+
+@set [v( d.bnww )]/C.STAFF.DUTY=regexp
