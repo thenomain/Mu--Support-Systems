@@ -27,14 +27,15 @@ We are shifting this to:
 */
 
 @create Directory and Hangouts <dah>=10
+@fo me=&d.dah me=[search( name=Directory and Hangouts <dah> )]
 @set Directory and Hangouts <dah>=inherit safe
 
 @create Locations Data=10
 @set Locations Data=safe
-@force me=&d.data Directory and Hangouts <dah>=[num( Locations Data )]
-@tel Locations Data=Directory and Hangouts <dah>
+@fo me=&d.data [v( d.dah )]=[num( Locations Data )]
+@tel Locations Data=[v( d.dah )]
 
-@parent Directory and Hangouts <dah>=CODP
+@fo me=@parent [v( d.dah )]=[search( name=Code Object Data Parent <codp> )]
 
 
 /* 
@@ -43,16 +44,16 @@ We are shifting this to:
 */
 
 // .. ansi color for accents & titles
-@vc Directory and Hangouts <dah>=c
+@vc [v( d.dah )]=c
 
 // .. how long is the 'map location'?
-&d.len.maploc Directory and Hangouts <dah>=4
+&d.len.maploc [v( d.dah )]=4
 
 // .. element index
 // .. <name of element>:<attribute>:<index location in 'attribute'>
 // .. '0' means 'entire attribute'
 
-&d.index.elements dah=
+&d.index.elements [v( d.dah )]=
 	name:info:1 
 	type:info:2 
 	rooms:info:3 
@@ -71,23 +72,23 @@ We are shifting this to:
 -- Support Functions -----------------------------------------------------------
 */
 
-&.header Directory and Hangouts <dah>=header( %0 )
-&.footer Directory and Hangouts <dah>=footer( %0 )
-&.divider Directory and Hangouts <dah>=divider( %0 )
+&.header [v( d.dah )]=header( %0 )
+&.footer [v( d.dah )]=footer( %0 )
+&.divider [v( d.dah )]=divider( %0 )
 
-&.wheader Directory and Hangouts <dah>=wheader( %0 )
-&.wfooter Directory and Hangouts <dah>=wfooter( %0 )
-&.wdivider Directory and Hangouts <dah>=wdivider( %0 )
+&.wheader [v( d.dah )]=wheader( %0 )
+&.wfooter [v( d.dah )]=wfooter( %0 )
+&.wdivider [v( d.dah )]=wdivider( %0 )
 
-&.isstaff Directory and Hangouts <dah>=isstaff( %0 )
-&.msg Directory and Hangouts <dah>=ansi( h, <%0>, n, %b%1 )
-&.plural Directory and Hangouts <dah>=if( eq( %0, 1 ), %1, %2 )
+&.isstaff [v( d.dah )]=isstaff( %0 )
+&.msg [v( d.dah )]=ansi( h, <%0>, n, %b%1 )
+&.plural [v( d.dah )]=if( eq( %0, 1 ), %1, %2 )
 
 // .. isdbref() only passes if the dbref exists. we want anything dbref-ish
-&.dbreflike Directory and Hangouts <dah>=
+&.dbreflike [v( d.dah )]=
 	cand( strmatch( %0, #* ), isint( rest( %0, # )))
 
 // .. pull dbref from the attribute; a quick place to change it if needed
-&.attr2dbref Directory and Hangouts <dah>=elements( %0, 2, . )
+&.attr2dbref [v( d.dah )]=elements( %0, 2, . )
 
 

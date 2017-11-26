@@ -8,7 +8,7 @@ A filter that returns connected people who aren't dark.
 
 */
 
-&filter.people-in-room Directory and Hangouts <dah>=
+&filter.people-in-room [v( d.dah )]=
 	cor(
 		andflags(%0, Wc!D), 
 		andflags(%0, Zc!D), 
@@ -27,7 +27,7 @@ a.k.a. occupied hangouts - filters out the 0:xxx entries
 
 */
 
-&filter.location.occupied Directory and Hangouts <dah>=
+&filter.location.occupied [v( d.dah )]=
 	gt( first( %0, : ), 0 )
 
 
@@ -39,7 +39,7 @@ A filter that removes unfindable people.
 
 */
 
-&filter.findable-only Directory and Hangouts <dah>=
+&filter.findable-only [v( d.dah )]=
 	not( hasflag( %0, unfindable ))
 
 
@@ -57,7 +57,7 @@ A filter that removes unfindable people.
 // -- Filter: Findable? -------------------------------------------------------- 
 // Can '%1' find '%0'?
 
-&filter.findable Directory and Hangouts <dah>=
+&filter.findable [v( d.dah )]=
 	findable( %1, %0 )
 
 
@@ -67,7 +67,7 @@ A filter that removes unfindable people.
 // 1: dbref of viewer
 // Just strips out <population>: and passes to 'f.lock.pass'
 
-&filter.lock.pass Directory and Hangouts <dah>=
+&filter.lock.pass [v( d.dah )]=
 	u( f.lock.pass, rest( %0, : ), %1 )
 
 
@@ -107,7 +107,7 @@ We generally know which element we're grabbing, but this is the full treatment.
 
 */
 
-&filter.element Directory and Hangouts <dah>=
+&filter.element [v( d.dah )]=
 	strmatch( 
 		elements( get( %2/%0 ), %3, | ), 
 		%1 
@@ -129,7 +129,7 @@ We generally know which element we're grabbing, but this is the full treatment.
 
 */
 
-&sortby.element.name Directory and Hangouts <dah>=
+&sortby.element.name [v( d.dah )]=
 	comp( 
 		first( get( v( d.data )/%0 ), | ), 
 		first( get( v( d.data )/%1 ), | )

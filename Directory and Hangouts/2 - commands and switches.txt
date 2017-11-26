@@ -6,7 +6,7 @@ q0: Secured %1, can be safely clobbered after this
 
 */
 
-&c.directory Directory and Hangouts <dah>=
+&c.directory [v( d.dah )]=
 	$^\+?dir(.*)$:@pemit %#=
 		switch( 
 			strtrunc( setr( 0, trim( %1 )), 1 ), 
@@ -23,8 +23,8 @@ q0: Secured %1, can be safely clobbered after this
 
 // --
 
-@set Directory and Hangouts <dah>/c.directory=regex
-@set Directory and Hangouts <dah>/c.directory=no_parse
+@set [v( d.dah )]/c.directory=regex
+@set [v( d.dah )]/c.directory=no_parse
 
 
 
@@ -36,7 +36,7 @@ q0: Partial-name-match the switch
 
 */
 
-&c.directory.switch Directory and Hangouts <dah>=
+&c.directory.switch [v( d.dah )]=
 
 // .. do I know the switch?
 	case( 1, 
@@ -62,7 +62,7 @@ q0: Partial-name-match the switch
 		u( %q0, %1 ), 
 
 // .. else, no, I don't know it
-		No such switch for 'dir'.  Valid switches are: 
+		No such switch for 'dir'. Valid switches are: 
 		[itemize( 
 			iter( 
 				sort( lattr( me/c.directory/* )), 
@@ -81,7 +81,7 @@ q0: <population>:<main dbref> <population>:<main dbref>, ranked & filtered
 
 */
 
-&c.directory.default Directory and Hangouts <dah>=
+&c.directory.default [v( d.dah )]=
 	ifelse(
 		t( 
 			setr( 0, 
@@ -106,7 +106,7 @@ q0: First match of sorted name~dbref
 
 */
 
-&c.directory.specific Directory and Hangouts <dah>=
+&c.directory.specific [v( d.dah )]=
 	case( 0, 
 		t( setr( 0, u( f.find.location, %0 ))), 
 		u( .msg, dir, Couldn't find location '%0'. ), 
@@ -129,7 +129,7 @@ Just like 'default', but lists all hangouts.
 
 */
 
-&c.directory/all Directory and Hangouts <dah>=
+&c.directory/all [v( d.dah )]=
 	u( display.locations, u( f.population.rank, 1 ), 1, %# )
 
 
@@ -147,7 +147,7 @@ q2: <type>
 
 */
 
-&c.directory/create Directory and Hangouts <dah>=
+&c.directory/create [v( d.dah )]=
 	strcat( 
 		setq( 0, trim( first( %0, = ))), 
 		setq( 1, trim( before( rest( %0, = ), / ))), 
@@ -201,7 +201,7 @@ d: dbref
 
 */
 
-&c.directory/set Directory and Hangouts <dah>=
+&c.directory/set [v( d.dah )]=
 	strcat( 
 		setq( 0, trim( first( %0, / ))), 
 		setq( 1, trim( before( rest( %0, / ), = ))), 
@@ -256,7 +256,7 @@ q0: Hangout~attribute
 
 */
 
-&c.directory/delete Directory and Hangouts <dah>=
+&c.directory/delete [v( d.dah )]=
 	case( 0, 
 
 		u( .isstaff, %# ), 
@@ -299,7 +299,7 @@ Add a room dbref to an existing hangout, or removes it from same.
 
 */
 
-&c.directory/room Directory and Hangouts <dah>=
+&c.directory/room [v( d.dah )]=
 	strcat( 
 		setq( 0, before( %0, = )), 
 		setq( 1, u( f.find.location, %q0 )), 
@@ -357,7 +357,7 @@ Add a room dbref to an existing hangout, or removes it from same.
 
 */
 
-&c.directory/who Directory and Hangouts <dah>=
+&c.directory/who [v( d.dah )]=
 	case( 0, 
 		words( %0 ), 
 		u( .msg, dir/who, 

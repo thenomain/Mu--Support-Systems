@@ -41,7 +41,7 @@ List all hangouts in the rank-hangouts format:
 
 */
 
-&f.population.calculate Directory and Hangouts <dah>=
+&f.population.calculate [v( d.dah )]=
 	iter( 
 		if( strlen( %0 ), 
 			%0, 
@@ -69,7 +69,7 @@ returns: population across all rooms
 
 */
 
-&f.get.population Directory and Hangouts <dah>=
+&f.get.population [v( d.dah )]=
 	localize( strcat( 
 		setq( r, u( f.get.element, rooms, %0 )), 
 		setq( w, objeval( %#, lwho( ))), 
@@ -103,7 +103,7 @@ returns: population across all rooms
 
 */
 
-&f.get.population.room Directory and Hangouts <dah>=
+&f.get.population.room [v( d.dah )]=
 	words( 
 		setinter( 
 			lcon( %0, CONNECT ), 
@@ -125,7 +125,7 @@ returns:
 
 */
 
-&f.get.occupants Directory and Hangouts <dah>=
+&f.get.occupants [v( d.dah )]=
 	localize( strcat( 
 		setq( r, u( f.get.element, rooms, %0 )), 
 		setq( w, objeval( %1, lwho( ))), 
@@ -152,7 +152,7 @@ returns: list of visible, findable people in that room
 
 */
 
-&f.get.occupants.room Directory and Hangouts <dah>=
+&f.get.occupants.room [v( d.dah )]=
   filter( filter.findable, 
 		setinter( 
 			lcon( %0, CONNECT ), 
@@ -174,7 +174,7 @@ to &display.detail
 
 */
 
-&f.hangout-specific Directory and Hangouts <dah>=
+&f.hangout-specific [v( d.dah )]=
 	strcat( 
 		setq( 0, u( f.find.location, %0 )), 
 		ifelse( %q0, 
@@ -194,7 +194,7 @@ returns: 'full name|dbref' of first sorted match
 
 */
 
-&f.find.location Directory and Hangouts <dah>=
+&f.find.location [v( d.dah )]=
 	case( 1, 
 
 // .. dbref, or at least something that looks like one
@@ -265,7 +265,7 @@ n: new room list
 
 */
 
-&f.room.add Directory and Hangouts <dah>=
+&f.room.add [v( d.dah )]=
 	strcat( 
 		setq( r, u( f.get.element, rooms, %1 )), 
 		switch( 0, 
@@ -313,7 +313,7 @@ n: new room list
 */
 
 
-&f.room.remove Directory and Hangouts <dah>=
+&f.room.remove [v( d.dah )]=
 	strcat( 
 		setq( r, u( f.get.element, rooms, %1 )), 
 		setq( l, match( %qr, %2 )), 
@@ -359,7 +359,7 @@ Is '%0' a valid element?
 
 */
 
-&f.iselement  Directory and Hangouts <dah>=
+&f.iselement  [v( d.dah )]=
 		t( match( v( d.index.elements ), %0:*:* ))
 
 
@@ -374,7 +374,7 @@ Each game will probably have to change this.
 
 */
 
-&f.get.maploc Directory and Hangouts <dah>=
+&f.get.maploc [v( d.dah )]=
 	get( %0/coord )
 
 
@@ -386,7 +386,7 @@ Each game will probably have to change this.
 
 */
 
-&f.get.description Directory and Hangouts <dah>=
+&f.get.description [v( d.dah )]=
 	default( %0/short-desc, <no &short-desc set> )
 
 
@@ -404,7 +404,7 @@ d: entire directory attribute
 
 */
 
-&f.get.element Directory and Hangouts <dah>=
+&f.get.element [v( d.dah )]=
 	localize( strcat( 
 		setq( e, grab( v( d.index.elements ), %0:*:* )), 
 		setq( a, elements( %qe, 2, : )), 
@@ -456,7 +456,7 @@ have been a thing.
 
 */
 
-&f.set.element Directory and Hangouts <dah>=
+&f.set.element [v( d.dah )]=
 	localize( strcat( 
 		setq( e, grab( v( d.index.elements ), %0:*:* )), 
 		setq( a, elements( %qe, 2, : )), 
@@ -503,7 +503,7 @@ Can also filter a list of location dbrefs:
 l: lock attr
 */
 
-&f.lock.pass Directory and Hangouts <dah>=
+&f.lock.pass [v( d.dah )]=
 	localize( strcat( 
 		setq( l, loc.%0.lock ),
 
