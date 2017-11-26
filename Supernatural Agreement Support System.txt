@@ -13,22 +13,22 @@ For now, the Blood-Bather Ritual system ( +baths ) is the master prototype.
 */
 
 @create Supernatural Agreement Support System <SASS>=10
-&fo me=&d.sass me=[search( name=Supernatural Agreement Support System <SASS> )]
+@fo me=&d.sass me=search( name=Supernatural Agreement Support System <SASS> )
 @set Supernatural Agreement Support System <SASS>=inherit safe
 
 @Desc [v( d.sass )]=
-	localize( 
-		[ansi( h, SASS Systems )]: 
-		[setq( q, iter( children( %! ), name( %i0 ), , lit( %,%b )))]
-		[if( t( %qq ), %qq, None Yet )] 
-	)
+	localize( strcat( 
+		ansi( h, SASS Systems ), :, %b, 
+		setq( q, iter( children( %! ), name( %i0 ), , lit( %,%b ))), 
+		if( t( %qq ), %qq, None Yet )
+	))
 
 /*
 --------------------------------------------------------------------------------
 -- Optional: Code Object Data Parent -------------------------------------------
 */
 
-@fo me=@parent [v( d.sass )]=[search( name=Code Object Data Parent <codp> )]
+@fo me=@parent [v( d.sass )]=search( name=Code Object Data Parent <codp> )
 
 &prefix.elements [v( d.sass )]=element.
 &prefix.displays [v( d.sass )]=display. format.
@@ -103,29 +103,31 @@ The name of the storage group. Must exist, always.
 	)
 
 &element.name.display [v( d.sass )]=
-	localize( 
-		[setq( t, name )]
-		[setq( v, u( .titlestr, %0 ))]
-		[setq( e, u( f.element.validate, %qt, %0 ))]
-		[if( t( %qe ), 
+	localize( strcat(  
+		setq( t, name ), 
+		setq( v, u( .titlestr, %0 )), 
+		setq( e, u( f.element.validate, %qt, %0 )), 
+		if( t( %qe ), 
 			%qv, 
-			[ansi( r, %qv )]
-			[if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
-		)]
-	)
+			strcat( 
+				ansi( r, %qv ), 
+				if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))
+			)
+		)
+	))
 
 &element.name.filter [v( d.sass )]=
-	localize( 
-		[setq( t, name )]
-		[setq( e, get( %!/element.%qt.position ))]
-		[filter( fil.matches, 
+	localize( strcat( 
+		setq( t, name ), 
+		setq( e, get( %!/element.%qt.position )), 
+		filter( fil.matches, 
 			lattr( v( d.database )/[elements( %qe, 2 )]* ), 
 			, 
 			, 
-			[elements( %qe, 3 )], 
+			elements( %qe, 3 ), 
 			%0
-		)]
-	)
+		)
+	))
 
 /*
 --------------------------------------------------------------------------------
@@ -166,38 +168,35 @@ This is in most versions, so it's kept on the parent.
 	)
 
 &element.expires.display [v( d.sass )]=
-	localize( 
-		[setq( t, expires )]
-		[setq( v, if( isint( %0 ), timefmt( $Y-$m-$d, %0 ), %0 ))]
-		[setq( e, u( f.element.validate, %qt, %0 ))]
-		[if( t( %qe ), 
+	localize( strcat(  
+		setq( t, expires ), 
+		setq( v, if( isint( %0 ), timefmt( $Y-$m-$d, %0 ), %0 )), 
+		setq( e, u( f.element.validate, %qt, %0 )), 
+		if( t( %qe ), 
 			%qv, 
 			[ansi( r, %qv )]
 			[if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
-		)]
-	)
+		)
+	))
 
 // --
 
 &element.filter.expires [v( d.sass )]=
-	localize( 
-		[setq( t, expires )]
-		[setq( e, get( %!/element.%qt.position ))]
-		[setq( k, 
+	localize( strcat(  
+		setq( t, expires )
+		setq( e, get( %!/element.%qt.position ))
+		setq( k, 
 			case( %2, 
 				>, is_more, 
 				<, is_less, 
 				=, is, 
 				switch( %2, gr*, is_more, mo*, is_more, le*, is_less, is )
 			)
-		)]
-		[filter( fil.%qk, 
+		), 
+		filter( fil.%qk, 
 			lattr( v( d.database )/[elements( %qe, 2 )]* ), 
-			, 
-			, 
-			[elements( %qe, 3 )], 
-			%0
-		)]
+			, , elements( %qe, 3 ), %0
+		)
 	)
 
 /*
@@ -211,22 +210,22 @@ A list of players associated with the element. Common, so left on parent.
 &element.players.position [v( d.sass )]=players entry. 3
 
 &element.players.validate [v( d.sass )]=
-localize( 
-	case( 0, 
-		t( %0 ), 
-		#-1 'Players' list cannot be empty, 
+	localize( 
+		case( 0, 
+			t( %0 ), 
+			#-1 'Players' list cannot be empty, 
 		
-		iter( %0, 
-			case( 0, 
-				t( pmatch( %i0 )), #-1 Player not found, 
-				u( .isapproved, %i0, approved ), #-1 Player not approved, 
-				not( u( .isapproved, %i0, frozen )), #-1 Player is frozen, 
-				1
+			iter( %0, 
+				case( 0, 
+					t( pmatch( %i0 )), #-1 Player not found, 
+					u( .isapproved, %i0, approved ), #-1 Player not approved, 
+					not( u( .isapproved, %i0, frozen )), #-1 Player is frozen, 
+					1
+				), 
+				, |
 			)
-			, , |
 		)
 	)
-)
 
 &element.players.convert [v( d.sass )]=iter( %0, pmatch( %i0 ))
 
@@ -235,31 +234,32 @@ localize(
 &element.players.set-check [v( d.sass )]=1
 
 &element.players.display [v( d.sass )]=
-	localize( 
-		[setq( t, players )]
-		[iter( %0, 
-			[setq( e, u( f.element.validate, %qt, %i0 ))]
-			[setq( v, name( %i0 ))]
-			[if( strmatch( %qe, #-* ), 
-				[ansi( r, %qv )]
-				[if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))], 
-				%qv
-			)], 
+	localize( strcat(  
+		setq( t, players ), 
+		iter( %0, 
+			strcat( 
+				setq( e, u( f.element.validate, %qt, %i0 )), 
+				setq( v, name( %i0 )), 
+				if( strmatch( %qe, #-* ), 
+					strcat( 
+						ansi( r, %qv ), 
+						if( t( %1 ), ansi( xh, %b%([rest( %qe )]%) ))
+					), 
+					%qv
+				)
+			), 
 			, %,%b
-		)]
-	)
+		)
+	))
 
 &element.players.filter [v( d.sass )]=
-	localize( 
-		[setq( t, players )]
-		[setq( e, get( %!/element.%qt.position ))]
-		[filter( fil.is, 
+	localize( strcat( 
+		setq( t, players ), 
+		setq( e, get( %!/element.%qt.position )), 
+		filter( fil.is, 
 			lattr( v( d.database )/[elements( %qe, 2 )]* ), 
-			, 
-			, 
-			[elements( %qe, 3 )], 
-			%0
-		)]
+			, , elements( %qe, 3 ), %0
+		)
 	)
 
 /*
@@ -276,16 +276,13 @@ The filler note-text. Always available.
 &element.text.validate [v( d.sass )]=1
 
 &element.text.filter [v( d.sass )]=
-	localize( 
-		[setq( t, text )]
-		[setq( e, get( %!/element.%qt.position ))]
-		[filter( fil.matches, 
+	localize( strcat( 
+		setq( t, text ), 
+		setq( e, get( %!/element.%qt.position )), 
+		filter( fil.matches, 
 			lattr( v( d.database )/[elements( %qe, 2 )]* ), 
-			, 
-			, 
-			[elements( %qe, 3 )], 
-			%0
-		)]
+			, , elements( %qe, 3 ), %0
+		)
 	)
 
 /*
@@ -420,9 +417,9 @@ e: element positions list
 */
 
 &f.get.entry.elements [v( d.sass )]=
-	localize( 
-		[setq( e, u( f.list.elements.position, %1 ))]
-		[case( 0, 
+	localize( strcat( 
+		setq( e, u( f.list.elements.position, %1 )), 
+		case( 0, 
 			comp( %qe, ), 
 			#-1 Element(s) requested unknown, 
 
@@ -438,8 +435,8 @@ e: element positions list
 				), 
 				|, |
 			)
-		)] 
-	)
+		)
+	))
 
 
 /*
@@ -1464,15 +1461,15 @@ The bath tub needed.
 	case( 0, t( %0 ), #-1 'Bath' cannot be empty, 1 )
 
 &element.bath.display [v( d.sass.bbb )]=
-	localize( 
-		[setq( t, bath )]
-		[setq( v, u( .titlestr, %0 ))]
-		[setq( e, u( f.element.validate, %qt, %0 ))]
-		[if( t( %qe ), 
+	localize( strcat( 
+		setq( t, bath ), 
+		setq( v, u( .titlestr, %0 )), 
+		setq( e, u( f.element.validate, %qt, %0 )), 
+		if( t( %qe ), 
 			%qv, 
 			[ansi( r, %qv )]
 			[if( t( %1 ), ansi( xh, %b%([rest( %qe )]%) ))]
-		)]
+		)
 	)
 
 
@@ -1491,14 +1488,14 @@ Kind of blood needed for the ritual.
 	case( 0, t( %0 ), #-1 'Blood' cannot be empty, 1 )
 
 &element.blood.display [v( d.sass.bbb )]=
-	localize( 
-		[setq( t, blood )]
-		[setq( v, u( .titlestr, %0 ))]
-		[setq( e, u( f.element.validate, %qt, %0 ))]
-		[if( t( %qe ), 
+	localize( strcat( 
+		setq( t, blood ), 
+		setq( v, u( .titlestr, %0 )), 
+		setq( e, u( f.element.validate, %qt, %0 )), 
+		if( t( %qe ), 
 			%qv, 
 			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
-		)]
+		)
 	)
 
 
@@ -1515,14 +1512,14 @@ How often? ( Text; easily copy/pasted to update the 'expires'. )
 &element.frequency.validate [v( d.sass.bbb )]=
 	case( 0, t( %0 ), #-1 'Frequency' cannot be empty, 1 )
 &element.frequency.display [v( d.sass.bbb )]=
-	localize( 
-		[setq( t, frequency )]
-		[setq( v, u( .titlestr, %0 ))]
-		[setq( e, u( f.element.validate, %qt, %0 ))]
-		[if( t( %qe ), 
+	localize( strcat( 
+		setq( t, frequency ), 
+		setq( v, u( .titlestr, %0 )), 
+		setq( e, u( f.element.validate, %qt, %0 )), 
+		if( t( %qe ), 
 			%qv, 
 			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
-		)]
+		)
 	)
 
 
@@ -1541,14 +1538,14 @@ What does the Bather get out of it?
 	case( 0, t( %0 ), #-1 'Effects' cannot be empty, 1 )
 
 &element.effects.display [v( d.sass.bbb )]=
-	localize( 
-		[setq( t, effects )]
-		[setq( v, u( .titlestr, %0 ))]
-		[setq( e, u( f.element.validate, %qt, %0 ))]
-		[if( t( %qe ), 
+	localize( strcat( 
+		setq( t, effects ), 
+		setq( v, u( .titlestr, %0 )), 
+		setq( e, u( f.element.validate, %qt, %0 )), 
+		if( t( %qe ), 
 			%qv, 
 			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
-		)]
+		)
 	)
 
 
@@ -1566,14 +1563,14 @@ What else does the Bather need to do?
 	case( 0, t( %0 ), #-1 'Preparation' cannot be empty, 1 )
 
 &element.preparation.display [v( d.sass.bbb )]=
-	localize( 
-		[setq( t, preparation )]
-		[setq( v, u( .titlestr, %0 ))]
-		[setq( e, u( f.element.validate, %qt, %0 ))]
-		[if( t( %qe ), 
+	localize( strcat(  
+		setq( t, preparation ), 
+		setq( v, u( .titlestr, %0 )), 
+		setq( e, u( f.element.validate, %qt, %0 )), 
+		if( t( %qe ), 
 			%qv, 
 			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
-		)]
+		)
 	)
 
 
@@ -1797,9 +1794,9 @@ can be set, 'expires' must also be set
 
 
 &element.players.set-check mw=
-	localize( 
-		[setq( m, expires )]
-		[if( 
+	localize( strcat(  
+		setq( m, expires ), 
+		if( 
 			land( 
 				iter( ulocal( f.get.entry.elements, %0, %qm ), 
 					t( %i0 ), 
@@ -1809,7 +1806,7 @@ can be set, 'expires' must also be set
 			1, 
 			#-1 An entry must have [u( .itemize, %qm )] set 
 			before you can set players.
-		)]
+		)
 	)
 
 
@@ -1831,14 +1828,14 @@ can be set, 'expires' must also be set
 	case( 0, t( %0 ), #-1 'Location' cannot be empty, 1 )
 
 &element.location.display mw=
-	localize( 
-		[setq( t, location )]
-		[setq( v, u( .titlestr, %0 ))]
-		[setq( e, u( f.element.validate, %qt, %0 ))]
-		[if( t( %qe ), 
+	localize( strcat( 
+		setq( t, location ), 
+		setq( v, u( .titlestr, %0 )), 
+		setq( e, u( f.element.validate, %qt, %0 )), 
+		if( t( %qe ), 
 			%qv, 
 			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
-		)]
+		)
 	)
 
 // --
@@ -1853,17 +1850,20 @@ can be set, 'expires' must also be set
 	u( element.players.convert, %0 )
 
 &element.whitelist.display mw=
-	localize( 
-		[setq( t, whitelist )]
-		[iter( %0, 
-			[setq( e, u( f.element.validate, %qt, %i0 ))]
-			[setq( v, name( %i0 ))]
-			[if( strmatch( %qe, #-* ), 
-				[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))], 
-				%qv
-			)], 
+	localize( strcat( 
+		setq( t, whitelist ), 
+		iter( %0, 
+			strcat( 
+				setq( e, u( f.element.validate, %qt, %i0 )), 
+				setq( v, name( %i0 )), 
+				if( strmatch( %qe, #-* ), 
+					[ansi( r, %qv )]
+					[if( t( %1 ), ansi( xh, %b%([rest( %qe )]%) ))], 
+					%qv
+				)
+			), 
 			, %,%b
-		)]
+		)
 	)
 
 
@@ -1898,29 +1898,27 @@ The source of the ward, what kind of power or item created it
 	)
 
 &element.source.convert mw=
-	localize( 
-		strcat( 
-			setq( g, 
-				grab( 
-					strcat( |, sort( v( d.source-types ), , |, | )), 
-					%0*, |
-				)
-			), 
+	localize( strcat( 
+		setq( g, 
+			grab( 
+				strcat( |, sort( v( d.source-types ), , |, | )), 
+				%0*, |
+			)
+		), 
 
-			if( t( %qg ), %qg, %0 )
-		)
-	)
+		if( t( %qg ), %qg, %0 )
+	))
 
 &element.source.display mw=
-	localize( 
-		[setq( t, source )]
-		[setq( v, u( .titlestr, %0 ))]
-		[setq( e, u( f.element.validate, %qt, %0 ))]
-		[if( t( %qe ), 
+	localize( strcat( 
+		setq( t, source ), 
+		setq( v, u( .titlestr, %0 )), 
+		setq( e, u( f.element.validate, %qt, %0 )), 
+		if( t( %qe ), 
 			%qv, 
-			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%)))]
-		)]
-	)
+			[ansi( r, %qv )][if( t( %1 ), ansi( xh, %b%([rest( %qe )]%) ))]
+		)
+	))
 
 
 /*
