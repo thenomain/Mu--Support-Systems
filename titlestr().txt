@@ -1,4 +1,4 @@
-@@ &f_titlestr #107=iter(lcstr(%0), capstr(%i0))
+// &f_titlestr #107=iter(lcstr(%0), capstr(%i0))
 
 You will notice that u(#107/xxx) features promanently.  Because %!, for some 
 reason, will not work on the data list calls.  Suffice it to say, edit the #107 
@@ -12,19 +12,19 @@ Called as: titlestr(<text>[, <exception words>])
 ---
 
 &f_titlestr #107=
-@@ 0: what to title
-@@ 1: list of additional exception words
-@@ 
-@@ qe: exception item
+// 0: what to title
+// 1: list of additional exception words
+// 
+// qe: exception item
 
 	iter(
 		lcstr(%0), 
 		case(
 			1, 
-@@ if it's a function, leave it lower case (even if it matches an exception)
+// if it's a function, leave it lower case (even if it matches an exception)
 			t(regmatch(%i0, u(#107/d_titlestr-regexp))), 
 			%i0, 
-@@ if it ends with punctuation, recurse without it
+// if it ends with punctuation, recurse without it
 			t(
 				setr(
 					e, 
@@ -32,13 +32,13 @@ Called as: titlestr(<text>[, <exception words>])
 				)
 			), 
 			[ulocal(#107/f_titlestr, strtrunc(%i0, dec(strlen(%i0))), %1)]%qe, 
-@@ if it's in the exception list or passed, restore it
+// if it's in the exception list or passed, restore it
 			t(setr(e, grab([u(#107/d_titlestr-exception)] %1, %i0))), 
 			%qe, 
-@@ if it's in the notitle list and not the first element, leave it lower case
+// if it's in the notitle list and not the first element, leave it lower case
 			and(t(match(u(#107/d_titlestr-notitle), %i0)), neq(inum(0), 1)), 
 			%i0, 
-@@ if it starts with punctuation, recurse the rest
+// if it starts with punctuation, recurse the rest
 			t(
 				setr(
 					e, 
@@ -49,7 +49,7 @@ Called as: titlestr(<text>[, <exception words>])
 				)
 			), 
 			%qe[ulocal(#107/f_titlestr, rest(%i0, %qe), %1)], 
-@@ else, capitalize
+// else, capitalize
 			capstr(%i0)
 		)
 	)
