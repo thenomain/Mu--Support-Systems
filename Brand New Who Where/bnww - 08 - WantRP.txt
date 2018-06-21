@@ -8,14 +8,17 @@ Also called 'rp' on some games.
 
 &adisconnect.wantrp [v( d.bnww )]=@set %0=.prefs.wantrp:;
 
+
+// -- Turn On --
+
 &c.wantrp/on [v( d.bnww )]=$^\+?wantrp/on$:
 	@assert u( .isapproved, %# )={ 
 		@pemit %#=u( .msg, wantrp/on, Must be approved ) 
 	}; 
-	@assert not( hasattr( %#, .prefs.wantrp ))={ 
+	@break hasattr( %#, .prefs.wantrp )={ 
 		@pemit %#=u( .msg, wantrp/on, Already on ) 
 	}; 
-	@set %#=.prefs.wantrp:yes; 
+	@fo %!=@set %#=.prefs.wantrp:[secs()]; 
 	@pemit %#=u( .msg, wantrp/on, 
 		strcat( 
 			You are now set to seeking RP, 
@@ -25,10 +28,11 @@ Also called 'rp' on some games.
 			)
 		)
 	);
+	@cemit [v( d.channel.rp )]=[ansi( hr, +, h, name( %# ))] is seeking RP!; 
 
-@set [v( d.bnww )]/c.wantrp/on = regexp
+@set [v( d.bnww )]/c.wantrp/on=regexp
 
-
+// -- Turn Off --
 
 &c.wantrp/off [v( d.bnww )]=$^\+?wantrp/off$:
 	@assert u( .isapproved, %# )={ 
@@ -45,28 +49,38 @@ Also called 'rp' on some games.
 
 @set [v( d.bnww )]/c.wantrp/off = regexp
 
-
+// -- Check List --
 
 &c.wantrp [v( d.bnww )]=$^\+?wantrp( .*)?$:@pemit %#=
 	strcat( 
 		setq( w, setunion( filter( filter.wantrp, u( .lwho, %# )), )), 
 		setq( c, v( d.channel.rp )), 
 		setq( a, if( setr( a, comalias( %#, %qc )), %qa, %qc )), 
-		setq( f, [u( .plural, words( setinter( cwho( %qc ), u( .lwho, %# ))), person, people )] on the '%qa' channel ), 
+		setq( f, 
+			[u( .plural, 
+				words( setinter( cwho( %qc ), u( .lwho, %# ))), 
+				person, 
+				people 
+			)] 
+			on the '%qa' channel 
+		), 
 		if( t( trim( %1 )), 
 			setq( w, filter( fil.name-match, %qw, , , trim( %1 )))
 		), 
 		u( display.who.complete, %#, Who Wants RP, %qf, %qw )
 	)
 
-@set [v( d.bnww )]/C.WANTRP = regexp
+@set [v( d.bnww )]/c.wantrp=regexp
+
 
 /*
 --------------------------------------------------------------------------------
 -- WantRP: Data & Filters & Functions ------------------------------------------
 */
 
-&d.channel.rp [v( d.bnww )]=RP Chat
+&d.wantrp.timeout [v( d.bnww )]=7200
+
+&d.channel.rp [v( d.bnww )]=Public
 
 @if not( cwho( get( v( d.bnww )/d.channel.rp )))=
 	think ansi( hr, There is no '[get( v( d.bnww )/d.channel.rp )]' Channel )
@@ -75,3 +89,36 @@ Also called 'rp' on some games.
 
 &f.check.wantrp [v( d.bnww )]=
 	cand( hasattr( %0, .prefs.wantrp ), isapproved( %0 ))
+
+
+/*
+--------------------------------------------------------------------------------
+-- WantRP: Timeout -------------------------------------------------------------
+
+After &d.wantrp.timeout seconds (default: 2 hours), turn off the flag.
+
+*/
+
+&cron.wantrp.timeout [v( d.bnww )]=
+	@dolist search( eplayer=hasattr( ##, .prefs.wantrp ))={ 
+		@if gte( 
+			secs(), 
+			add( get( ##/.prefs.wantrp ), v( d.wantrp.timeout ))
+		)={ 
+			&.prefs.wantrp ##=; 
+			@pemit ##=u( .msg, wantrp, 
+				Automatically turning off +wantrp. 
+				If you are still seeking RP%, please turn it back on! 
+			); 
+		}
+	}
+
+@fo me=
+	&cron_time_wantrp-timeout [get( v( d.bnww )/d.mushcron )]=||||00 01 02 03 04 
+	05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 
+	30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 
+	55 56 57 58 59|
+
+@fo me=
+	&cron_job_wantrp-timeout [get( v( d.bnww )/d.mushcron )]=
+		@trigger [v( d.bnww )]/cron.wantrp.timeout
