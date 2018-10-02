@@ -62,7 +62,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 		   and run the rest of this script.%) 
 	)
 
-&cron_job_1minute v( d.mushcron )=@dol v( jobs_1minute )=@trigger ##
+&cron_job_1minute [v( d.mushcron )]=@dol v( jobs_1minute )=@trigger ##
 
 @fo me=&jobs_1minute [v( d.mushcron )]=
 	[setunion( 
@@ -70,7 +70,7 @@ minutes on it; this will guarantee that it's triggered every minute.
 		[get( v( d.mushcron )/jobs_1minute )] 
 	)]
 
-&trigger_sql v( d.mushcron )=
+&trigger_sql [v( d.mushcron )]=
 	@assert sql( select 1 )=
 	@cemit Staff=Alert: SQL Connection down. Please @restart.
 
