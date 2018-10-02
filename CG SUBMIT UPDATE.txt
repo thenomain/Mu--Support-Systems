@@ -1,0 +1,95 @@
+/*
+I ADMIT, I DON'T KNOW WHY THIS IS IN THE 'SUPPORT SYSTEMS' DIRECTORY.
+I SHOULD FIND OUT SOME DAY.
+- Oct 2 2018
+
+
+
+Lock 'cg/submit' for certain templates; is a part of the 'request' system:
+
+cg/lock [!]<template>
+
+
+
+&C.CG/SUBMIT #321=$cg/sub*:@assert isapproved( %#, chargen )={ @pemit %#=u( .msg, cg/submit, You must be in chargen to use this. ) }; @trigger %!/trig.command.request=/cgsubmit [name( %# )]=[u( %!/d.content.cg/submit, %# )], %#
+
+&d.locked_templates: <list of templates>
+
+@force me=&d.dd #321=[search( name=Data Dictionary <dd> )]
+
+*/
+
+&c.cg/lock.no_args #321=$^\+?cg/lock$:
+	@pemit %#=u( .msg, cg/lock, 
+		Templates that cannot be used with 'cg/submit': 
+		[edit( v( d.locked_templates ), ., %,%b )]
+	); 
+
+
+@set #321/c.cg/lock.no_args=regex
+
+
+&c.cg/lock #321=$^\+?cg/(un)?lock (!)?(.*)$:
+	think strcat( 
+		unlock?: %b, setr( u, cor( t( %1 ), t( %2 )) ), %r, 
+
+		template:, %b, 
+		setr( t, grab( .[get( v( d.dd )/bio.template )], %3*, . )), %r, 
+
+		locked templates:, %b, setr( l, v( d.locked_templates )), %r, 
+
+		already locked?, %b, setr( a, t( match( %ql, %qt, . ))), %r, 
+
+	); 
+
+	@assert isstaff( %# )={ 
+		@pemit %#=u( .msg, cg/lock, Staff only )
+	}; 
+
+	@assert words( %qt )={ 
+		@pemit %#=u( .msg, cg/lock, No such template found )
+	}; 
+
+	@break cand( %qu, not( %qa ))={ 
+		@pemit %#=u( .msg, cg/lock, Template not locked )
+	}; 
+
+	@break cand( not( %qu ), t( %qa ))={ 
+		@pemit %#=u( .msg, cg/lock, Template already locked )
+	}; 
+
+	think strcat( 
+		new locked templates:, %b, 
+		setr( n, 
+			if( %qu, 
+				setdiff( %ql, %qt, . ), 
+				setunion( %ql, %qt, . )
+			)
+		), %r, 
+
+		set:, %b, setr( s, set( %!, d.locked_templates:%qn )), %r, 
+	); 
+
+	@break words( %qs )={ 
+		@pemit %#=u( .msg, cg/lock, ERROR SETTING ATTRIBUTE: %qs )
+	}; 
+
+	@pemit %#=
+		u( .msg, cg/lock, 
+			'%qt' was successfully [if( %qu, removed from, added to )] 
+			the chargen template locks%, [if( %qu, dis )]allowing anyone 
+			from using 'cg/submit' with that template
+		)
+
+
+@set #321/c.cg/lock=regex
+
+// --
+
+&C.CG/SUBMIT #321=$^\+?cg/sub.*$:
+	@assert isapproved( %#, chargen )={ @pemit %#=u( .msg, cg/submit, You must be in chargen to use this ) }; 
+	@assert t( setr( t, getstat( %#/template )))={ @pemit %#=u( .msg, cg/submit, You must set a template ) }; 
+	@break match( v( d.locked_templates ), %qt, . )={ @pemit %#=u( .msg, cg/submit, Your template is currently closed for chargen submissions%; if this is in error%, ask a staffer to 'cg/unlock [lcstr( %qt )]' ) }; 
+	@trigger %!/trig.command.request=/cgsubmit [name( %# )]=[u( %!/d.content.cg/submit, %# )], %#
+
+@set #321/c.cg/submit=regexp

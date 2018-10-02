@@ -1,0 +1,542 @@
+/*
+================================================================================
+== User-Defined Functions <udf> ================================================
+
+A set of functions that can (or in some cases will) be useful on nearly any 
+game. Designed for TinyMUX.
+
+
+--------------------------------------------------------------------------------
+-- Setup -----------------------------------------------------------------------
+
+If your game setup does not give '@function' access to wizard, change the below 
+to work with your game.
+
+*/
+
+@create User-Defined Functions <udf>=10
+
+@startup udf=
+    @dolist lattr( %!/ufunc.* )={ 
+        @function/preserve [rest( ##, . )]=%!/##
+    }; 
+
+    @dolist lattr( %!/ufunc/privileged.* )={ 
+        @function/privileged/preserve [rest( ##, . )]=%!/##
+    }; 
+
+
+/*
+--------------------------------------------------------------------------------
+-- Critical Functions ----------------------------------------------------------
+
+Don't make your game without these.
+(Author's opinion; results may vary; see your doctor)
+
+*/
+
+&UFUNC.ISSTAFF User-Defined Functions <udf>=
+    strcat( 
+        setq( f, switch( %1, w*, W, a*, WZ, r*, WZ, s*, WZw, WZw )), 
+        cor( 
+            orflags( %0, %qf ), 
+            cand( 
+                hasflag( %0, Inherit ), 
+                orflags( owner( %0 ), %qf )
+            )
+        )
+    )
+&HELP.ISSTAFF User-Defined Functions <udf>=
+    isstaff( <target>[, <level>] ): 
+    Where <level> can be 'Wizard', 'Admin'/'Royalty' (synonyms), or 'Staff'. 
+    Defaults to 'Staff'.
+
+&UFUNC.HEADER User-Defined Functions <udf>=
+    center( 
+        ansi( c, ., h, %b %0 %b, c, . ), 
+        if( cand( strlen( %1 ), isint( %1 ), gt( %1, 1 )), %1, 79 ), 
+        ansi( c, : )
+    )
+&HELP.HEADER User-Defined Functions <udf>=
+    header( <text> ): 
+    A game-wide output header.
+
+&UFUNC.DIVIDER User-Defined Functions <udf>=
+    strcat( 
+        setq( w, if( cand( strlen( %1 ), isint( %1 ), gt( %1, 1 )), %1, 79 )), 
+        if( t( %0 ), 
+            ansi( 
+                c, ..:, 
+                h, %b %0 %b, 
+                c, :, 
+                c, repeat( ., sub( %qw, add( strlen( %0 ), 8 )))
+            ), 
+            ansi( c, repeat( ., %qw ))
+        )
+    )
+&HELP.DIVIDER User-Defined Functions <udf>=
+    divider( [<text>] ): 
+    A game-wide output divider.
+
+&UFUNC.FOOTER User-Defined Functions <udf>=
+    strcat( 
+        setq( w, if( cand( strlen( %1 ), isint( %1 ), gt( %1, 1 )), %1, 79 )), 
+        if( t( %0 ), 
+            rjust( ansi( c, ., h, %b %0 %b, c, .:: ), %qw, ansi( c, : )), 
+            ansi( c, repeat( :, %qw ))
+        )
+    )
+&HELP.FOOTER User-Defined Functions <udf>=
+    footer( [<text>] ): 
+    A game-wide output footer.
+
+&UFUNC.WHEADER User-Defined Functions <udf>=header( %0, width( %# ))
+&HELP.WHEADER User-Defined Functions <udf>=
+    wheader( <text> ): 
+    A game-wide output header as wide as the user's screen.
+
+&UFUNC.WDIVIDER User-Defined Functions <udf>=divider( %0, width( %# ))
+&HELP.WDIVIDER User-Defined Functions <udf>=
+    wdivider( [<text>] ): 
+    A game-wide output divider as wide as the user's screen.
+
+&UFUNC.WFOOTER User-Defined Functions <udf>=footer( %0, width( %# ))
+&HELP.WFOOTER User-Defined Functions <udf>=
+    wfooter( [<text>] ): 
+    A game-wide output footer as wide as the user's screen.
+
+&UFUNC.MSG User-Defined Functions <udf>=ansi( h, <%0>, n, %b%1 )
+&HELP.MSG User-Defined Functions <udf>=
+    msg( <header>, <message> ): 
+    A game-wide notice output.
+
+&UFUNC.TITLESTR User-Defined Functions <udf>=
+    iter( 
+        lcstr( %0 ), 
+        case( 1, 
+            t( 
+                regmatch( 
+                    %i0, 
+                    u( @@USER-DEFINED-FUNCTIONS@@/d.titlestr-regexp )
+                )
+            ), 
+            %i0, 
+
+            t( 
+                setr( e, 
+                    grab( 
+                        u( @@USER-DEFINED-FUNCTIONS@@/d.titlestr-punctuation ), 
+                        escape( right( %i0, 1 ))
+                    )
+                )
+            ), 
+            [ulocal( @@USER-DEFINED-FUNCTIONS@@/ufunc.titlestr, 
+                strtrunc( %i0, dec( strlen( %i0 ))), 
+                %1 
+            )]
+            %qe, 
+
+            t( 
+                setr( e, 
+                    grab( 
+                        [u( @@USER-DEFINED-FUNCTIONS@@/d.titlestr-exception )] 
+                        %1, 
+                        %i0 
+                    )
+                )
+            ), 
+            %qe, 
+
+            cand( 
+                t( 
+                    match( 
+                        u( @@USER-DEFINED-FUNCTIONS@@/d.titlestr-notitle ), 
+                        %i0 
+                    )
+                ), 
+                neq( inum( 0 ), 1 )
+            ), 
+            %i0, 
+
+            t( 
+                setr( e, 
+                    grab( 
+                        u( @@USER-DEFINED-FUNCTIONS@@/d.titlestr-punctuation ), 
+                        escape( strtrunc( %i0, 1 ))
+                    )
+                )
+            ), 
+            %qe
+            [ulocal( @@USER-DEFINED-FUNCTIONS@@/ufunc.titlestr, 
+                rest( %i0, %qe ), 
+                %1 
+            )], 
+
+            capstr( %i0 )
+        )
+    )
+&HELP.TITLESTR User-Defined Functions <udf>=
+    titlestr( <string>[, <words to ignore>] ): 
+    Outputs text in a 'title string' format, 
+    will output <words to ignore> exactly as they are entered.
+
+&D.TITLESTR-NOTITLE User-Defined Functions <udf>=
+    a an the at by for in of on to up and as but it or nor
+
+&D.TITLESTR-PUNCTUATION User-Defined Functions <udf>=
+    . , ? ! ; : ( ) < > { } * / - + " '
+
+&D.TITLESTR-REGEXP User-Defined Functions <udf>=
+    \[^[escape( u( d_titlestr-punctuation ))]\].*\\(.*\\)
+
+&D.TITLESTR-EXCEPTION User-Defined Functions <udf>=
+    iPod von BBS OOC IC EOD XP UFO DIY EMT FBI ASL EPD EMTs EU DJs TV VIP A&P 
+    NPC DVD VCR PT
+
+&UFUNC.LMAX User-Defined Functions <udf>=last( sort( %0, n, %1, %1 ), %1 )
+&HELP.LMAX User-Defined Functions <udf>=
+    lmax( <list of numbers>[, <delimiter>] ): 
+    Highest number in delimited list.
+
+&UFUNC.LMIN User-Defined Functions <udf>=first( sort( %0, n, %1, %1 ), %1 )
+&HELP.LMIN User-Defined Functions <udf>=
+    lmin( <list of numbers>[, <delimiter>] ): 
+    Lowest number in delimited list.
+
+// The next two are "critical" for games geared toward RPG systems
+
+&UFUNC/PRIVILEGED.ISIC User-Defined Functions <udf>=t( get( %0/_ic ))
+&HELP.ISIC User-Defined Functions <udf>=
+    isic( <target> ): 
+    Returns '1' if target is in a room marked 'in-character'.
+
+&UFUNC/PRIVILEGED.SHORTDESC User-Defined Functions <udf>=
+    case( 1, 
+        cand( 
+            hasattr( 
+                setr( 0, 
+                    case( %0, 
+                        me, %#, 
+                        here, loc( %# ), 
+                        pmatch( %0 )
+                    )
+                ), 
+                short-mien 
+            ), 
+            hastxlevel( %q0, HEDGE ), 
+            cor( 
+                hasrxlevel( %#, HEDGE ), 
+                hasrxlevel( %#, ALL ), 
+                strmatch( parent( room( %# )), << hedge parent >> )
+            )
+        ), 
+        < short-mien >, 
+
+        hasattr( %q0, short-desc ), get( %q0/short-desc ), 
+
+        match( %0, %# ), 
+        ansi( xh, %(Use &short-desc me=text to set this%) ), 
+
+        @@( show nothing - %q0 - %# )
+    )
+&HELP.SHORTDESC User-Defined Functions <udf>=
+    shortdesc( <target> ): 
+    Shows the most appropriate '&short-desc' attribute the viewer can see. 
+    (Some holding code in there for reality levels.)
+
+
+/*
+--------------------------------------------------------------------------------
+-- Vcolumns & Vtable -----------------------------------------------------------
+
+Two ways to display information vertically.
+    vcolums() -- Thenomain
+    vtable()  -- Chime
+
+*/
+
+&UFUNC.VCOLUMNS User-Defined Functions <udf>=
+    strcat( 
+        iter( lnum( 9 ), 
+            if( 
+                cand( 
+                    isint( before( v( %i0 ), : )), 
+                    strmatch( v( %i0  ), *:* )
+                ), 
+                setq( c, inc( %i0  ))
+            ), 
+            , @@  
+        ), 
+        setq( d, if( t( comp( v( %qc ),  )), v( %qc ), %b )), 
+        setq( v, v( inc( %qc ))), 
+        setq( l, v( add( %qc, 2 ))), 
+        setq( r, v( add( %qc, 3 ))), 
+        iter( lnum( %qc ), 
+            setq( %i0, 
+                [setr( w, first( v( %i0 ), : ))]:
+                [iter( rest( v( %i0 ), : ), 
+                    wrap( %i0, %qw, left, , , , %qd ), 
+                    %qd, %qd 
+                )] 
+            ), 
+            , @@ 
+        ), 
+        iter( lnum( %qc ), 
+            setq( h, 
+                max( %qh, words( rest( r( %i0 ), : ), %qd ))
+            ), 
+            , @@ 
+        ), 
+        iter( lnum( 1, %qh ), 
+            %ql
+            [iter( lnum( %qc ), 
+                if( 
+                    t( 
+                        setr( z, 
+                            extract( rest( r( %i0 ), : ), inum( 1 ), 1, %qd )
+                        )
+                    ), 
+                    %qz, 
+                    space( first( r( %i0 ), : ))
+                ), 
+                , %qv 
+            )]
+            %qr, 
+            , %r 
+        )
+    )
+&HELP.VCOLUMNS User-Defined Functions <udf>=See in-depth help file.
+
+// --
+
+&UFUNC.VTABLE User-Defined Functions <udf>=
+    strcat( 
+        setq( d, if( strlen( %2 ), %2, %b )), 
+        setq( c, words( %0, %qd )), 
+        setq( x, max( 1, min( %qc, if( %1, %1, %qc ), div( width( %# ), 2 ), div( inc( width( %# )), last( sort( iter( %0, inc( strlen( %i0 )), %qd, %b ))))))), 
+        setq( y, div( add( %qc, dec( %qx )), %qx )), 
+        setq( x, div( add( %qc, dec( %qy )), %qy )), 
+        setq( w, widthcol( %qx )), 
+        setq( p, if( strlen( %4 ), %4, %b )), 
+        setq( s, if( strlen( %3 ), %3, %b )), 
+        if( %qc, 
+            iter( transpose( %qx, %qy ), 
+                strcat( 
+                    ljust( index( %0, %qd, %i0, 1 ), %qw, %qp ), 
+                    switch( 1, 
+                        t( mod( inum( 0 ), %qx )), 
+                        rjust( 
+                            %qs, 
+                            slackcol( %qx, inc( mod( inum( 0 ), %qx )))
+                        ), 
+                        lt( inum( 0 ), %qc ), 
+                        %r 
+                    )
+                ), 
+                %b, @@ 
+            )
+        )
+    )
+&HELP.VTABLE User-Defined Functions <udf>=See in-depth help file.
+
+&UFUNC.TRANSPOSE User-Defined Functions <udf>=
+    iter( 
+        lnum( 0, dec( %1 )), 
+        iter( lnum( 0, dec( mul( %0, %1 )), , %1 ), add( 1, %i0, %i1 ))
+    )
+&HELP.TRANSPOSE User-Defined Functions <udf>=See in-depth help file.
+
+&UFUNC.SLACKCOL User-Defined Functions <udf>=
+    strcat( 
+        setq( s, sub( width( %# ), mul( widthcol( %0 ), %0 ))), 
+        sub( 
+            div( mul( %qs, %1 ), dec( %0 )), 
+            div( mul( %qs, dec( %1 )), dec( %0 ))
+        )
+    )
+&HELP.SLACKCOL User-Defined Functions <udf>=See in-depth help file.
+
+&UFUNC.WIDTHCOL User-Defined Functions <udf>=
+    if( lt( %0, 2 ), 
+        width( %# ), 
+        floor( fdiv( sub( width( %# ), sub( %0, 1 )), %0 ))
+    )
+&HELP.WIDTHCOL User-Defined Functions <udf>=See in-depth help file.
+
+/*
+--------------------------------------------------------------------------------
+-- Other Nicities --------------------------------------------------------------
+*/
+
+&UFUNC.CRUMPLE User-Defined Functions <udf>=trim( squish( %0, %1 ), b, %1 )
+&HELP.CRUMPLE User-Defined Functions <udf>=
+    crumple( <list of items>[, <delimiter>] ): 
+    Removes multiple delimiters from middle, start, and end. 
+    e.g., thing1|thing2|||thing4| -> thing1|thing2|thing4
+
+&UFUNC.NUMRANGES User-Defined Functions <udf>=
+    strcat( 
+        setq( o, if( t( %2 ), %2, | )), 
+        setq( n, setunion( %0, , %1, , n )), 
+        setq( l, first( %qn )), 
+        iter( rest( %qn ), 
+            case( 1, 
+                not( isnum( %i0 )), , 
+                eq( %i0, inc( last( last( %ql, %qo )))), 
+                setq( l, 
+                    [extract( %ql, 1, dec( words( %ql, %qo )), %qo )]
+                    [if( dec( words( %ql, %qo )), %qo, )]
+                    [first( last( %ql, %qo ))] 
+                    %i0 
+                ), 
+                setq( l, %ql%qo%i0 )), 
+            , @@ 
+        ), 
+        if( t( %3 ), edit( %ql, %b, %3 ), %ql )
+    )
+&HELP.NUMRANGES User-Defined Functions <udf>=
+    numranges( <list of numbers I think> ): 
+    Can't remember, but apparently helpful.
+
+&UFUNC.PLURAL User-Defined Functions <udf>=
+    if( isint( %0 ), 
+        if( strlen( %2 ), 
+            if( eq( %0, 1 ), %1, %2 ), 
+            if( eq( %0, 1 ), %1, %1s )
+        ), 
+        if( strlen( %2 ), 
+            if( eq( words( %0 ), 1 ), %1, %2 ), 
+            if( eq( words( %0 ), 1 ), %1, %1s )
+        )
+    )
+&HELP.PLURAL User-Defined Functions <udf>=
+    plural( <num>, <singular>, <plural> ): 
+    Outputs <num> plus the <singular> or <plural> as passed.
+    Looks like it might be able to handle 'plural( <list of things>, ... )'.
+
+&UFUNC.SAY User-Defined Functions <udf>=
+    strcat( 
+        setq( 0, regmatchi( %1, %(.%)%(%[\\s\\S%]*%), 0 1 2 )), 
+        switch( %q1, 
+            :, [moniker( %0 )] %q2, 
+            ;, [moniker( %0 )]%q2, 
+            |, %q2, 
+            ", [moniker( %0 )] says%, “%q2”, 
+            [moniker( %0 )] says%, “%q1%q2” 
+        )
+    )
+&HELP.SAY User-Defined Functions <udf>=
+    say( <say or pose format> ): 
+    Outputs the same as say/pose/emit.
+
+/*
+(Edited out because I sincerely cannot remember why this is here.)
+
+&UFUNC/PRIVILEGED.ZONEINFO User-Defined Functions <udf>=
+    strcat( 
+        setq( z, zone( %0 )), 
+        setq( v, setdiff( lattr( %qz ), Created Modified )), 
+        setq( w, elements( %qv, match( %qv, %1* ))), 
+        case( 0, 
+            t( %qz ), #-1 No Zone Set, 
+            t( %qw ), #-1 No Such Info In %qv, 
+            comp( %1, ), #-1 No Info Requested, 
+            u( %qz/%qw )
+        )
+    )
+&HELP.ZONEINFO User-Defined Functions <udf>=
+    zoneinfo( <target>, <attribute> ): 
+    I think it pulls u( <zone parent>/<attribute> ). Maybe.
+*/
+
+&UFUNC.LPMATCH User-Defined Functions <udf>=
+    [setq( e, 
+        case( 1, 
+            cor( not( strlen( %0 )), strlen( %3 )), 
+            #-1 FUNCTION (LPMATCH) EXPECTS BETWEEN 1 AND 3 ARGUMENTS, 
+            strmatch( %1, @@ ), #-1 NO ZERO WIDTH DELIMITERS, 
+            gte( strlen( %1 ), 5 ), #-1 DELIMITER TOO LONG, 
+            not( match( |allow|deny, %2*, | )), #-1 ERROR TYPE NOT FOUND, 
+            strmatch( %1, " ), 
+            squish( trim( iter( %0, if( mod( inum( 0 ), 2 ), iter( %i0, if( setr( p, pmatch( %i0 )), %qp, #-1 %i0 ), , | ), if( setr( p, pmatch( %i0 )), %qp, #-1 %i0 )), ", | ), b, | ), | ), 
+            iter( %0, 
+                if( setr( p, pmatch( trim( %i0 ))), 
+                    %qp, 
+                    #-1 [trim( %i0 )] 
+                ), 
+                %1, | 
+            )
+        )
+    )]
+    [switch( 1, 
+        not( t( %qe )), %qe, 
+        cand( strmatch( %qe, *#-1* ), strmatch( %2, d* )), 
+        #-1 NOT FOUND|[iter( graball( %qe, #-1 *, | ), rest( %i0 ), |, | )], 
+        %qe 
+    )]
+&HELP.LPMATCH User-Defined Functions <udf>=
+    lpmatch( ??? ): 
+    A way to turn a list of player names into player dbrefs.
+
+/*
+--------------------------------------------------------------------------------
+-- Replacement Width() ---------------------------------------------------------
+
+This is completely optional. It allows someone to set an attribute on 
+themselves, `&width`, to override the function width(). This was written for 
+people using clients that do not report their width. In order to make this 
+work, the following line must be put into the game.conig:
+
+    something turning width() into width_old()
+
+Uncomment the below if you'd like to use it:
+
+*/
+
+/*
+&UFUNC/PRIVILEGED.WIDTH User-Defined Functions <udf>=
+    strcat( 
+        setq( 0, if( t( %0 ), %0, %# )), 
+        if( cor( isstaff( %@ ), haspower( %@, see_all ), strmatch( %#, %q0 )), 
+            strcat( 
+                setq( u, get( %q0/width )), 
+                setq( w, width_old( %q0 )), 
+                case( 1, 
+                    cand( isint( %qu ), gt( %qu, 0 )), %qu, 
+                    eq( %qw, 78 ), 79, 
+                    %qw 
+                )
+            ), 
+            #-1 Permission Denied 
+        )
+    )
+&HELP.WIDTH User-Defined Functions <udf>=
+    width( [<target>] ): 
+    Identical to previous, but allows players to set '&width' on themselves 
+    to force a non-80-character width.
+*/
+
+
+/*
+--------------------------------------------------------------------------------
+-- Finalize --------------------------------------------------------------------
+
+If you used the default SGP installation, the following will be true, 
+else fix it:
+    #3 is the Storage Wizard
+
+*/
+
+@fo me=@edit udf=@@USER-DEFINED-FUNCTIONS@@, [num( user-defined functions )]
+@chown udf=#3
+@set udf=inherit !halt safe
+@trigger User-Defined Functions <udf>/startup
+
+// Remember this object's dbref on yourself and #3:
+@force me=&d.udf me=[num( User-Defined Functions <udf> )]
+@force me=&d.udf #3=[num( User-Defined Functions <udf> )]
+
+// The Code Object Data Parent, if you're using it.
+@force me=@parent User-Defined Functions <udf>=
+    [search( object=Code Object Data Parent <codp> )]
+
