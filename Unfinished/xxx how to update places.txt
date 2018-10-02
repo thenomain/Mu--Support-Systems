@@ -1,0 +1,160 @@
+How to upgrade from the dated SGP Places Code to mine.
+
+(Yes, Skew, I really should finish this!)
+
+
+
+// *** FIRST YOU NEED TO FIND OUT WHAT ROOMS TO UPDATE *** //
+
+@dolist search( eroom=hasattr( ##, placenums ))={ 
+		think lattr( ##/*place* ); 
+		think ...; 
+	}
+
+
+
+
+
+
+
+// *** THE BELOW IS THE TESTING CODE *** //
+
+
+
+
+@dolist #67 #631={ 
+
+	@set me=quiet
+
+	@dolist search( eroom=hasattr( ##, placenums ))={ 
+			think header( Setting Room ## ([name( ## )]) ); 
+			@set ##=Startup:@eval places(cleanup, \%!); 
+			@chown ##/Startup=[owner( ## )]; 
+			@lock ##/Startup=#1; 
+			@set ##=Aleave:@eval places(depart, \%!, \%#); 
+			@chown ##/Aleave=[owner( ## )]; 
+			@lock ##/Aleave=#1; 
+// testing 
+			think iter( lattr( ##/place? ), 
+				strcat( 
+					setq( n, right( %i0, 1 )), 
+					setq( p, get( ##/%i0 )), 
+					set( ##, 
+						places.%qn.details:
+						[elements( get( ##/%i0 ), 1 2 12, |, | )] 
+					), 
+					set( ##, 
+						places.%qn.occupancy:
+						[elements( get( ##/placenums ), %qn, | )] 
+					), 
+					set( ##, 
+						places.%qn.notices:
+						[strcat( 
+							elements( %qp, 11, | ), |, 
+							cat( elements( %qp, 7, | ), #NAME.), |, 
+							cat( elements( %qp, 8, | ), #NAME. (#LOC) ), |, 
+							cat( elements( %qp, 9, | ), #NAME.), |, 
+							cat( elements( %qp, 10, | ), #NAME. (#LOC) )
+						)] 
+					), 
+						set( ##, %i0: )
+				)
+			); 
+
+			@set ##=placescleanup1:; 
+			@set ##=placescleanup2:; 
+			@set ##=placesmax:;
+			@set ##=placenums:;
+		}
+
+
+
+/*
+
+*** HERE IS A FANTASTIC SCRATCH PAD USED FOR FANTASTIC PURPOSES OF FANTASM ***
+(output from the 'test')
+
+
+
+
+
+think lattr( ##/*place* )
+
+
+Startup [+]: @eval places(cleanup, %!)
+Aleave [+]: @eval places(depart, %!, %#)
+
+
+PLACES.1.DETAILS: a table|5|A table with a couple of chairs.
+PLACES.1.NOTICES: At your table|You join #NAME.|joins at #NAME (##LOC).|You depart #NAME.|departs #NAME (##LOC).
+PLACES.1.OCCUPANCY [#1409]: #1409
+
+
+---
+
+place1 -> 
+
+places.1.details: elements( get( #2247/place1 ), 1 2 12, |, | )
+places.1.occupancy: elements( get( #2247/placenums ), 1, | )
+places.1.notices: 
+	strcat( 
+		setq( p, get( #2247/place1 )), 
+		elements( %qp, 11, | ), |, 
+		cat( elements( %qp, 7, | ), #NAME.), |, 
+		cat( elements( %qp, 8, | ), #NAME. (#LOC) ), |, 
+		cat( elements( %qp, 9, | ), #NAME.), |, 
+		cat( elements( %qp, 10, | ), #NAME. (#LOC) )
+	)
+
+elements( get( #2247/place1 ), 1 2 12, |, | )
+
+
+PLACESCLEANUP1 [#3]: ^* has left.:placescleanup(%#)
+PLACESCLEANUP2 [#3]: ^* has disconnected.:placescleanup(%#)
+PLACESMAX [#3]: 6
+PLACENUMS [#3]: #2604||||||
+PLACE1 [#3]: 
+	The Bar|
+	20|
+	20|
+	You can't do that.|
+	There is no more room there.|
+	I'm sorry, there's on place to move there.|
+	You go over to|
+	goes over to|
+	You leave|
+	leaves|
+	At the bar|
+	Rich reds, browns and golds make up the bar area. There are many stools along its long length for patrons to make themselves comfortable.
+
+PLACE2 [#3]: The Carousel|20|20|You can't do that.|There is no more room there.|I'm sorry, there's on place to move there.|You go over to|goes over to|You leave|leaves|On the carousel|An old fashioned carousel, it turns around and around in the center of the dancefloor with the DJ booth at its center, painted carousel horses and animals available for guests to ride on.
+PLACE3 [#3]: The Dance Floor|20|20|You can't do that.|There is no more room there.|I'm sorry, there's on place to move there.|You go over to|goes over to|You leave|leaves|On the dance floor|A circular dance floor with the carousel and DJ booth at its center takes up the middle of the midway area.
+PLACE4 [#3]: The Midway|20|20|You can't do that.|There is no more room there.|I'm sorry, there's on place to move there.|You go over to|goes over to|You leave|leaves|At the midway games|Around the outer perimeter of the club, midway games of all kinds take up the outer wall.
+PLACE5 [#3]: The Red Booth|10|10|You can't do that.|There is no more room there.|I'm sorry, there's on place to move there.|You go over to|goes over to|You leave|leaves|In the red booth|A long curved booth near the bar area that allows patrons a bit of privacy and relief from the noise of the midway area.
+PLACE6 [#3]: The Gold Booth|10|10|You can't do that.|There is no more room there.|I'm sorry, there's on place to move there.|You go over to|goes over to|You leave|leaves|In the gold booth|A long curved booth near the bar area that allows patrons a bit of privacy and relief from the noise of the midway area.
+
+
+
+
+
+
+
+
+
+
+PLACESCLEANUP1 [#3]: ^* has left.:placescleanup(%#)
+PLACESCLEANUP2 [#3]: ^* has disconnected.:placescleanup(%#)
+PLACESMAX [#3]: 6
+PLACENUMS [#3]: ||||||
+PLACE1 [#3]: Table 1|6|6||I'm sorry, there's no room to add a place there.|I'm sorry, there's on place to move there.|You sit down at|sits down at|You stand and leave|stands and leaves|At your table|A table with 4 legs and some chairs around it.
+PLACE2 [#3]: Table 2|6|6||I'm sorry, there's no room to add a place there.|I'm sorry, there's on place to move there.|You sit down at|sits down at|You stand and leave|stands and leaves|At your table|A table with 4 legs and some chairs around it.
+PLACE3 [#3]: Table 3|6|6||I'm sorry, there's no room to add a place there.|I'm sorry, there's on place to move there.|You sit down at|sits down at|You stand and leave|stands and leaves|At your table|A table with 4 legs and some chairs around it.
+PLACE4 [#3]: Table 4|6|6||I'm sorry, there's no room to add a place there.|I'm sorry, there's on place to move there.|You sit down at|sits down at|You stand and leave|stands and leaves|At your table|A table with 4 legs and some chairs around it.
+PLACE5 [#3]: Table 5|6|6||I'm sorry, there's no room to add a place there.|I'm sorry, there's on place to move there.|You sit down at|sits down at|You stand and leave|stands and leaves|At your table|A table with 4 legs and some chairs around it.
+PLACE6 [#3]: Table 6|6|6||I'm sorry, there's no room to add a place there.|I'm sorry, there's on place to move there.|You sit down at|sits down at|You stand and leave|stands and leaves|At your table|A table with 4 legs and some chairs around it.
+
+
+
+
+
+*/

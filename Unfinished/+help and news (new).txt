@@ -1,0 +1,667 @@
+/*
+@create Help/News System Object <HNSO>=10
+@Desc Help/News System Object <HNSO>=This box contains the code that drives the +help/+shelp system. The database(s) that are looked into are: [u( f.locations, %! )]
+&F.HEADER Help/News System Object <HNSO>=wheader( %0 )
+&F.FOOTER Help/News System Object <HNSO>=wfooter( %0 )
+&F.MIDDLE Help/News System Object <HNSO>=wfooter( %0, c )
+&F.TITLESTR Help/News System Object <HNSO>=titlestr( %0 )
+&F.LOCATIONS Help/News System Object <HNSO>=lcon( %0 )
+&F.FMT-CATEGORY-HEADER Help/News System Object <HNSO>=u( f.middle, titlestr( edit( %0, _, %b )))
+&F.FMT-FOOTER-ADDL Help/News System Object <HNSO>=ansi( <#95115b>, +, h, %b%0%b, <#95115b>, + )
+&F.FMT-FOOTER-BUILD Help/News System Object <HNSO>=[left( %0, 5 )]%1[right( %0, add( sub( width( %# ), 5 ), -[strlen( %1 )], -[strlen( %2 )] ))]%2
+&F.LIST-TOPICS Help/News System Object <HNSO>=trim( [setunion( iter( u( f.locations, %!), iter( lattr( %i0/%0~%1*~%2* ), %i0~%i1 )), )] [if( comp( %2, ), setunion( iter( u( f.locations, %! ), iter( lattr( %i0/%0~%1*~+%2* ), %i0~%i1 )), ))] )
+&F.SHOW-TOPICS Help/News System Object <HNSO>=[wrap( trim( iter( u( f.locations, %! ), u( %i0/description-%0 ))), sub( width( %# ), 4 ), left, %b%b )] %r %r[setq( 0, iter( %1, extract( %i0, 2, 2, ~ )))][setq( 1, first( %q0, ~ ))][u( f.fmt-category-header, %q1 )][iter( %q0, [ifelse( not( strmatch( first( %i0, ~ ), %q1 )), %r[columns( trim( revwords( %q2, | ), b, | ), 19, |, 2 )][setq( 2, )][setq( 1, first( %i0, ~ ))][u( f.fmt-category-header, %q1 )], )][setq( 2, insert( %q2, 1, left( titlestr( edit( rest( %i0, ~ ), _, %b )), 17 ), | ))] )]%r[columns( trim( revwords( %q2, | ), b, | ), 19, |, 2 )]
+&F.HELP-DEFAULT Help/News System Object <HNSO>=[wheader( [mudname()] +[capstr( %0help )] )]%r %r[u( f.show-topics, %0help, u( f.list-topics, %0help ))][wfooter()]
+&F.HELP-SPECIFIC Help/News System Object <HNSO>=[if( isnum( last( %0 )), [setq( p, last( %0 ))][setq( h, edit( setr( 0, ldelete( %0, words( %0 ))), %b, _ ))], [setq( p, 1 )][setq( h, edit( setr( 0, %0 ), %b, _ ))] )][setq( m, first( u( f.list-topics, %1help, , %qh )))][setq( f, u( [last( %qm, ~ )]/[extract( %qm, 1, 3, ~ )] ))][setq( c, dec( words( %qf, ~ )))][case( 0, strlen( %qm ), I don't know %1help topic '%q0'., gt( %qp, 0 ), Page number must be at least 1., lte( %qp, %qc ), Page number too high. Entry only has %qc pages., [u( f.header, first( %qf, ~ ))]%r %r[trim( wrap( extract( %qf, inc( %qp ), 1, ~ ), sub( width( %# ), 4 ), left, %b%b ), r )]%r %r[u( f.fmt-footer-build, u( f.footer ), if( lt( %qp, %qc ), u( f.fmt-footer-addl, continued in +%1help %q0 [inc( %qp )] )), if( gt( %qc, 1 ), u( f.fmt-footer-addl, page %qp of %qc )))] )]
+&F.NEWS-DEFAULT Help/News System Object <HNSO>=[wheader( [mudname()] [capstr( %0news )] )]%r %r[u( f.show-topics, %0news, u( f.list-topics, %0news ))][wfooter()]
+&F.NEWS-SPECIFIC Help/News System Object <HNSO>=[if( isnum( last( %0 )), [setq( p, last( %0 ))][setq( h, edit( setr( 0, ldelete( %0, words( %0 ))), %b, _ ))], [setq( p, 1 )][setq( h, edit( setr( 0, %0 ), %b, _ ))] )][setq( m, first( u( f.list-topics, %1news, , %qh )))][setq( f, u( [last( %qm, ~ )]/[extract( %qm, 1, 3, ~ )] ))][setq( c, dec( words( %qf, ~ )))][case( 0, strlen( %qm ), I don't know %1news topic '%q0'., gt( %qp, 0 ), Page number must be at least 1., lte( %qp, %qc ), Page number too high. Entry only has %qc pages., [u( f.header, first( %qf, ~ ))]%r %r[trim( wrap( extract( %qf, inc( %qp ), 1, ~ ), sub( width( %# ), 4 ), left, %b%b ), r )]%r %r[u( f.fmt-footer-build, u( f.footer ), if( lt( %qp, %qc ), u( f.fmt-footer-addl, continued in +%1news %q0 [inc( %qp )] )), if( gt( %qc, 1 ), u( f.fmt-footer-addl, page %qp of %qc )))] )]
+&C.HELP-REGEXP Help/News System Object <HNSO>=$^\+(s?)help(?!/search)(.*):@pemit %#=[setq( 0, secure( %2 ))][setq( s, lcstr( %1 ))][if( and( t( %qs ), not( isstaff( %# ))), Error: Must be staff to use +shelp, switch( %q0, , u( f.help-default, %qs ), /*, Error: +%qshelp does not have switches., %b*, u( f.help-specific, trim( %q0 ), %qs ), Error: +%qshelp's format is +%qshelp or +%qshelp <topic> ))]
+@set Help/News System Object <HNSO>/C.HELP-REGEXP = regexp
+
+&C.HELP/SEARCH [v( d.hnso )]=$+help/search *:@pemit %#=
+	strcat( 
+		grepi( v( db.help_database ), HELP~*, %0 ), %r, 
+	)
+
+
+	think 
+	@switch 
+		[null( iter( 
+			grepi( v( db.help_database ), HELP~*, %0 ), 
+			[setq( 0, get( [v( db.help_database )]/%i0 ))]
+			[iter( 
+				lnum( 1, words( rest( %q0, ~ ), ~ )), 
+				case( 
+					words( 
+						graball( 
+							extract( %q0, inc( %i0 ), 1, ~ ), 
+							*%0*, , | 
+						), | 
+					), 
+					0, null( Do nothing. ), 
+					setq( r, 
+						update( 
+							%qr, 
+							[lcstr( last( %i1, ~ ))]
+							[ifelse( eq( %i0, 1 ), , %b%i0 )], 
+							#$ 
+						)
+					)
+				)
+			)] 
+		))]
+		[gt( words( %qr, | ), 0 )]=
+		0, { @pemit %#=No matches for your search. }, 
+		{ 
+			@pemit %#=[u( f.header, +help search - %0 )]; 
+			@@ @pemit %#=[columns( iter( revwords( sort( iter( %qr, revwords( %i0, : ), |, | ), n, | ), | ), [edit( rest( %i0, : ), _, %b )] [ansi( hx, ( [first( %i0, : )] ))], |, | ), |, width( %# ), space( 2 ))]; 
+			@pemit %#=iter( revwords( sort( iter( %qr, revwords( %i0, : ), |, | ), n, | ), | ), [edit( rest( %i0, : ), _, %b )] [ansi( hx, ( [first( %i0, : )] ))], |, | ); 
+			@pemit %#=[u( f.footer, [words( %qr, | )] file[if( gt( words( %qr, | ), 1 ), s )] match )] 
+		}
+&C.NEWS-REGEXP Help/News System Object <HNSO>=$^\+?(s?)news(?!/search)(.*):@pemit %#=[setq( 0, secure( %2 ))][setq( s, lcstr( %1 ))][if( and( t( %qs ), not( isstaff( %# ))), Error: Must be staff to use +snews, switch( %q0, , u( f.news-default, %qs ), /*, Error: +%qsnews does not have switches., %b*, u( f.news-specific, trim( %q0 ), %qs ), Error: +%qsnews's format is +%qsnews or +%qsnews <topic> ))]
+@set Help/News System Object <HNSO>/C.NEWS-REGEXP = regexp
+&C.NEWS/SEARCH Help/News System Object <HNSO>=$^\+?news/search (.+):@switch [null( iter( grepi( v( d.news_database ), news~*, %1 ), [setq( 0, get( [v( d.news_database )]/%i0 ))][iter( lnum( 1, words( rest( %q0, ~ ), ~ )), case( words( graball( extract( %q0, inc( %i0 ), 1, ~ ), *%1*, , | ), | ), 0, null( Do nothing. ), setq( r, update( %qr, [lcstr( last( %i1, ~ ))][ifelse( eq( %i0, 1 ), , %b%i0 )], #$ ))))] ))][gt( words( %qr, | ), 0 )]=0, {@pemit %#=No matches for your search.}, {@pemit %#=[u( f.header, +news search - %1 )];@pemit %#=[smartcol( iter( revwords( sort( iter( %qr, revwords( %i0, : ), |, | ), n, | ), | ), [edit( rest( %i0, : ), _, %b )] [ansi( hx, ( [first( %i0, : )] ))], |, | ), |, width( %# ), space( 2 ))];@pemit %#=[footer( [words( %qr, | )] file[if( gt( words( %qr, | ), 1 ), s )] match )]}
+@set Help/News System Object <HNSO>/C.NEWS/SEARCH = regexp
+&db.help_DATABASE Help/News System Object <HNSO>=#47
+&D.NEWS_DATABASE Help/News System Object <HNSO>=#48
+@set Help/News System Object <HNSO>=INHERIT
+@set Help/News System Object <HNSO>=SAFE
+@set Help/News System Object <HNSO>=STICKY
+@set Help/News System Object <HNSO>=UNFINDABLE
+@set Help/News System Object <HNSO>=VISUAL
+@rxlevel Help/News System Object <HNSO>=
+@txlevel Help/News System Object <HNSO>=
+
+
+-=-=-=-=-=-=-=-=-=-=-=-==--=
+
+== read ==
+	help
+		- see all help, sorted by <category>
+	help <topic|keyword>[ <page number>]
+		- read that <topic> or <keyword>, default page 1
+	help/search <search term>
+		-list pages with that term
+	help/hilite <search term>
+		- pull the previous/next line around the hilited term
+
+== add ==
+	help/add <topic>[ <page number>|+1]=<text>
+		- set <text> to a <topic>
+		- set without <page number> if <topic> does not yet exist
+		- replaces contents with <text> if <page number> already exists
+		- new <topics> have no <category>
+	help/category <topic>=[<category>]
+		- add a sorting <category> to a <topic>
+		- set to 'null' to remove <category>
+	help/keyword <topic>=[!]<keyword>
+		- add/remove lookup <keyword> to a <topic>
+		- <keywords> may belong to only one <topic>.
+	help/seealso <topic>=<topic>
+		- links two topics together
+	help/title <topic>=[<title>]
+		- a <title> to be displayed at the top of each page
+		- set to 'null' to remove <title>
+
+== change ==
+	help/edit <topic>[ <page number>]=<old>,<new>
+		- edit <topic>, defaults page 1
+
+== delete ==
+	help/delete <topic> <page number>
+		- delete <topic>'s <page number>
+		- the other pages will not cascade down 
+		  (deleting page 3 will leave pages 1, 2, 4)
+		  (this may be fixed in a future version)
+	help/delete <topic> all
+		- delete all pages in <topic>
+		- delete lookups involving that <topic>
+
+
+-=--=-=-=-=-=-=-=-=-==--=-=
+
+== storage format ==
+
+<namespace>: VERY IMPORTANT! "help" or "news" or "snews", etc.
+             (must be one word only!)
+<topic>: user-end help item they're looking up
+<index>: unique, not-null, one and only one per <topic>
+<pagenum>: the output page number for any given <topic>
+
+We use 'help' as the <namespace> in the items below. 
+This can be 'news' or whatever namespaces you want.
+
+&help.<index>.topic: topic name, as displayed
+	- Thenomain
+&help.<index>.keywords: list of lookup keywords, space-delim, use underscores
+	- Tragically_Hip Not_the_Droids
+&help.<index>.title: title per output page, as displayed
+	- The Non-Maskable Interrupt
+&help.<index>.category: which category header to display a part of
+&help.<index>.page.<pagenum>:
+	- information on a topic, page # <pagenum>
+	- <pagenum> is numeric from 1 to ???
+&seealso.help.<index a>.help.<index b>=help.<index a> help.<index b>
+	- a lookup table linking topic on <index a> to topic on <index b>
+	- we use the content to quickly determine seealso indexes
+
+
+== data items ==
+
+db.help
+db.shelp
+db.news
+db.snews
+	- information object dbrefs
+
+db.seealso
+	- the 'see also' lookup object dbref
+
+=--=-=-=-==--=-=-=-=-=-==--=-=
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+================================================================================
+== SETUP =======================================================================
+*/
+
+@create Help/News System Object <hnso>
+@fo me=&d.hnso me=[num( Help/News System Object <hnso> )]
+@set Help/News System Object <hnso>=INHERIT SAFE STICKY VISUAL
+
+@parent [v( d.hnso )]=[v( d.codp )]
+
+@create Help Database
+@fo me=&db.help [v( d.hnso )]=[num( Help Database )]
+@fo me=&db.shelp [v( d.hnso )]=[get( v( d.hnso )/db.help )]
+@wait 1=@tel Help Database=Help/News System Object <hnso>
+
+@create News Database
+@fo me=&db.news [v( d.hnso )]=[num( News Database )]
+@fo me=&db.snews [v( d.hnso )]=[get( v( d.hnso )/d.news )]
+@wait 1=@tel News Database=Help/News System Object <hnso>
+
+@create See-Also Database
+@fo me=&db.seealso [v( d.hnso )]=[num( See-Also Database )]
+@wait 1=@tel See-Also Database=Help/News System Object <hnso>
+
+
+/*
+--------------------------------------------------------------------------------
+-- Setup: Data -----------------------------------------------------------------
+*/
+
+
+
+/*
+================================================================================
+== DOT FUNCTIONS ===============================================================
+*/
+
+&.msg [v( d.hnso )]=ansi( h, <%0%>, n, %b%1 )
+
+/*
+--------------------------------------------------------------------------------
+-- Dot Functions: Grab Exact Match from List -----------------------------------
+
+	u( .grabexact, list, search item, delim )
+
+0: list
+1: search item
+2: delimiter
+
+returns: exact match first, then first close enough match
+
+*/
+
+&.grabexact [v( d.hnso )]=
+	localize( 
+		if( setr( x, match( %0, %1, %2 )), 
+			elements( %0, %qx, %2 ), 
+			grab( %0, %1*, %2 )
+		)
+	)
+
+// ---
+
+&.lmax [v( d.hnso )]=last( sort( %0, n, %1, %1 ), %1 )
+
+
+
+
+/*
+================================================================================
+== MASTER COMMANDS =============================================================
+
+&c.help [v( d.hnso )]=$^\+?(s)?hulp(.*)$:@pemit %#=u( c.help&news, %2, help, %1 )
+&c.news [v( d.hnso )]=$^\+?(s)?noos(.*)$:@pemit %#=u( c.help&news, %2, news, %1 )
+
+@set [v( d.hnso )]/c.help = regexp
+@set [v( d.hnso )]/c.help = no_parse
+@set [v( d.hnso )]/c.news = regexp
+@set [v( d.hnso )]/c.news = no_parse
+
+
+/*
+--------------------------------------------------------------------------------
+-- Command: Help & News --------------------------------------------------------
+
+Since there is no difference between 'help' and 'news' (et al.), we merge them 
+in one command that does all the work.
+
+--
+
+0: switches and args
+1: 'help' or 'news'
+2: 's' or not
+
+s: switches
+a: args
+m: switch matches
+
+*/
+
+&c.help&news [v( d.hnso )]=
+	strcat( 
+		setq( s, first( rest( trim( %0 ), / ))), 
+		setq( a, rest( trim( %0 ))), 
+		setq( m, lattr( %!/c.help&news/%qs* )), 
+
+		case( 1,
+			gt( words( %0, / ), 1 ), 
+			u( .msg, %2%1, One switch at a time please ), 
+
+			cand( strlen( %qs ), eq( words( %qm ), 0 )), 
+			u( .msg, %2%1, I didn't find any matches for that switch ), 
+
+			cand( strlen( %qs ), gt( words( %qm ), 1 )), 
+			u( .msg, %2%1, 
+				strcat( 
+					Could not find that switch or found too many, %b, 
+					Did you mean, %b, 
+					titlestr( 
+						edit( 
+							itemize( %qm, %b, or ), 
+							C.HELP&NEWS/, 
+						)
+					), 
+					?
+				)
+			), 
+
+			t( strlen( %qm )), 
+			u( %qm, %qa, %1, %2 ), 
+
+			t( strlen( %qa )), 
+			u( c.help&news-args, %qa, %1, %2 ), 
+
+			u( c.help&news-noargs, %1, %2 )
+		)
+	)
+
+
+
+/*
+================================================================================
+== FUNCTIONS ===================================================================
+
+
+--------------------------------------------------------------------------------
+-- Function: Check Topic Name --------------------------------------------------
+
+We are checking the topic or keyword name because we can't have | in them.
+*** Also check if it already exists as a topic or keyword. ***
+
+0: topic/keyword name to check
+
+returns: '1' if ok, '#-1 <reason>' otherwise
+
+*/
+
+&f.check.topic [v( d.hnso )]=
+	 case( 1, 
+	 	strmatch( %0, *|* ), 
+	 	#-1 no pipes allowed, 
+	 	1 
+	 )
+
+
+/*
+--------------------------------------------------------------------------------
+-- Function: Search Topics -----------------------------------------------------
+
+	u( f.index.search_topic, <search parameter>, <help|news|etc.> )
+
+Searches topics and keywords for the index number of the best match.
+
+An exact match will always match first, if it's in 'topic' or 'keywords'.
+
+I probably should have index-building as its own function 
+for things like 'help/add' to verify no existing topic or keyword.
+
+--
+
+0: search parameter
+1: <namespace> (help, news, shelp, snews, etc.)
+
+s: search parameter, %b -> _ (unfortunate, but must be done)
+t: topic search, indexed, formatted <topic>|<index> ...
+k: keywords search, indexed, formatted <keyword>|<index> ...
+	(this makes | an illegal character for topics and keywords )
+i: search built & sorted indexes
+	exact match first of topics & keywords, then first alpha match
+
+returns: <index> of the match
+
+*/
+
+&f.index.search_topic [v( d.hnso )]=
+	strcat( 
+		setq( t, u( f.index.build, first( %0, | ), %1 )), 
+		setq( s, edit( first( %0, | ), %b, _ )), 
+		
+// match exact first where possible, then first alphanumeric
+		setq( i, u( .grabexact, %qt, %qs )), 
+		rest( grab( %qt, %qi ), | )
+	)
+
+
+/*
+--------------------------------------------------------------------------------
+-- Function: Build Index -------------------------------------------------------
+
+	u( f.index.build, <search item>, <help|news|etc.>[, <topic|keywords>] )
+
+Take a search item and return the most likely matches.
+You may do it independently between 'topic' and 'keywords'.
+
+--
+
+0: search item
+1: <namespace> (help, shelp, news, snews, etc.)
+2: 'topic' or 'keywords' (default: both)
+	
+output: <item_underscored>|<index> <item_underscored>|<index> ...
+
+*/
+
+&f.index.build [v( d.hnso )]=
+	sortby( sortby.topic, 
+		udefault( 
+			f.index.build.%2, 
+			iter( lattr( %!/f.index.build.* ),
+				u( %i0, %0, %1 )
+			), 
+			%0, %1 
+		), 
+	)
+
+// --
+
+&f.index.build.topic [v( d.hnso )]=
+	iter( grepi( v( db.%1 ), %1.*.topic, %0 ), 
+		strcat( 
+			edit( get( v( db.%1 )/%i0 ), %b, _ ), |, 
+			elements( %i0, 2, . )
+		)
+	)
+
+// --
+
+&f.index.build.keywords [v( d.hnso )]=
+	iter( grepi( v( db.%1 ), %1.*.keywords, %0 ), 
+		iter( 
+			graball( get( v( db.%1 )/%i0 ), *[edit( %0, %b, _ )]* ), 
+			strcat( 
+				%i0, |, 
+				elements( %i1, 2, . )
+			)
+		)
+	)
+
+
+/*
+--------------------------------------------------------------------------------
+-- Sortby: Topic ---------------------------------------------------------------
+
+Sorts '<topic or keyword>|<index>' and ignores <index>
+
+*/
+
+&sortby.topic [v( d.hnso )]=comp( first( %0, | ), first( %1, | ))
+
+
+
+/*
+================================================================================
+== TESTS =======================================================================
+
+--------------------------------------------------------------------------------
+-- Testing things so far -------------------------------------------------------
+
+&help.1.topic [get( v( d.hnso )/db.help )]=Thenomain
+&help.1.title [get( v( d.hnso )/db.help )]=The Non-Maskable Interrupt
+&help.1.category [get( v( d.hnso )/db.help )]=
+&help.1.keywords [get( v( d.hnso )/db.help )]=
+	NMI The_Non-Maskable_Interrupt I_like_droids
+&help.1.page.1 [get( v( d.hnso )/db.help )]=Testing NMI page one.
+&help.1.page.2 [get( v( d.hnso )/db.help )]=Testing NMI page two.
+
+&help.2.topic [get( v( d.hnso )/db.help )]=Droids
+&help.2.title [get( v( d.hnso )/db.help )]=
+&help.2.category [get( v( d.hnso )/db.help )]=Technology
+&help.2.keywords [get( v( d.hnso )/db.help )]=Yeah
+&help.2.page.1 [get( v( d.hnso )/db.help )]=Testing Droids page one.
+
+&seealso.help.1.help.2 [get( v( d.hnso )/db.seealso )]=help.1 help.2
+
+think u( v( d.hnso )/f.index.build, droid, help, topic )
+
+think u( v( d.hnso )/f.index.build, droids, help )
+
+think u( v( d.hnso )/f.index.search_topic, droids, help )
+think u( v( d.hnso )/f.index.search_topic, droid, help )
+
+*/
+
+
+
+/*
+================================================================================
+== DISPLAY & FORMATTING ========================================================
+
+
+--------------------------------------------------------------------------------
+-- Display: One Topic ----------------------------------------------------------
+
+0: index for help type (numeric)
+1: namespace (help, news, shelp, etc.)
+2: current page number
+
+d: dbref for namespace (%1)
+s: List of <namespace>.<index> for see-also list related to <namespace>.<index>
+p: number of pages for <namespace>.<index>
+n: current page number, defaults 1
+
+*/
+
+&display.topic.one [v( d.hnso )]=
+	strcat( 
+		setq( d, v( db.%1 )), 
+		setq( t, get( %qd/%1.%0.topic )), 
+		setq( s, u( f.seealso.list, %0, %1 )), 
+		setq( s, u( format.seealso.list, %qs )),
+		setq( p, 
+			u( .lmax, 
+				edit( lattr( %qd/%1.%0.page.* ), [ucstr( %1 )].%0.PAGE., )
+			)
+		), 
+		setq( n, if( strlen( %2 ), %2, 1 )), 
+
+		wheader( strcat( 
+			+%1, %b, 
+			%qt, 
+			if( gt( %qp, 1 ), %b%qn )
+		)), %r %r, 
+
+// 'title' header
+
+// test content
+		u( %qd/%1.%0.page.%qn ), %r %r, 
+
+// 'see also' footer
+		if( strlen( %qs ), 
+			u( display.seealso.list, %qs )%r
+		), 
+
+		if( gt( %qp, 1 ), 
+			wfooter( page %qn of %qp ), 
+			wfooter()
+		)
+	)
+
+/*
+--------------------------------------------------------------------------------
+-- Display: See-Also List ------------------------------------------------------
+
+Make it all pretty for &display.topic.one
+
+SEE ALSO: +help x, +help y, +help z, news y, shelp a
+
+0: <namespace>.<seealso title>|... (from &format.seealso.list)
+n: all the different <namespace>s from %qs
+
+*/
+
+&display.seealso.list [v( d.hnso )]=
+	localize( strcat( 
+		setq( n, setunion( iter( %0, first( %i0, . ), |, | ), )), 
+
+		%r, SEE ALSO:, %b, 
+		iter( %qn, 
+
+// (assure that 'help' has a + in front of it, else don't bother)
+			strcat( 
+				ansi( h, 
+					strcat( 
+						if( strmatch( %1, help ), + ), 
+						%1
+					)
+				), %b, 
+// list <namespace>'s topics
+				iter( graball( %0, %i0.*, |, | ), 
+					rest( %i0, . ), 
+					|, 
+					%,%b 
+				)
+			), 
+			|, %,%b 
+		)
+	))
+
+
+/*
+--------------------------------------------------------------------------------
+-- Format: See-Also List -------------------------------------------------------
+
+0: <index> to find links to
+1: <namespace> (help, news, shelp, etc.) of above <index>
+returns: <namespace>.<title>|<namespace>.<title>|... (sorted by <namespace> ??)
+
+n: <namespace> for the current see-also item
+
+*/
+
+&format.seealso.list [v( d.hnso )]=
+	localize( 
+		iter( u( f.seealso.lookup, %0, %1 ), 
+			strcat( 
+				setr( n, first( %i0, . )), ., 
+				get( v( db.%qn )/%i0.topic ) 
+			), 
+			, | 
+		)
+	)
+
+/* (the 'sort by namespace' option - might not use)
+&format.seealso.list [v( d.hnso )]=
+	localize( 
+		sort( 
+			iter( u( f.seealso.lookup, %0, %1 ), 
+				strcat( 
+					setr( n, first( %i0, . )), ., 
+					get( v( db.%qn )/%i0.topic ) 
+				), 
+				, | 
+			), 
+			i 
+		)
+	)
+*/
+// think u( v( d.hnso )/f.seealso.list, 1, help )
+
+/*
+
+--
+
+0: <index> to find links to
+1: <namespace> (help, news, shelp, etc.) of above <index>
+returns: <indicies> for see-also list related to <namespace>.<index>
+
+(does not return the lookup <index>.<namespace>)
+
+*/
+
+&f.seealso.list [v( d.hnso )]=
+	iter( 
+		cat( 
+			grepi( v( db.seealso ), seealso.%1.%0.*, %1.%0 ), 
+			grepi( v( db.seealso ), seealso.*.*.%1.%0, %1.%0 )
+		), 
+		edit( get( v( db.seealso )/%i0 ), %1.%0, )
+	)
+
+// think u( v( d.hnso )/f.seealso.list, 1, help )
+
+
+
+/*
+--------------------------
+0: <namespace>.<index> ... (from f.seealso.list)
+
+*/
+&format.seealso.list [v( d.hnso )]=
+	localize( iter( %0, 
+		strcat( 
+			setq( n, elements( %i0, 1, . )), 
+			%qn, ., 
+			get( v( db.%qn )/%i0.topic )
+		), 
+		, | 
+	))
+
+// think u( v( d.hnso )/format.seealso.list, u( v( d.hnso )/f.seealso.list, 1, help ))
+
