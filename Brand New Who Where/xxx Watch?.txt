@@ -1,0 +1,30 @@
+&C.WATCH/WHERE #499=$+watch/where:
+	@pemit %#=strcat( 
+		setq( w, 
+			filter( 
+				filter.watchable, 
+				setinter( get( %#/friends ), objeval( %#, lwho( ))), , , %# 
+			)
+		), 
+
+		setq( r, 
+			setinter( 
+				u( v( d.bnww )/f.where.rooms, %# ), 
+				iter( %qw, room( %i0 ))
+			)
+		), 
+
+// 		setq( r, iter( %qw, room( %i0 ))), 
+
+		u( v( d.bnww )/display.where.complete, %#, %qr, %qw )
+	);
+
+
+
+
+think u( v( d.bnww )/f.where.rooms, *gisa )
+think u( v( d.bnww )/f.where.rooms, *green )
+
+
+
+think strcat( setq( 0, pmatch( green )), w:%b, setr( w, filter( #499/filter.watchable, setinter( get( %q0/friends ), objeval( %q0, lwho( ))), , , %# )), %r, r:%b, setr( r, setinter( u( v( d.bnww )/f.where.rooms, %q0 ), iter( %qw, room( %i0 )))), %r, u( v( d.bnww )/display.where.complete, %q0, %qr, %qw )) 

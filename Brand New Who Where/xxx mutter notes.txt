@@ -1,0 +1,105 @@
+&format.mutter #1317=
+	edit( 
+		ulocal( format.mutter.dots, ulocal( f.mutter.select_words, %0 )), 
+		%b..., ... 
+	)
+
+&format.mutter_to #1317=
+	switch( %2, 
+		:*, { You sense [name( %0 )] [delete( %2, 0, 1 )] }, 
+		;*, { You sense [name( %0 )][delete( %2, 0, 1 )] }, 
+		{ [name( %0 )] whispers "%2" } 
+	)
+
+&format.mutter_from #1317=
+	switch( %0, 
+		%1, 
+		switch( %2, 
+			:*, { You sense "[name( %0 )] [delete( %2, 0, 1 )]" }, 
+			;*, { You sense "[name( %0 )][delete( %2, 0, 1 )]" }, 
+			{ You mutter to yourself, "%2" } 
+		), 
+		switch( %2, 
+			:*, { [name( %1 )] senses "[name( %0 )] [delete( %2, 0, 1 )]" }, 
+			;*, { [name( %1 )] senses "[name( %0 )][delete( %2, 0, 1 )]" }, 
+			{ You whisper "%2" to [name( %1 )]. } 
+		)
+	)
+
+&format.mutter.dots #1317=
+	switch( %0, 
+		*... ...*, ulocal( format.mutter.dots, edit( %0,... ..., ... )), 
+		%0 
+	)
+
+&f.mutter.select_words #1317=
+	switch( %0, 
+		*<*>*, 
+		cat( 
+			map( f.mutter.kill_words, before( %0, < )), 
+			before( after( %0, < ), > ), 
+			ulocal( f.mutter.select_words, after( %0, > ))
+		), 
+		map( f.mutter.kill_words, %0 )
+	)
+
+&f.mutter.kill_words #1317=
+	switch( [rand( 3 )]%0, 
+		0, , 
+		1, , 
+		2, , 
+		0*, %0, 
+		... 
+	)
+
+
+&c.mutter #1317=$mutter *=*: @trigger %!/trig.mutter.room=%0, %1, %#
+&c.mutter.mm #1317=$mm *=*:@trigger %!/trig.mutter.room=%0, %1, %#
+
+&trig.mutter.room #1317=
+	@eval setq( 0, locate( %2, %0, nimP )); 
+
+	@remit switch( %q0, #-1, XX, #-2, XX, %l )={ 
+		[switch( %1, 
+			:* "*"*, 
+			{ %N [first( delete( %1, 0, 1 ), " )]%S mutters to [setq( 1, ulocal( format.mutter, extract( %1, 2, 1, " )))][switch( %q0, %2, %oself, name( %q0 ))][switch( %q1, ..., ., { , "[%q1]" } )] [rest( rest( %1, " ), " )] }, 
+			:*, 
+			{ %N mutters to [switch( %q0, %2, %oself, name( %q0 ))]. }, 
+			;* "*"*, 
+			{ %N[first( delete( %1, 0, 1 ), " )]%S mutters to [setq( 1, ulocal( format.mutter, extract( %1, 2, 1, " )))][switch( %q0, %2, %oself, name( %q0 ))][switch( %q1, ..., ., { , "[%q1]" } )] [rest( rest( %1, " ), " )] }, 
+			;*, 
+			{ %N mutters to [switch( %q0, %2, %oself, name( %q0 ))]. }, 
+			{ [setq( 1, ulocal( format.mutter, %1 ))]%N mutters to [switch( %q0, %2, %oself, name( %q0 ))][switch( %q1, ..., ., { , "[%q1]" } )] } 
+		)] 
+	};
+
+	@eval setq( 2, edit( edit( %1, <, ), >, )); 
+
+	@pemit %2=
+		switch( %q0, #-1, I don't see that here., #-2, I'm not sure which %0 you mean., ulocal( format.mutter_from, %2, %q0, %q2 )); 
+
+	@pemit switch( %q0, %2, XX, %q0 )=ulocal( format.mutter_to, %2, %q0, %q2 )
+
+
+
+
+&pref.mutter.mine.see me=no
+&pref.mutter.mine.prefix me=<mutter>%b
+&pref.mutter.mine.postfix me=@@()
+
+
+
+
+
+
+/* THE FOLLOWING WILL NOT PRESENTLY WORK 
+
+&c.mutter.place #1317=$mutter/place *=*: @switch and( gte( %0, 1 ), lte( %0, get( %l/PLACESMAX )))=0, {@pemit %#=There is no such place here.}, {@remit %l={[switch( %1, :* "*"*, {%N [first( delete( %1, 0, 1 ), " )]%S mutters to [PlaceInfo( %l, %0, NAME )][setq( 1, ulocal( format.mutter, extract( %1, 2, 1, " )))][switch( %q1, ..., ., {, "[%q1]"} )] [rest( rest( %1, " ), " )]}, :*, {%N mutters to [PlaceInfo( %l, %0, NAME )], }, ;* "*"*, {%N[first( delete( %1, 0, 1 ), " )]%S mutters to [PlaceInfo( %l, %0, NAME )][setq( 1, ulocal( format.mutter, extract( %1, 2, 1, " )))][switch( %q1, ..., ., {, "[%q1]"} )] [rest( rest( %1, " ), " )]}, ;*, {%N mutters to [PlaceInfo( %l, %0, NAME )]}, {[setq( 1, ulocal( format.mutter, %1 ))]%N mutters to [PlaceInfo( %l, %0, NAME )][switch( %q1, ...., ., {, "[%q1]"} )]} )]};@pemit/list [setq( 2, edit( edit( %1, <, ), >, ))][setq( 3, {[PlaceInfo( %l, %0, PREFIX )], [switch( %q2, :*, %N [delete( %q2, 0, 1 )], ;*, %N[delete( %q2, 0, 1 )], %N says "[%q2]" )]} )][setunion( AtPlace( %l, %0 ), %# )]=%q3}
+
+
+
+
+&DO_MUTTER_TT #1317=$mutter/tt *=*: @switch/first [setq( 0, locate( %#, %0, nimP ))][%q0] [setq( 9, WhichPlace( %l, %# ))][switch( %q9, 0, setq( 9, WhichPlace( %l, %q0 )))][%q9]=#-1 *, {@pemit %#=I don't see that here.}, #-2 *, {@pemit %#=I'm not sure which %0 you mean.}, * 0, {@pemit %#=Neither you nor [name( %q0 )] is at a special place.}, {@pemit/list [setq( 8, {[PlaceInfo( %l, %q9, PREFIX )], [switch( %1, :* "*"*, {%N [first( delete( %1, 0, 1 ), " )]%S mutters to [setq( 1, ulocal( format.mutter, extract( %1, 2, 1, " )))][switch( %q0, %#, %oself, name( %q0 ))][switch( %q1, ..., ., {, "[%q1]"} )] [rest( rest( %1, " ), " )]}, :*, {%N mutters to [switch( %q0, %#, %oself, name( %q0 ))].}, ;* "*"*, {%N[first( delete( %1, 0, 1 ), " )]%S mutters to [setq( 1, ulocal( format.mutter, extract( %1, 2, 1, " )))][switch( %q0, %#, %oself, name( %q0 ))][switch( %q1, ..., ., {, "[%q1]"} )] [rest( rest( %1, " ), " )]}, ;*, {%N mutters to [switch( %q0, %#, %oself, name( %q0 ))].}, {[setq( 1, ulocal( format.mutter, %1 ))]%N mutters to [switch( %q0, %#, %oself, name( %q0 ))][switch( %q1, ..., ., {, "[%q1]"} )]} )]} )][setunion( AtPlace( %l, %q9 ), %# [%q0] )]=%q8;@pemit/list [iter( lcon( %l ), switch( strmatch( [get( ##/SPYING )], %l [%q0] ), 1, ## ))]=( Overheard ) [%q8]@pemit %#=[setq( 2, edit( edit( %1, <, ), >, ))][ulocal( format.mutter_from, %#, %q0, %q2 )];@pemit %q0=ulocal( format.mutter_to, %#, %q0, %q2 )}
+
+
+*/
