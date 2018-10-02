@@ -1,0 +1,112 @@
+/*
+=============================================================================
+== /WIPE ====================================================================
+
+No cheeky "unapprove" here; clear 'em out!
+
+0: [<player>[=YES]]
+
+q0: <player>
+q1: [YES]
+
+p: pmatch player (%# if %q0 is 'me')
+w: where is the sheet?
+s: setting self?
+l: list of stats getting wiped, sorted
+
+*/
+
+&f.stat/wipe Stat Setter <ss>=
+
+	strcat( 
+		if( strmatch( %0, *=* ), 
+			setq( 0, trim( first( %0, = ))), 
+			setq( 0, %# )	
+		), 
+		setq( 1, trim( rest( %0, = ))), 
+
+		setq( p, if( strmatch( %q0, me ), %#, pmatch( %q0 ))), 
+		setq( s, strmatch( %qp, %# )), 
+		setq( w, u( f.find-sheet, %qp )), 
+
+
+		case( 0, 
+
+// .. staff can set anything
+// .. players can only /template themselves, and only if they're 'in chargen'
+			cor( isstaff( %# ), cand( %qs, isapproved( %#, chargen ))), 
+			Staff Only., 
+
+			t( %qp ), 
+			Player Not Found., 
+
+			hasattr( %qw , _bio.template ), 
+			Template Not Set. Cannot Wipe Stats., 
+
+// >> wipe the sheet -- of only stats on the Data Dictionary
+			comp( %q1, YES ), 
+			strcat( 
+// .. .. ql: get all possible types
+				setq( l, 
+					edit(
+						iter( 
+							cat( 
+								u( [u( d.stat-funcs )]/d.search-order ), 
+								u( [u( d.stat-funcs )]/d.type.specials )
+							), 
+
+
+// *** pull valid 'specials' from dd, not character sheet ***
+
+
+// .. .. list all attributes matching those types, stripping leading _
+							iter( lattr( %qw/_%i0.* ), rest( %i0, _ ))
+						), 
+// .. .. (remove template from the list; we'll be displaying that first)
+						BIO.TEMPLATE, @@( null )
+					)
+				), 
+
+// .. >> wipe and display sheet
+				wheader( Wiping [name(%qp)]'s Sheet ), %r, 
+				%b%b, 
+				iter(
+					BIO.TEMPLATE %ql, 
+					strcat( 
+						ansi( h, 
+							u( 
+								[u(d.stat-funcs)]/f.statname.workhorse, 
+								rest( %i0, . )
+							)
+						), :%b, 
+						get( %qw/_%i0 ), 
+						null( set( %qw, _%i0: ))
+					
+					), , %r %b
+				), 
+				%r, 
+// 				CGStamp:, %b, u(%qp/_CGSTAMP), 
+// 				null(set(%qp, _CGSTAMP:)), %r, 
+				wfooter( Sheet Wiped )
+			), 
+
+
+// >> default: warning message
+			if( t( %qs ), 
+				ansi( 
+					r, >> Are you%b, 
+					rhu, absolutely sure, 
+					r, %byou want to wipe your sheet? <<, 
+					n, %rIf so%, type:%b, 
+					h, stat/wipe me=YES 
+				), 
+				ansi( 
+					r, >> Are you%b, 
+					rhu, absolutely sure, 
+					r, %byou want to wipe [name(%qp)]'s sheet? <<, 
+					n, %rIf so%, type:%b, 
+					h, stat/wipe [name(%qp)]=YES 
+				)
+			)
+		)
+	)

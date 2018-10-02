@@ -1,0 +1,41 @@
+/*
+THINGS FROM VAMPIRE THAT AFFECT OTHER STATS - Persistent
+
+Celerity -> Defense
+Resilience -> Stamina
+Vigor -> Strength
+
+MERIT.ACUTE_SENSES: 
+- Blood Potency to Perception
+
+
+
+
+
+
+WEREWOLVES - Persistent
+Full Moon's Gift (2) -> Purity to Health
+
+EMBODIMENT OF THE FIRSTBORN (<attribute>)
+- Choose an Attribute, +1 Dot Attribute and Max Attribute + 1
+&merit.embodiment_of_the_firstborn_() dd=
+	5|
+	Intelligence.Wits.Resolve.
+	Strength.Dexterity.Stamina.
+	Presence.Manipulation.Composure
+
+&prerequisite.merit.embodiment_of_the_firstborn_() dd=
+	cand( 
+		u( .is_not, %0, bio.tribe, Ghost Wolves ), 
+		not( lattr( %0/_merit.emobdiment_of_the_firstborn_(*) )) 
+	)
+
+&prereq-text.merit.embodiment_of_the_firstborn_() dd=
+	May not be taken if Tribe is Ghost Wolf, may only be taken once
+
+&tags.merit.embodiment_of_the_firstborn_() d:t=werewolf.physical
+
+*/
+
+
+

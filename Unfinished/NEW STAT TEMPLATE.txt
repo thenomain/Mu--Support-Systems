@@ -1,0 +1,140 @@
+
+&f.stat/template [v( d.ss )]=
+	strcat( 
+		setq( t, trim( if( strmatch( %0, *=* ), first( %0, = ), %# ))), 
+		setq( n, trim( if( strmatch( %0, *=* ), rest( %0, = ), %0 ))), 
+
+		setq( p, pmatch( %qt )), 
+		setq( s, strmatch( %#, %qp )), 
+		setq( w, u( f.find-sheet, %qp )), 
+
+		setq( v, statvalidate( template, %qn )), 
+
+		case( 0, 
+		
+//			alts( %#, thenomain ), 
+//			u( .msg, stat/template, Thenomain only (heavy testing) ), 
+
+			cor( isstaff( %# ), %qs ), 
+			u( .msg, stat/template, Staff or self only ), 
+
+			t( %qp ), 
+			u( .msg, stat/template, I could not find '%qt' ), 
+
+			cor( 
+				isapproved( %qp, chargen ), 
+				cand( isstaff( %# ), isapproved( %qp, unapproved ))
+			), 
+			u( .msg, stat/template, 
+				Chargen [if( isstaff( %# ), or Unapproved%b )]only 
+			), 
+
+			t( %qv ), 
+			u( .msg, stat/template, 
+				Template '%qn' could not be found%; check 'stat template' 
+			), 
+
+			not( strmatch( %qv, get( %qp/_bio.template ))), 
+			u( .msg, stat/template, 
+				[if( %qs, Your, [name( %qp )]'s )] template is already '%qv' 
+			), 
+
+			hasattr( %qp, _bio.template ), 
+//			u( .msg, stat/template - debug, 
+//				.u( f.template.set.default, %qp, %qw, %qv )
+//			), 
+			udefault( f.template.set.%qv, 
+				u( f.template.set.default, %qp, %qw, %qv ), 
+				%qp, %qw 
+			), 
+
+//			u( .msg, stat/template - debug, 
+//				.u( f.template.change.default, %qp, %qw, %qv )
+//			)
+			udefault( f.template.change.%qv, 
+				u( f.template.change.default, %qp, %qw, %qv ), 
+				%qp, %qw 
+			)
+		)		
+	)
+
+
+
+// -=-=-=-=-=-=-=--=-=--=--=-==--=--=---=-=-=-=-=-=-=-
+
+&f.template.set.default [v( d.ss )]=
+	strcat( 
+		setq( l, u( f.statpaths-for-template, %2 )), 
+
+// .. .. output what we're setting
+		u( display.statpath_defaults, %0, %2, %ql ), 
+
+// .. .. and set it
+		null( set( %1, _BIO.TEMPLATE:%2 )), 
+		null( u( f.defaults.set, %1, %ql )), 
+	)
+
+
+// -=-=-=-=-=-=-==--=-=-=
+
+&f.template.change.default [v( d.ss )]=
+	strcat( 
+		if( not( isapproved( %0, chargen )), 
+			u( f.save_sheet, %0, %# )
+		), 
+
+		setq( t, getstat( %1/template )), 
+
+// due to protecting other elements, we have to re-grab 'health.' and 'special.'
+// if you find 'beats' getting clobbered, it's because they have a 'default.*'
+// in the data dictionary (dd)
+
+		setq( s, 
+			cat( 
+				ulocal( f.statpaths-from-sheet, %1 ), 
+				iter( 
+					cat( lattr( %1/_health.* ), lattr( %1/_special.* )), 
+					trim( %i0, l, _ )
+				)
+			)
+		), 
+		setq( v, ulocal( f.statpaths-for-template, %2 )), 
+		setq( x, setdiff( %qv, %qs )), 
+
+		u( display.statpath_defaults, %0, %2, %qx ), %r, 
+		ansi( h, 
+			if( isstaff( %# ), 
+				strcat( 
+					*** Remember to 'cg/check [name( %0 )]' ***, %r, 
+					*** Add removed Merit dots with 
+					'stat/set [name( %0 )]/Sanctity of Merits + <value>' *** 
+				), 
+				*** Remember to remove Invalid Stats showing in 'cg/check' ***
+			)
+
+		), 
+
+		null( set( %1, _BIO.TEMPLATE:%2 )), 
+		null( u( f.defaults.set, %1, %qx )), 
+	)
+
+// =--=-=-==--=-=-=-==-=-=-
+
+&f.template.change.demon [v( d.ss )]=
+	strcat( 
+// remember important things
+		if( not( isapproved( %0, chargen )), 
+			u( f.save_sheet, %0, %# )
+		), 
+		setq( f, get( %0/_bio.full_name )), 
+		setq( l, u( f.statpaths-from-sheet, %1 )), 
+// remove offset (spends) for 'normal beats'
+		set( %0, 
+			_special.beats.normal:
+			[first( get( %0/_special.beats.normal ))] 0 
+		), 
+// stat/wipe
+		null( iter( %ql, set( %1, _%i0: ))), 
+// stat/template
+		u( f.template.set.default, %0, %1, demon ), 
+	)
