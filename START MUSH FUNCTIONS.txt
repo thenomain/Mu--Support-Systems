@@ -12,11 +12,23 @@ game. Designed for TinyMUX.
 If your game setup does not give '@function' access to wizard, change the below 
 to work with your game.
 
+If you used the default SGP installation, the following will be true, 
+else fix it:
+    #3 is the Storage Wizard
+
 */
 
 @create User-Defined Functions <udf>=10
 
-@startup udf=
+// Set the UDF dbref on yourself
+@force me=&d.udf me=[search( object=User-Defined Functions <udf> )]
+
+// If you're using SGP, Storage Wizard is #3:
+@force me=&d.udf #3=[search( object=User-Defined Functions <udf> )]
+@chown User-Defined Functions <udf>=#3
+@set User-Defined Functions <udf>=inherit !halt safe
+
+@startup [v( d.udf )]=
     @dolist lattr( %!/ufunc.* )={ 
         @function/preserve [rest( ##, . )]=%!/##
     }; 
@@ -35,7 +47,7 @@ Don't make your game without these.
 
 */
 
-&UFUNC.ISSTAFF User-Defined Functions <udf>=
+&UFUNC.ISSTAFF [v( d.udf )]=
     strcat( 
         setq( f, switch( %1, w*, W, a*, WZ, r*, WZ, s*, WZw, WZw )), 
         cor( 
@@ -46,22 +58,22 @@ Don't make your game without these.
             )
         )
     )
-&HELP.ISSTAFF User-Defined Functions <udf>=
+&HELP.ISSTAFF [v( d.udf )]=
     isstaff( <target>[, <level>] ): 
     Where <level> can be 'Wizard', 'Admin'/'Royalty' (synonyms), or 'Staff'. 
     Defaults to 'Staff'.
 
-&UFUNC.HEADER User-Defined Functions <udf>=
+&UFUNC.HEADER [v( d.udf )]=
     center( 
         ansi( c, ., h, %b %0 %b, c, . ), 
         if( cand( strlen( %1 ), isint( %1 ), gt( %1, 1 )), %1, 79 ), 
         ansi( c, : )
     )
-&HELP.HEADER User-Defined Functions <udf>=
+&HELP.HEADER [v( d.udf )]=
     header( <text> ): 
     A game-wide output header.
 
-&UFUNC.DIVIDER User-Defined Functions <udf>=
+&UFUNC.DIVIDER [v( d.udf )]=
     strcat( 
         setq( w, if( cand( strlen( %1 ), isint( %1 ), gt( %1, 1 )), %1, 79 )), 
         if( t( %0 ), 
@@ -74,11 +86,11 @@ Don't make your game without these.
             ansi( c, repeat( ., %qw ))
         )
     )
-&HELP.DIVIDER User-Defined Functions <udf>=
+&HELP.DIVIDER [v( d.udf )]=
     divider( [<text>] ): 
     A game-wide output divider.
 
-&UFUNC.FOOTER User-Defined Functions <udf>=
+&UFUNC.FOOTER [v( d.udf )]=
     strcat( 
         setq( w, if( cand( strlen( %1 ), isint( %1 ), gt( %1, 1 )), %1, 79 )), 
         if( t( %0 ), 
@@ -86,31 +98,31 @@ Don't make your game without these.
             ansi( c, repeat( :, %qw ))
         )
     )
-&HELP.FOOTER User-Defined Functions <udf>=
+&HELP.FOOTER [v( d.udf )]=
     footer( [<text>] ): 
     A game-wide output footer.
 
-&UFUNC.WHEADER User-Defined Functions <udf>=header( %0, width( %# ))
-&HELP.WHEADER User-Defined Functions <udf>=
+&UFUNC.WHEADER [v( d.udf )]=header( %0, width( %# ))
+&HELP.WHEADER [v( d.udf )]=
     wheader( <text> ): 
     A game-wide output header as wide as the user's screen.
 
-&UFUNC.WDIVIDER User-Defined Functions <udf>=divider( %0, width( %# ))
-&HELP.WDIVIDER User-Defined Functions <udf>=
+&UFUNC.WDIVIDER [v( d.udf )]=divider( %0, width( %# ))
+&HELP.WDIVIDER [v( d.udf )]=
     wdivider( [<text>] ): 
     A game-wide output divider as wide as the user's screen.
 
-&UFUNC.WFOOTER User-Defined Functions <udf>=footer( %0, width( %# ))
-&HELP.WFOOTER User-Defined Functions <udf>=
+&UFUNC.WFOOTER [v( d.udf )]=footer( %0, width( %# ))
+&HELP.WFOOTER [v( d.udf )]=
     wfooter( [<text>] ): 
     A game-wide output footer as wide as the user's screen.
 
-&UFUNC.MSG User-Defined Functions <udf>=ansi( h, <%0>, n, %b%1 )
-&HELP.MSG User-Defined Functions <udf>=
+&UFUNC.MSG [v( d.udf )]=ansi( h, <%0>, n, %b%1 )
+&HELP.MSG [v( d.udf )]=
     msg( <header>, <message> ): 
     A game-wide notice output.
 
-&UFUNC.TITLESTR User-Defined Functions <udf>=
+&UFUNC.TITLESTR [v( d.udf )]=
     iter( 
         lcstr( %0 ), 
         case( 1, 
@@ -175,42 +187,42 @@ Don't make your game without these.
             capstr( %i0 )
         )
     )
-&HELP.TITLESTR User-Defined Functions <udf>=
+&HELP.TITLESTR [v( d.udf )]=
     titlestr( <string>[, <words to ignore>] ): 
     Outputs text in a 'title string' format, 
     will output <words to ignore> exactly as they are entered.
 
-&D.TITLESTR-NOTITLE User-Defined Functions <udf>=
+&D.TITLESTR-NOTITLE [v( d.udf )]=
     a an the at by for in of on to up and as but it or nor
 
-&D.TITLESTR-PUNCTUATION User-Defined Functions <udf>=
+&D.TITLESTR-PUNCTUATION [v( d.udf )]=
     . , ? ! ; : ( ) < > { } * / - + " '
 
-&D.TITLESTR-REGEXP User-Defined Functions <udf>=
+&D.TITLESTR-REGEXP [v( d.udf )]=
     \[^[escape( u( d_titlestr-punctuation ))]\].*\\(.*\\)
 
-&D.TITLESTR-EXCEPTION User-Defined Functions <udf>=
+&D.TITLESTR-EXCEPTION [v( d.udf )]=
     iPod von BBS OOC IC EOD XP UFO DIY EMT FBI ASL EPD EMTs EU DJs TV VIP A&P 
     NPC DVD VCR PT
 
-&UFUNC.LMAX User-Defined Functions <udf>=last( sort( %0, n, %1, %1 ), %1 )
-&HELP.LMAX User-Defined Functions <udf>=
+&UFUNC.LMAX [v( d.udf )]=last( sort( %0, n, %1, %1 ), %1 )
+&HELP.LMAX [v( d.udf )]=
     lmax( <list of numbers>[, <delimiter>] ): 
     Highest number in delimited list.
 
-&UFUNC.LMIN User-Defined Functions <udf>=first( sort( %0, n, %1, %1 ), %1 )
-&HELP.LMIN User-Defined Functions <udf>=
+&UFUNC.LMIN [v( d.udf )]=first( sort( %0, n, %1, %1 ), %1 )
+&HELP.LMIN [v( d.udf )]=
     lmin( <list of numbers>[, <delimiter>] ): 
     Lowest number in delimited list.
 
 // The next two are "critical" for games geared toward RPG systems
 
-&UFUNC/PRIVILEGED.ISIC User-Defined Functions <udf>=t( get( %0/_ic ))
-&HELP.ISIC User-Defined Functions <udf>=
+&UFUNC/PRIVILEGED.ISIC [v( d.udf )]=t( get( %0/_ic ))
+&HELP.ISIC [v( d.udf )]=
     isic( <target> ): 
     Returns '1' if target is in a room marked 'in-character'.
 
-&UFUNC/PRIVILEGED.SHORTDESC User-Defined Functions <udf>=
+&UFUNC/PRIVILEGED.SHORTDESC [v( d.udf )]=
     case( 1, 
         cand( 
             hasattr( 
@@ -239,7 +251,7 @@ Don't make your game without these.
 
         @@( show nothing - %q0 - %# )
     )
-&HELP.SHORTDESC User-Defined Functions <udf>=
+&HELP.SHORTDESC [v( d.udf )]=
     shortdesc( <target> ): 
     Shows the most appropriate '&short-desc' attribute the viewer can see. 
     (Some holding code in there for reality levels.)
@@ -255,7 +267,7 @@ Two ways to display information vertically.
 
 */
 
-&UFUNC.VCOLUMNS User-Defined Functions <udf>=
+&UFUNC.VCOLUMNS [v( d.udf )]=
     strcat( 
         iter( lnum( 9 ), 
             if( 
@@ -305,15 +317,33 @@ Two ways to display information vertically.
             , %r 
         )
     )
-&HELP.VCOLUMNS User-Defined Functions <udf>=See in-depth help file.
+&HELP.VCOLUMNS [v( d.udf )]=See in-depth help file.
 
 // --
 
-&UFUNC.VTABLE User-Defined Functions <udf>=
+&UFUNC.VTABLE [v( d.udf )]=
     strcat( 
         setq( d, if( strlen( %2 ), %2, %b )), 
         setq( c, words( %0, %qd )), 
-        setq( x, max( 1, min( %qc, if( %1, %1, %qc ), div( width( %# ), 2 ), div( inc( width( %# )), last( sort( iter( %0, inc( strlen( %i0 )), %qd, %b ))))))), 
+        setq( x, 
+        	max( 1, 
+        		min( 
+        			%qc, 
+        			if( %1, %1, %qc ), 
+        			div( width( %# ), 2 ), 
+        			div( inc( width( %# )), 
+        				last( 
+        					sort( 
+        						iter( %0, 
+        							inc( strlen( %i0 )), 
+        							%qd, %b 
+        						)
+        					)
+        				)
+        			)
+        		)
+        	)
+        ), 
         setq( y, div( add( %qc, dec( %qx )), %qx )), 
         setq( x, div( add( %qc, dec( %qy )), %qy )), 
         setq( w, widthcol( %qx )), 
@@ -337,16 +367,16 @@ Two ways to display information vertically.
             )
         )
     )
-&HELP.VTABLE User-Defined Functions <udf>=See in-depth help file.
+&HELP.VTABLE [v( d.udf )]=See in-depth help file.
 
-&UFUNC.TRANSPOSE User-Defined Functions <udf>=
+&UFUNC.TRANSPOSE [v( d.udf )]=
     iter( 
         lnum( 0, dec( %1 )), 
         iter( lnum( 0, dec( mul( %0, %1 )), , %1 ), add( 1, %i0, %i1 ))
     )
-&HELP.TRANSPOSE User-Defined Functions <udf>=See in-depth help file.
+&HELP.TRANSPOSE [v( d.udf )]=See in-depth help file.
 
-&UFUNC.SLACKCOL User-Defined Functions <udf>=
+&UFUNC.SLACKCOL [v( d.udf )]=
     strcat( 
         setq( s, sub( width( %# ), mul( widthcol( %0 ), %0 ))), 
         sub( 
@@ -354,27 +384,27 @@ Two ways to display information vertically.
             div( mul( %qs, dec( %1 )), dec( %0 ))
         )
     )
-&HELP.SLACKCOL User-Defined Functions <udf>=See in-depth help file.
+&HELP.SLACKCOL [v( d.udf )]=See in-depth help file.
 
-&UFUNC.WIDTHCOL User-Defined Functions <udf>=
+&UFUNC.WIDTHCOL [v( d.udf )]=
     if( lt( %0, 2 ), 
         width( %# ), 
         floor( fdiv( sub( width( %# ), sub( %0, 1 )), %0 ))
     )
-&HELP.WIDTHCOL User-Defined Functions <udf>=See in-depth help file.
+&HELP.WIDTHCOL [v( d.udf )]=See in-depth help file.
 
 /*
 --------------------------------------------------------------------------------
 -- Other Nicities --------------------------------------------------------------
 */
 
-&UFUNC.CRUMPLE User-Defined Functions <udf>=trim( squish( %0, %1 ), b, %1 )
-&HELP.CRUMPLE User-Defined Functions <udf>=
+&UFUNC.CRUMPLE [v( d.udf )]=trim( squish( %0, %1 ), b, %1 )
+&HELP.CRUMPLE [v( d.udf )]=
     crumple( <list of items>[, <delimiter>] ): 
     Removes multiple delimiters from middle, start, and end. 
     e.g., thing1|thing2|||thing4| -> thing1|thing2|thing4
 
-&UFUNC.NUMRANGES User-Defined Functions <udf>=
+&UFUNC.NUMRANGES [v( d.udf )]=
     strcat( 
         setq( o, if( t( %2 ), %2, | )), 
         setq( n, setunion( %0, , %1, , n )), 
@@ -394,11 +424,11 @@ Two ways to display information vertically.
         ), 
         if( t( %3 ), edit( %ql, %b, %3 ), %ql )
     )
-&HELP.NUMRANGES User-Defined Functions <udf>=
+&HELP.NUMRANGES [v( d.udf )]=
     numranges( <list of numbers I think> ): 
     Can't remember, but apparently helpful.
 
-&UFUNC.PLURAL User-Defined Functions <udf>=
+&UFUNC.PLURAL [v( d.udf )]=
     if( isint( %0 ), 
         if( strlen( %2 ), 
             if( eq( %0, 1 ), %1, %2 ), 
@@ -409,12 +439,12 @@ Two ways to display information vertically.
             if( eq( words( %0 ), 1 ), %1, %1s )
         )
     )
-&HELP.PLURAL User-Defined Functions <udf>=
+&HELP.PLURAL [v( d.udf )]=
     plural( <num>, <singular>, <plural> ): 
     Outputs <num> plus the <singular> or <plural> as passed.
     Looks like it might be able to handle 'plural( <list of things>, ... )'.
 
-&UFUNC.SAY User-Defined Functions <udf>=
+&UFUNC.SAY [v( d.udf )]=
     strcat( 
         setq( 0, regmatchi( %1, %(.%)%(%[\\s\\S%]*%), 0 1 2 )), 
         switch( %q1, 
@@ -425,14 +455,14 @@ Two ways to display information vertically.
             [moniker( %0 )] says%, “%q1%q2” 
         )
     )
-&HELP.SAY User-Defined Functions <udf>=
+&HELP.SAY [v( d.udf )]=
     say( <say or pose format> ): 
     Outputs the same as say/pose/emit.
 
 /*
 (Edited out because I sincerely cannot remember why this is here.)
 
-&UFUNC/PRIVILEGED.ZONEINFO User-Defined Functions <udf>=
+&UFUNC/PRIVILEGED.ZONEINFO [v( d.udf )]=
     strcat( 
         setq( z, zone( %0 )), 
         setq( v, setdiff( lattr( %qz ), Created Modified )), 
@@ -444,12 +474,12 @@ Two ways to display information vertically.
             u( %qz/%qw )
         )
     )
-&HELP.ZONEINFO User-Defined Functions <udf>=
+&HELP.ZONEINFO [v( d.udf )]=
     zoneinfo( <target>, <attribute> ): 
     I think it pulls u( <zone parent>/<attribute> ). Maybe.
 */
 
-&UFUNC.LPMATCH User-Defined Functions <udf>=
+&UFUNC.LPMATCH [v( d.udf )]=
     [setq( e, 
         case( 1, 
             cor( not( strlen( %0 )), strlen( %3 )), 
@@ -474,7 +504,7 @@ Two ways to display information vertically.
         #-1 NOT FOUND|[iter( graball( %qe, #-1 *, | ), rest( %i0 ), |, | )], 
         %qe 
     )]
-&HELP.LPMATCH User-Defined Functions <udf>=
+&HELP.LPMATCH [v( d.udf )]=
     lpmatch( ??? ): 
     A way to turn a list of player names into player dbrefs.
 
@@ -494,7 +524,7 @@ Uncomment the below if you'd like to use it:
 */
 
 /*
-&UFUNC/PRIVILEGED.WIDTH User-Defined Functions <udf>=
+&UFUNC/PRIVILEGED.WIDTH [v( d.udf )]=
     strcat( 
         setq( 0, if( t( %0 ), %0, %# )), 
         if( cor( isstaff( %@ ), haspower( %@, see_all ), strmatch( %#, %q0 )), 
@@ -510,7 +540,7 @@ Uncomment the below if you'd like to use it:
             #-1 Permission Denied 
         )
     )
-&HELP.WIDTH User-Defined Functions <udf>=
+&HELP.WIDTH [v( d.udf )]=
     width( [<target>] ): 
     Identical to previous, but allows players to set '&width' on themselves 
     to force a non-80-character width.
@@ -520,23 +550,12 @@ Uncomment the below if you'd like to use it:
 /*
 --------------------------------------------------------------------------------
 -- Finalize --------------------------------------------------------------------
-
-If you used the default SGP installation, the following will be true, 
-else fix it:
-    #3 is the Storage Wizard
-
 */
 
-@fo me=@edit udf=@@USER-DEFINED-FUNCTIONS@@, [num( user-defined functions )]
-@chown udf=#3
-@set udf=inherit !halt safe
-@trigger User-Defined Functions <udf>/startup
-
-// Remember this object's dbref on yourself and #3:
-@force me=&d.udf me=[num( User-Defined Functions <udf> )]
-@force me=&d.udf #3=[num( User-Defined Functions <udf> )]
+@fo me=@edit [v( d.udf )]=@@USER-DEFINED-FUNCTIONS@@, [v( d.udf )]
+@trigger v( d.udf )/startup
 
 // The Code Object Data Parent, if you're using it.
-@force me=@parent User-Defined Functions <udf>=
+@force me=@parent [v( d.udf )]=
     [search( object=Code Object Data Parent <codp> )]
 
