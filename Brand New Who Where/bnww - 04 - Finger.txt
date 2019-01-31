@@ -38,7 +38,7 @@ about a specific player-object.
 		wfooter( u( display.finger.footer, %qp ))
 	); 
 
-@set Brand New Who-Where [v( d.bnww )]/c.finger=regex
+@set [v( d.bnww )]/c.finger=regex
 
 
 /*
