@@ -837,8 +837,6 @@ Merges '/add' and '/dark' into one command.
   +notes. Staff is able to set invisible (dark) notes that you shouldn't be 
   able to access.                                                           
                                                                             
-  +note/setup: Set yourself up with a note object if staff hasn't already   
-                                                                            
   +notes: Show your notes.                                                  
                                                                             
   +note <note>: Show that specific note.                                    
@@ -871,8 +869,6 @@ Merges '/add' and '/dark' into one command.
   character object and part of the Note ZMO (#310) inside the Note Storage  
   Bin (#315). Rooms store the notes on the room on a &_attribute. <target>  
   below must be a player, room dbref, or here.                              
-                                                                            
-  +note/setup <target>: Set up a note object for <target>                   
                                                                             
   +note <target>[/<title>]                                                  
   +note/view <target>[/<title>]: View <target>'s notes, or view a specific  
