@@ -84,7 +84,7 @@ It's cool, it's fun, but it's a multi-column wrap function. Let's try this again
 ================================================================================
 == Vcolumns() attempt 2, the working one =======================================
 
-vcolumns( <list1> <width1>, ..., <delim>, <divider>, <left>, <right> )
+vcolumns( <list1>:<width1>, ..., <delim>, <divider>, <left>, <right> )
 
 Due to limitations in Mu* code, the only way to separate <width> from <list> is with a pre-defined delimiter for this only. I'm sticking with :.
 
