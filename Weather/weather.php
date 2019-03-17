@@ -19,15 +19,13 @@ require "darksky_api_token.txt";
  *****************************************************************************/
 
 // the state and city are no longer used -- alas
-// 
-// $state = "MD"; 
-// $city = "Upper_Marlboro"; 
+// The latitude and longitude of Upper Marlboro, MD is:
 
 $latitude = "38.8159"; 
 $longitude = "-76.7497"; 
 
 // Dark Sky doesn't do tides. Maybe we can find something better
-// $has_tides = TRUE; // set to FALSE if your area has no tides
+$has_tides = FALSE; // set to TRUE if your area has  tides
 
 /*
    The directory that holds the fine file; use exact path.
@@ -63,7 +61,8 @@ date_default_timezone_set( $tz );
 $datetime = new DateTime('@'.$weather->currently->time );
 date_timezone_set( $datetime, new DateTimeZone($tz));
 
-// astronomy
+// astronomy from the USNO office.
+// Our token as "TinyMUX" to let them know who we are.
 $astronomy_string = 'https://api.usno.navy.mil/rstt/oneday?' . 
     'ID=TinyMUX&date=today&coords=' . $latitude . ',' . $longitude;
 $json_string = file_get_contents( $astronomy_string ); 
@@ -217,7 +216,8 @@ $conditions = $weather->currently;
 $file_conditions = "& conditions\n"; 
 $file_conditions .= "Summary: " .  $conditions->summary . "\n"; 
 $file_conditions .= "Temperature: " . 
-    round($conditions->temperature) . " F\n"; 
+    round($conditions->temperature) . " F (" . 
+    fahrenheitToCelsius($conditions->temperature) ." C)\n"; 
 if ( $conditions->temperature != $conditions->apparentTemperature ) { 
     $file_conditions .= "Feels Like: " . 
         round($conditions->apparentTemperature) . "\n";
@@ -370,21 +370,7 @@ if (isset($alerts)) {
  * https://stackoverflow.com/questions/36012378/convert-utc-to-est-by-taking-
  * care-of-daylight-saving/36012664
  * 
- * ->sun_phase->sunrise->hour & ->sun_phase->sunrise->minute 
- * ->sun_phase->sunset->hour & ->sun_phase->sunset->minute 
- * 
- * ->moon_phase->percentIlluminated
- * ->moon_phase->phaseofMoon
- * ->moon_phase->hemisphere
- * ->moon_phase->moonrise->hour & ->moon_phase->moonrise->minute
- * ->moon_phase->moonset->hour & ->moon_phase->moonset->minute
- * 
  ******************************************************************************/
-
-// $astronomy->error
-// $astronomy->apiversion
-
-// echo $datetime->format('Y-m-d H:i:s');
 
 $sun = $astronomy->sundata; 
 foreach ($sun as $value) {
@@ -396,12 +382,15 @@ foreach ($sun as $value) {
 };
 
 $moon = $astronomy->moondata;
+
+/* we ignore other days - it makes 'is the moon visible' calculation easier *
 if (!is_null(@$astronomy->prevmoondata)) {
     $moon = array_merge($astronomy->prevmoondata, $moon);
 }; 
 if (!is_null(@$astronomy->nextmoondata)) {
     $moon = array_merge($moon, $astronomy->nextmoondata);
 }; 
+*/
 
 foreach ($moon as $value) {
     if ($value->phen == "R") { 

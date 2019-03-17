@@ -7,30 +7,33 @@ You will need to have access to edit files and to cron on the server account.
 ** STEP ONE: Get an API code ***************************************************
 
 Go to this site:
-	https://darksky.net/dev/register
+    https://darksky.net/dev/register
 
 Sign up. The base account is free up to a thousand calls per day, so unless 
 you're going to install your API code on 42 games--or 42 times per hour on one 
 game--you should be fine.
 
-You will get a code on the developer page. It's called a "secret key". Don't 
-share this code.
+You will get a code on the developer page. On the page it's called a "secret 
+key", but sometimes we also call it a "token". 
+
+Don't share this code.
 
 
 ** STEP TWO: Work out your location ********************************************
 
 Dark Sky API only works at latitude and longitude. Get those via your favorite 
-search engine. Convert anything "South" to a negative number, and anything "West" to a negative number.
+search engine. Convert anything "South" to a negative number, and anything 
+"West" to a negative number.
 
 For instance, Stowe, Vermont is 44.4654° N, 72.6874° W. The system will need:
-	latitude: 44.4654
-	longitude: -72.6874
+    latitude: 44.4654
+    longitude: -72.6874
 
 So here's an example URL to test that this is working correctly. Let's say your 
-API code is "b9bfg15x30ya3a0x". (It will be much longer.) Test that you're 
+API code is "b9bfg15x30yadsfds3a0x". (It will be much longer.) Test that you're 
 getting the weather that you need:
-	https://api.darksky.net/forecast/b9bfg15x30ya3a0x/44.4654,
-	-72.6874?exclude=hourly,daily
+    https://api.darksky.net/forecast/b9bfg15x30yadsfds3a0x/
+    44.4654,-72.6874?exclude=hourly,daily
 
 
 ** STEP THREE: Edit and upload weather.php *************************************
@@ -55,7 +58,7 @@ ctrl-d
 
 Still logged into the server, type:
 
-	php weather.php
+    php weather.php
 
 This runs the very first weather-grabbing from Dark Sky. Hopefully there were 
 no errors.
@@ -66,7 +69,7 @@ no errors.
 You need to run that command once an hour. If you already know how to add to 
 the crontab, add this line:
 
-	@hourly cd <exact path to where 'weather.php' lives>; php weather.php > /dev/null 2>&1
+    @hourly cd <exact path to where 'weather.php' lives>; php weather.php > /dev/null 2>&1
 
 Some servers don't let you edit this from the command line, and you'll have to 
 find where to add to the cron in the CPANEL. Enter the above except for the 
@@ -77,14 +80,14 @@ word "@hourly", which should be an option similar to "do this once an hour".
 
 Find your game's config file. It's probably '<gamename>.conf'. Add this line:
 
-	helpfile meteo <exact path to where 'weather.txt' lives>/weather
+    helpfile meteo <exact path to where 'weather.txt' lives>/weather
 
 If you don't know where 'weather.txt' lives, you entered that information in 
 the 'weather.php' file in Step Three.
 
 So if 'weather.txt' lives at '/tinymux/text/weather.txt', enter:
 
-	helpfile meteo /tinymux/text/weather
+    helpfile meteo /tinymux/text/weather
 
 Notice that there is no '.txt' at the end of this!
 
@@ -101,7 +104,7 @@ typing "weather".
 
 ** STEP NINE: Start the Mushcron ***********************************************
 
-The game needs to run "@readcache" once an hour. In your Myrddin's mushcron 
+The game needs to run "@readcache" once an hour. In your Myrddin's Mushcron 
 system, add the following lines:
 
 &CRON_TIME_WEATHER mushcron=||||00 01 02|

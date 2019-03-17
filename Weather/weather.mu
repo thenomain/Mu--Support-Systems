@@ -22,20 +22,21 @@ OUTPUT:
  Temperature: 56.1 F (13.4 C)                Sunset: 7:37 pm
  [Feels Like: 56.1 F (13.4 C)]           Moon Phase: Waning Gibbous (96%)
     Humidity: 61%                                    ([Not ]Visible)
-        Wind: 14 mph ENE (22.53 kph)       Pressure: 30.19 in Falling
- [Wind Gusts: 23 mph (xx.xx kph)]        Visibility: 10 mi (16.09 km)
-[Hour Precip: 0.00 in (0 mm)]
- [Day Precip: 0.00 in (0 mm)]
+        Wind: 14 mph ENE (22 kph)          Pressure: 30.19 in [Falling]
+ [Wind Gusts: 23 mph (37 kph)]           Visibility: 10 mi (16.09 km)
 
                     Today's Forecast                Tomorrow's Forecast       
 
-         Low:         35 F (1.67 C)                    33 F (0.56 C)          
-        High:         38 F (3.33 C)                   57 F (13.89 C)          
-  Conditions:            Showers                           Rain               
+         Low:         35 F (2 C)                       33 F (0 C)          
+        High:         38 F (3 C)                       57 F (14 C)          
+  Conditions:           Showers                           Rain               
 
 ===============================================================================
 
 The term "current conditions" is kind of a lie, as the system updates hourly.
+
+Pressure trend (rising/falling) is no longer easily available and is not 
+reported.
 
 WARNING: Sometimes the system doesn't pull in data, and all these fields will 
 be blank. Haven't coded a way around that yet.
@@ -85,7 +86,8 @@ That is: Is 'a' between x and y, including x or y?
 
 	weather: report the weather
 	weather/override: allow staff to make and clear their own weather report
-	moon: report on just the moon (presently broken)
+
+    time: report the weather
 
 */
 
@@ -145,12 +147,10 @@ That is: Is 'a' between x and y, including x or y?
 
 // ---
 
-&C.MOON [v( d.waa )]=$^\+?moon$:
-	@pemit %#=
-		[ansi( nh, Moon Phase -)] 
-		[u( fn.getmoonphase )] %([u( fn.getmoonpercent )] illum%)
+&C.TIME [v( d.waa )]=$^\+?time$:
+    @pemit %#=u( c.weather-default )
 
-@set v( d.waa )/c.moon=regexp
+@set v( d.waa )/c.time=regexp
 
 
 
@@ -178,9 +178,9 @@ That is: Is 'a' between x and y, including x or y?
 --------------------------------------------------------------------------------
 -- Function: Is the Moon Visible? ----------------------------------------------
 
-Is the moon even possibly visible where you are? Since we only know the moonrise 
-and moonset values, we can't make a reasonable prediction how visible the moon 
-is, so this is all we are reporting.
+Is the moon even possibly visible where you are? Since we only know 
+the moonrise and moonset values, we can't make a reasonable prediction how 
+visible the moon is, so this is all we are reporting.
 
 if moonrise < moonset, moon is visible if time is between moonrise & moonset
 if moonrise > moonset, moon is visible if time is not between moonrise & moonset
@@ -221,7 +221,7 @@ b: is the current time between %qr and %qs?
 		setq( s, convtime( %qs )), 
 
 // is current time between sunrise and sunset?
-		setq( b, u( .between, %qr, %qs, secs())), 
+		setq( b, u( .between, secs(), %qr, %qs )), 
 
 // determine if the moon is 'above the horizon'
 		case( 1, 
@@ -324,7 +324,7 @@ b: is the current time between %qr and %qs?
 		center( ansi( hu, Current Conditions ), width( %# )), %r, %r, 
 		u( display.conditions.columns, 
 			u( format.conditions, 
-				Conditions|Temperature|Feels Like|Humidity, 
+				Summary|Temperature|Feels Like|Humidity, 
 				conditions 
 			), 
 			strcat( 
@@ -339,7 +339,7 @@ b: is the current time between %qr and %qs?
 		), %r, 
 		u( display.conditions.columns, 
 			u( format.conditions, 
-				Wind|Wind Gusts|Hour Precip|Day Precip, 
+				Wind|Wind Gusts, 
 				conditions 
 			), 
 			u( format.conditions, 
@@ -360,7 +360,7 @@ b: is the current time between %qr and %qs?
 */
 
 &display.conditions.columns [v( d.waa )]=
-	iter( lnum( 1, ceil( fdiv( words( %0|%1, | ), 2 ))), 
+	iter( lnum( 1, max( words( %0, | ), words( %1, | ))), 
 		center( 
 			strcat( 
 				ljust( elements( %0, %i0, | ), 38 ), 
@@ -370,6 +370,7 @@ b: is the current time between %qr and %qs?
 			width( %# )
 		), , %r 
 	)
+
 
 
 /*
@@ -439,7 +440,7 @@ if get-field (alerts, description) is not null, display, else don't
 */
 
 &display.alerts [v( d.waa )]=
-	if( setr( a, u( f.get-field, alerts, description )), 
+	if( setr( a, u( f.get-field, alerts, title )), 
 		ansi( 
 			r, center( %qa, width( %# )), 
 			n, %r, 
