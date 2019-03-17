@@ -6,89 +6,49 @@ Today: Today's forecast.
 Tomorrow: Tomorrow's forecast.
 Astronomy: Sun & Moon facts.
 Alerts: Emergency weather service alerts.
-Tides: High and Low Tides for the next 3 days
-Tide Height: Estimates of tide height for the next 2 days
 Credits: People and things to thank.
 
-Last Updated on April 26, 5:12 PM AST
+Powered by Dark Sky (https://darksky.net/poweredby/)
+
+Last Updated on March 17, 02:40 PM EDT
 & conditions
-Conditions: Mostly Cloudy
-Temperature: 79.2 F (26.2 C)
-Feels Like: 82 F (28 C)
-Humidity: 76%% 
-Wind: 3 mph SE (4.8 kph)
-Wind String: From the SE at 3.0 MPH Gusting to 13.0 MPH
-Wind Gusts: 13.0 mph (20.9 kph)
-Pressure: 29.94" and Steady
-Visibility: 10.0 mi (16.1 km)
-Day Precip: 0.05 in (1 mm)
+Summary: Clear
+Temperature: 50.24 F
+Humidity: 26\% 
+Wind: 8.22 mph 288 (13 kph)
+Wind String: <description>
+Wind Gusts: 14.37 mph (23 kph)
+Pressure: 30.22 in
+Cloud Cover: 
 & today
-High: 83 F (28 C)
-Low: 76 F (24 C)
-Conditions: Partly Cloudy
-Wind: 11 mph ESE (17 kph)
-Wind Gusts: 16 mph SE (26 kph)
-Average Humidity: 82\% 
-Predicted Precipitation: 0 in (0 mm)
+High: 52.15 F (11 C)
+Low: 36.86 F (3 C)
+Conditions: Partly cloudy overnight.
+Wind: 3.38 mph 311 (5 kph)
+Wind Gusts: 15.44 mph (25 kph)
+Humidity: 41\% 
+Chance of Rain: 5\% 
 & tomorrow
-High: 84 F (29 C)
-Low: 76 F (24 C)
-Conditions: Clear
-Wind: 13 mph E (21 kph)
-Wind Gusts: 20 mph E (32 kph)
-Average Humidity: 71\% 
-Predicted Precipitation: 0.02 in (1 mm)
-Precipitation (Day): 0 in (0 mm)
-Precipitation (Night): 0.02 in (1 mm)
+High: 45.85 F (8 C)
+Low: 32.83 F (0 C)
+Conditions: Mostly cloudy until evening.
+Wind: 3.85 mph 80 (6 kph)
+Wind Gusts: 11.76 mph (19 kph)
+Humidity: 65\% 
+Chance of Rain: 39\% 
 & astronomy
-Sunrise: 5:55
-Sunset: 18:39
-Moonrise: 6:08
-Moonset: 19:03
-Moon Phase: New Moon (0\%)
-& tides
-1493257198|High Tide|0.75 ft
-1493285151|Low Tide|0.18 ft
-1493294927|High Tide|0.23 ft
-1493317944|Low Tide|-0.13 ft
-1493347016|High Tide|0.80 ft
-1493377087|Low Tide|0.16 ft
-1493382179|High Tide|0.17 ft
-1493406427|Low Tide|-0.17 ft
-1493437027|High Tide|0.82 ft
-1493495353|Low Tide|-0.19 ft
-1493527241|High Tide|0.82 ft
-1493584807|Low Tide|-0.17 ft
-& tide height
-1493241173|0.208064
-1493241473|0.222029
-1493241773|0.236199
-1493242073|0.250554
-1493242373|0.265074
-1493242673|0.279739
-1493242973|0.294526
-1493243273|0.309414
-1493243573|0.32438
-1493243873|0.339402
-1493244173|0.354455
-1493244473|0.369518
-1493244773|0.384565
-1493245073|0.399574
-1493245373|0.41452
-1493245673|0.42938
-1493245973|0.444129
-1493246273|0.458746
-1493246573|0.473205
-1493246873|0.487485
-1493247173|0.501562
-1493247473|0.515416
-1493247773|0.529023
-1493248073|0.542365
+Sunrise: 11:16
+Sunset: 23:16
+Moonrise: 19:20
+Moonset: 09:05
+Moon Phase: First Quarter (82%)
 & alerts
 No alerts in your area.
 & credits
-Data provided by the Weather Underground under the following terms of service:
-    http://www.wunderground.com/weather/api/d/terms.html
+Weather powered by Dark Sky (https://darksky.net/poweredby/)
+
+Sun & moon information provided by the United States Naval Observatory's 
+amazing Astronomical Applications department (https://aa.usno.navy.mil/data/docs/api.php)
 
 PHP and TinyMUX code originally by Brus using the Yahoo Weather API.
-Rewritten by Thenomain using the Weather Underground API.
+Rewritten by Thenomain using the Dark Sky API.

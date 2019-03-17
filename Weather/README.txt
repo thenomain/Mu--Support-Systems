@@ -7,25 +7,30 @@ You will need to have access to edit files and to cron on the server account.
 ** STEP ONE: Get an API code ***************************************************
 
 Go to this site:
-	https://www.wunderground.com/weather/api/d/pricing.html
+	https://darksky.net/dev/register
 
-Sign up for a free Anvil Plan (for developers). This will be used via a php 
-fetching system, so the closest choice of what this will be used for is "web".
+Sign up. The base account is free up to a thousand calls per day, so unless 
+you're going to install your API code on 42 games--or 42 times per hour on one 
+game--you should be fine.
 
-You will get a code in the mail that will run about 10 games or locations on 
-one code. Don't share this code.
+You will get a code on the developer page. It's called a "secret key". Don't 
+share this code.
 
 
 ** STEP TWO: Work out your location ********************************************
 
-Wunderground is pretty good about turning city names into locations, so you'll 
-need the state and city (if U.S.A., otherwise I'm not currently sure).
+Dark Sky API only works at latitude and longitude. Get those via your favorite 
+search engine. Convert anything "South" to a negative number, and anything "West" to a negative number.
 
-Let's say your API code is "b9bfg15x30ya3a0x", your state is "Vermont" and your 
-city is "Stowe". Test that you're getting the weather that you need:
+For instance, Stowe, Vermont is 44.4654° N, 72.6874° W. The system will need:
+	latitude: 44.4654
+	longitude: -72.6874
 
-	http://api.wunderground.com/api/b9bfg15x30ya3a0x/conditions/forecast/
-	alert/astronomy/q/VT/Stowe.json
+So here's an example URL to test that this is working correctly. Let's say your 
+API code is "b9bfg15x30ya3a0x". (It will be much longer.) Test that you're 
+getting the weather that you need:
+	https://api.darksky.net/forecast/b9bfg15x30ya3a0x/44.4654,
+	-72.6874?exclude=hourly,daily
 
 
 ** STEP THREE: Edit and upload weather.php *************************************
@@ -37,11 +42,11 @@ change. Change them.
 ** STEP FOUR: Create weather_api_token.txt *************************************
 
 In the same directory as weather.php, type the following, replacing 
-xxxxxxxxxxxxx with the API code mailed to you by Weather Underground:
+xxxxxxxxxxxxx with the secret key (aka a "token") for Dark Sky:
 
-cat > weather_api_token.txt
+cat > darksky_api_token.txt
 <?php 
-$api_token = "xxxxxxxxxxxxx";
+$token_DarkSky = "xxxxxxxxxxxxx";
 ?>
 ctrl-d
 
@@ -52,8 +57,8 @@ Still logged into the server, type:
 
 	php weather.php
 
-This runs the very first weather-grabbing from Weather Underground. Hopefully 
-there were no errors.
+This runs the very first weather-grabbing from Dark Sky. Hopefully there were 
+no errors.
 
 
 ** STEP SIX: Set the Cron ******************************************************
@@ -99,7 +104,7 @@ typing "weather".
 The game needs to run "@readcache" once an hour. In your Myrddin's mushcron 
 system, add the following lines:
 
-&CRON_TIME_WEATHER mushcron=||||01 02|
+&CRON_TIME_WEATHER mushcron=||||00 01 02|
 &CRON_JOB_WEATHER mushcron=@readcache
 
 

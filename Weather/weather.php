@@ -1,28 +1,16 @@
 <?php
 /******************************************************************************
  *
- * Sign up for your free Anvil Plan (for Developers) here:
- *    https://www.wunderground.com/weather/api/d/pricing.html
+ * Working retooling for DarkSky's free API
+ * Uses https://github.com/dmitry-ivanov/dark-sky-api, manually installed
+ * Commit #10
  * 
- * Then enter the code into "weather_api_token.txt" as:
- *    <?php 
- *    $api_token = "xxxxxxxxxxxxx";
- *    ?>
- * 
- * You have limited lookups per hour and day. Do not share this key.
- * 
- * Remember to: 
- *    chmod o-r weather_api_token.txt 
- * 
- * Make sure it runs hourly. Add the following to your crontab:
- *    @hourly cd <exact path to where 'weather.php' lives>; 
- *    php weather.php > /dev/null 2>&1
- * 
- * Read under "User configuration section" for what to add to <game>.conf
+ * Dark Sky does not look up by anything but lat/long
+ * Possible future lookup via zip code: https://www.zipcodeapi.com/API#zipToLoc
  *
  *****************************************************************************/
 
-require "weather_api_token.txt";
+require "darksky_api_token.txt";
 
 /******************************************************************************
  *
@@ -30,22 +18,26 @@ require "weather_api_token.txt";
  *
  *****************************************************************************/
 
-// the state and city to pull 
+// the state and city are no longer used -- alas
+// 
+// $state = "MD"; 
+// $city = "Upper_Marlboro"; 
 
-$state = "MD"; 
-$city = "Upper_Marlboro"; 
+$latitude = "38.8159"; 
+$longitude = "-76.7497"; 
 
-$has_tides = TRUE; // set to FALSE if your area has no tides
+// Dark Sky doesn't do tides. Maybe we can find something better
+// $has_tides = TRUE; // set to FALSE if your area has no tides
 
 /*
    The directory that holds the fine file; use exact path.
    Must end with /, e.g.:
        $file_dir = '/home/bitn/game/etc/text/';
    This directory path must be in the netmux.conf, for example: 
-	   helpfile meteo  /home/bitn/game/etc/text/weather
+       helpfile meteo /home/bitn/game/etc/text/weather
 */
 
-$file_dir = './'; 
+$file_dir = '/home/portlandia/game/etc/text/'; 
 
 /******************************************************************************
  *
@@ -56,98 +48,207 @@ $file_dir = './';
  *****************************************************************************/
 
 $file = $file_dir . 'weather.txt'; 
-$base_string = 'http://api.wunderground.com/api/' . $api_token . 
-	'/conditions/forecast/alert/astronomy';
-if ($has_tides == TRUE) {
-	$base_string .= "/tide/rawtide"; 
-};
-$base_string .= '/q/' . $state . '/' . $city . '.json';
+$base_string = 'https://api.darksky.net/forecast/' . $token_DarkSky . '/' . 
+    $latitude . ',' . $longitude . 
+    '?exclude=hourly,minutely'; 
 
 $json_string = file_get_contents( $base_string ); 
 $weather = json_decode( $json_string ); 
 
+// force the weather's time zone for any time math we need to do
+$tz = $weather->timezone;
+date_default_timezone_set( $tz );
+
+// set a 'DateTime' object for math we'll do with $astronomy
+$datetime = new DateTime('@'.$weather->currently->time );
+date_timezone_set( $datetime, new DateTimeZone($tz));
+
+// astronomy
+$astronomy_string = 'https://api.usno.navy.mil/rstt/oneday?' . 
+    'ID=TinyMUX&date=today&coords=' . $latitude . ',' . $longitude;
+$json_string = file_get_contents( $astronomy_string ); 
+$astronomy = json_decode( $json_string ); 
+
+
+/* we don't know how to error yet *
+
 @$error = $weather->response->error->description; 
 if( isset( $error )) { 
-	$file_error = "& help\nError from query: " . $error . "\n\n";
-	$file_error .= "Last Updated on " . date( 'F d, h:i A T' ) . "\n";
-	$fr = fopen( $file, 'w' );
-	fputs( $fr, $file_error );
-	fclose( $fr );
-	die( $error ); 
+    $file_error = "& help\nError from query: " . $error . "\n\n";
+    $file_error .= "Last Updated on " . date( 'F d, h:i A T' ) . "\n";
+    $fr = fopen( $file, 'w' );
+    fputs( $fr, $file_error );
+    fclose( $fr );
+    die( $error ); 
 }
 
-// force the weather's time zone for any time math we need to do
-date_default_timezone_set( $weather->current_observation->local_tz_long );
+*/
+
+
+
+/******************************************************************************
+ * A few functions:
+ *
+ * degToCompass(degrees): Find the compass directions from degrees.
+ * 
+ * https://stackoverflow.com/questions/7490660/converting-wind-direction-in-
+ * angles-to-text-words
+ * 
+ * mphToKph(speed): Does what it says on the tin.
+ * 
+ * fahrenheitToCelsius(temp): Ditto. (32°F − 32) × 5/9 
+ * 
+ * cloudCoverDesc(cloudCover): Turn % cloud cover to description.
+ *
+ * https://www.weather.gov/media/pah/ServiceGuide/A-forecast.pdf
+ *   Overcast            88-100%
+ *   Mostly Cloudy       70-87%
+ *   Partly Cloudy       26-69%
+ *   Mostly Clear        6-25%
+ *   Clear               0-5%
+ *
+ *****************************************************************************/
+
+function degToCompass($deg) {
+    $val = floor(($deg/22.5)+.5);
+    $arr = [
+       "N","NNE","NE","ENE","E","ESE","SE","SSE",
+       "S","SSW","SW","WSW","W","WNW","NW","NNW"
+    ]; 
+    return $arr[($val % 16)];
+}
+
+function mphToKph($speed) {
+    return round($speed * 1.609344); 
+}
+
+function fahrenheitToCelsius($temp) {
+    return round(($temp - 32) * 5 / 9 );
+}
+
+// this probably looks ugly as hell...
+function cloudCoverDesc($cloudCover) {
+    $cloudPercent = $cloudCover * 100;
+    switch (true) { 
+        case ( $cloudPercent >= 88 ):
+            $cloudDescription = "Overcast"; break;
+        case ( $cloudPercent >= 70 ):
+            $cloudDescription = "Mostly Cloudy"; break;
+        case ( $cloudPercent >= 26 ):
+            $cloudDescription = "Partly Cloudy"; break;
+        case ( $cloudPercent >= 88 ):
+            $cloudDescription = "Mostly Clear"; break;
+        case ( $cloudPercent >= 0 ):
+            $cloudDescription = "Clear"; break;
+        default:
+            $cloudDescription = "<error>";
+    }; 
+    return $cloudDescription;
+}
+
+function windSpeedDesc($speed) {
+    $knots = $speed * 0.868976;
+    // beaufort scale
+    switch (true) {
+        case ( $knots >= 64 ):
+            $windDescription = "Hurricane Force"; break;
+        case ( $knots >= 56 ):
+            $windDescription = "Violent Storm"; break;
+        case ( $knots >= 48 ):
+            $windDescription = "Storm"; break;
+        case ( $knots >= 41 ):
+            $windDescription = "Strong Gale"; break;
+        case ( $knots >= 34 ):
+            $windDescription = "Gale"; break;
+        case ( $knots >= 28 ):
+            $windDescription = "Near Gale"; break;
+        case ( $knots >= 22 ):
+            $windDescription = "Strong"; break;
+        case ( $knots >= 17 ):
+            $windDescription = "Fresh"; break;
+        case ( $knots >= 11 ):
+            $windDescription = "Moderate"; break;
+        case ( $knots >= 7 ):
+            $windDescription = "Gentle"; break;
+        case ( $knots >= 4 ):
+            $windDescription = "Light"; break;
+        case ( $knots >= 1 ):
+            $windDescription = "Light Air"; break;
+        case ( $knots >= 0 ):
+            $windDescription = "Calm"; break;
+        default:
+            $windDescription = "<error>"; break;
+    }; 
+    return $windDescription;
+}
+
+
 
 /******************************************************************************
  * 
  * Conditions (current observations) : $conditions
  * 
- * [$weather->current_observation]
- * temperature: ->temperature_string ["83.8 F (28.8 C)"]
- * feels like: ->feelslike_string ["81 F (27 C)"]
- * humidity: ->relative_humidity ["22%"]
+ * [$weather->currently]
+ * temperature: ->temperature ["83.8", F]
+ * feels like: ->apparentTemperature ["81", F]
+ * humidity: ->humidity ["0.88", x 100 == %]
  * 
- * wind description: ->wind_string ["Calm"]
- * wind direction: ->wind_dir ["East"]
- * wind speed: ->wind_mph & ->wind_kph ["0.0" & "0"]
- * wind gust: ->wind_gust_mph & ->wind_gust_kph ["3.0" & "4.8"]
+ * wind direction: ->windBearing [degrees, undefined if windSpeed == 0]
+ * wind speed: ->windSpeed ["0.0", mph ]
+ * wind gust: ->windGust ["3.0", mph ]
  * 
- * pressure (inches): ->pressure_in ["30.15"]
- * pressure trend: ->pressure_trend ["-"]
+ * pressure: ->pressure_in ["1013.82", millibars]
+ * pressure_trend: shows the direction of change (higher, lower, steady) 
+ *     of the barometric pressure over the last three hours.
+ * "Rising Rapidly" is indicated if the pressure increases > 2 mb (0.06")
+ * "Rising Slowly" is indicated if the pressure increases >1 mb but < 2 mb 
+ *     (> 0.02" but < 0.06")
+ * "Steady" is indicated if the pressure changes < 1 mb (< 0.02")
+ * "Falling Slowly" is indicated if the pressure falls > 1 mb but < 2 mb 
+ *     (> 0.02" but < 0.06")
+ * "Falling Rapidly" is indicated when the pressure decreases > 2 mb (>0.06")
  * 
- * visibility: ->visibility_mi & ->visibility_km ["10.0" & "16.1"]
+ * visibility: ->visibility ["10.0", mi]
  * 
  ******************************************************************************/
 
-$conditions = $weather->current_observation; 
-switch( $conditions->pressure_trend ) { 
-	case "-": $pressure_trend = "Falling"; break; 
-	case "+": $pressure_trend = "Rising"; break; 
-	default: $pressure_trend = "Steady"; break; 
-}
+$conditions = $weather->currently; 
 
 $file_conditions = "& conditions\n"; 
-$file_conditions .= "Conditions: " .  $conditions->weather . "\n"; 
+$file_conditions .= "Summary: " .  $conditions->summary . "\n"; 
 $file_conditions .= "Temperature: " . 
-	$conditions->temperature_string . "\n"; 
-if ( $conditions->temperature_string != $conditions->feelslike_string ) { 
-	$file_conditions .= "Feels Like: " . 
-		$conditions->feelslike_string . "\n";
+    round($conditions->temperature) . " F\n"; 
+if ( $conditions->temperature != $conditions->apparentTemperature ) { 
+    $file_conditions .= "Feels Like: " . 
+        round($conditions->apparentTemperature) . "\n";
 }
 $file_conditions .= "Humidity: " . 
-	$conditions->relative_humidity . "% \n"; 
+    $conditions->humidity * 100 . "\% \n"; 
 $file_conditions .= "Wind: " . 
-	$conditions->wind_mph . " mph " . 
-	$conditions->wind_dir . " (" . 
-	$conditions->wind_kph . " kph)\n"; 
-$file_conditions .= "Wind String: " . 
-	$conditions->wind_string . "\n";
-if ( $conditions->wind_gust_mph != 0 ) { 
-	$file_conditions .= "Wind Gusts: " . 
-		$conditions->wind_gust_mph . " mph (" . 
-		$conditions->wind_gust_kph . " kph)\n"; 
+    round($conditions->windSpeed) . " mph " . 
+    degToCompass($conditions->windBearing) . 
+    " (" . mphToKph($conditions->windSpeed) . " kph)\n"; 
+$file_conditions .= "Wind Description: " . 
+    windSpeedDesc($conditions->windSpeed) . "\n";
+if ( $conditions->windGust != 0 ) { 
+    $file_conditions .= "Wind Gusts: " . 
+        round($conditions->windGust) . " mph (" . 
+        mphToKph($conditions->windGust) . " kph)\n"; 
 }
 $file_conditions .= "Pressure: " . 
-	$conditions->pressure_in . "\" and " . 
-	$pressure_trend . "\n"; 
-$file_conditions .= "Visibility: " . 
-	$conditions->visibility_mi . " mi (" . 
-	$conditions->visibility_km . " km)\n"; 
-if ( $conditions->precip_1hr_in != 0 ) { 
-	$file_conditions .= "Hour Precip: " . 
-		$conditions->precip_1hr_string . "\n";
-}
-if ( $conditions->precip_today_in != 0 ) { 
-	$file_conditions .= "Day Precip: " . 
-		$conditions->precip_today_string . "\n";
-}
+    round( $conditions->pressure * 0.029530, 2 ) . " in\n"; 
+$file_conditions .= "Cloud Cover: " . 
+    cloudCoverDesc($conditions->cloudCover). "\n"; 
 
-// "precip_1hr_string":"0.00 in ( 0 mm)"
+/*
+Precipitation amount will be more challenging and may not be important
+*/
+
+
 
 /******************************************************************************
  * 
- * Forecast (today & tomorrow) : $forecast
+ * Forecast (today & tomorrow) : $today, $tomorrow
  * 
  * high: ->high->fahrenheit & ->high->celsius
  * low: ->low->fahrenheit & ->low->celsius
@@ -166,100 +267,68 @@ if ( $conditions->precip_today_in != 0 ) {
  * 
  ******************************************************************************/
 
-$today = $weather->forecast->simpleforecast->forecastday[0];
-$tomorrow = $weather->forecast->simpleforecast->forecastday[1];
+$forecastSummary = $weather->daily->summary;
+$today = $weather->daily->data[0];
+$tomorrow = $weather->daily->data[1];
 
 // today's forecast 
 
 $file_today = "& today\n"; 
 $file_today .= "High: " . 
-	$today->high->fahrenheit . " F (" . 
-	$today->high->celsius ." C)\n"; 
+    round($today->temperatureHigh) . " F (" . 
+    fahrenheitToCelsius($today->temperatureHigh) ." C)\n"; 
 $file_today .= "Low: " . 
-	$today->low->fahrenheit . " F (" . 
-	$today->low->celsius ." C)\n"; 
+    round($today->temperatureLow) . " F (" . 
+    fahrenheitToCelsius($today->temperatureLow) ." C)\n"; 
 $file_today .= "Conditions: " . 
-	$today->conditions . "\n";  
+    $today->summary . "\n";  
 $file_today .= "Wind: " . 
-	$today->avewind->mph . " mph " . 
-	$today->avewind->dir . " (" . 
-	$today->avewind->kph . " kph)\n"; 
-if ( $today->maxwind->mph != 0 ) { 
+    round($today->windSpeed) . " mph " . 
+    degToCompass($today->windBearing) . " (" . 
+    mphToKph($today->windSpeed) . " kph)\n"; 
+if ( $today->windGust != 0 ) { 
 $file_today .= "Wind Gusts: " . 
-	$today->maxwind->mph . " mph " . 
-	$today->maxwind->dir . " (" . 
-	$today->maxwind->kph . " kph)\n"; 
-}
-$file_today .= "Average Humidity: " . 
-	$today->avehumidity . "\% \n"; 
-$file_today .= "Predicted Precipitation: " . 
-	$today->qpf_allday->in . " in (" . 
-	$today->qpf_allday->mm . " mm)\n"; 
-if ( $today->qpf_allday->in != 0 ) { 
-	$file_today .= "Precipitation (Day): " . 
-		$today->qpf_day->in . " in (" . 
-		$today->qpf_day->mm . " mm)\n"; 
-	$file_today .= "Precipitation (Night): " . 
-		$today->qpf_night->in . " in (" . 
-		$today->qpf_night->mm . " mm)\n"; 
-}
-if ( $today->snow_allday->in != 0 ) { 
-	$file_today .= "Predicted Snowfall: " . 
-		$today->snow_allday->in . " in (" . 
-		$today->snow_allday->cm . " cm)\n"; 
-	$file_today .= "Snowfall (Day): " . 
-		$today->snow_day->in . " in (" . 
-		$today->snow_day->cm . " cm)\n"; 
-	$file_today .= "Snowfall (Night): " . 
-		$today->snow_night->in . " in (" . 
-		$today->snow_night->cm . " cm)\n"; 
-}
+    round($today->windGust) . " mph (" . 
+    mphToKph($today->windGust) . " kph)\n"; 
+};
+$file_today .= "Humidity: " . 
+    round($today->humidity * 100) . "\% \n"; 
+if ( !empty( $today->precipType )) { 
+    $file_today .= 
+        "Chance of " . ucfirst( $today->precipType ) . ": " . 
+        round($today->precipProbability * 100) . "\% \n";
+};
+
 
 // tomorrow's forecast
 
 $file_tomorrow = "& tomorrow\n"; 
 $file_tomorrow .= "High: " . 
-	$tomorrow->high->fahrenheit . " F (" . 
-	$tomorrow->high->celsius ." C)\n"; 
+    round($tomorrow->temperatureHigh) . " F (" . 
+    fahrenheitToCelsius($tomorrow->temperatureHigh) ." C)\n"; 
 $file_tomorrow .= "Low: " . 
-	$tomorrow->low->fahrenheit . " F (" . 
-	$tomorrow->low->celsius ." C)\n"; 
+    round($tomorrow->temperatureLow) . " F (" . 
+    fahrenheitToCelsius($tomorrow->temperatureLow) ." C)\n"; 
 $file_tomorrow .= "Conditions: " . 
-	$tomorrow->conditions . "\n";  
+    $tomorrow->summary . "\n";  
 $file_tomorrow .= "Wind: " . 
-	$tomorrow->avewind->mph . " mph " . 
-	$tomorrow->avewind->dir . " (" . 
-	$tomorrow->avewind->kph . " kph)\n"; 
-if ( $tomorrow->maxwind->mph != 0 ) { 
+    round($tomorrow->windSpeed) . " mph " . 
+    degToCompass($tomorrow->windBearing) . " (" . 
+    mphToKph($tomorrow->windSpeed) . " kph)\n"; 
+if ( $tomorrow->windGust != 0 ) { 
 $file_tomorrow .= "Wind Gusts: " . 
-	$tomorrow->maxwind->mph . " mph " . 
-	$tomorrow->maxwind->dir . " (" . 
-	$tomorrow->maxwind->kph . " kph)\n"; 
-}
-$file_tomorrow .= "Average Humidity: " . 
-	$tomorrow->avehumidity . "\% \n"; 
-$file_tomorrow .= "Predicted Precipitation: " . 
-	$tomorrow->qpf_allday->in . " in (" . 
-	$tomorrow->qpf_allday->mm . " mm)\n"; 
-if ( $tomorrow->qpf_allday->in != 0 ) { 
-	$file_tomorrow .= "Precipitation (Day): " . 
-		$tomorrow->qpf_day->in . " in (" . 
-		$tomorrow->qpf_day->mm . " mm)\n"; 
-	$file_tomorrow .= "Precipitation (Night): " . 
-		$tomorrow->qpf_night->in . " in (" . 
-		$tomorrow->qpf_night->mm . " mm)\n"; 
-}
-if ( $tomorrow->snow_allday->in != 0 ) { 
-	$file_tomorrow .= "Predicted Snowfall: " . 
-		$tomorrow->snow_allday->in . " in (" . 
-		$tomorrow->snow_allday->cm . " cm)\n"; 
-	$file_tomorrow .= "Snowfall (Day): " . 
-		$tomorrow->snow_day->in . " in (" . 
-		$tomorrow->snow_day->cm . " cm)\n"; 
-	$file_tomorrow .= "Snowfall (Night): " . 
-		$tomorrow->snow_night->in . " in (" . 
-		$tomorrow->snow_night->cm . " cm)\n"; 
-}
+    round($tomorrow->windGust) . " mph (" . 
+    mphToKph($tomorrow->windGust) . " kph)\n"; 
+};
+$file_tomorrow .= "Humidity: " . 
+    round($tomorrow->humidity * 100) . "\% \n"; 
+if ( !empty( $tomorrow->precipType )) { 
+    $file_tomorrow .= 
+        "Chance of " . ucfirst( $tomorrow->precipType ) . ": " . 
+        round($tomorrow->precipProbability * 100) . "\% \n";
+};
+
+
 
 /******************************************************************************
  * 
@@ -272,23 +341,34 @@ if ( $tomorrow->snow_allday->in != 0 ) {
  ******************************************************************************/
 
 @$alerts = $weather->alerts; 
-@$error = $alerts->description; 
 
 $file_alerts = "& alerts\n"; 
 
-if( isset( $error )) { 
-	$file_alerts .= "Description: " . $alerts->description . "\n";
-	$file_alerts .= "Expires: " . $alerts->expires . "\n";
-	$file_alerts .= "Message: " . $alerts->message . "\n";
-}
-else { 
-	$file_alerts .= "No alerts in your area.\n"; 
+if (isset($alerts)) { 
+    foreach ($alerts as $one_alert) {
+        $file_alerts .= "Title: " . $one_alert->title . "\n";
+        $file_alerts .= "Severity: " . ucfirst($one_alert->severity) . "\n";
+        $file_alerts .= "Issued: " . date('M jS, ga', $one_alert->time) . 
+                        "\n";
+        $file_alerts .= "Description: " . $one_alert->description . "\n";
+        $file_alerts .= "Expires: " . date('M jS, ga', $one_alert->expires) . 
+                        "\n\n";
+    }
+} else { 
+    $file_alerts .= "No alerts in your area.\n"; 
 };
+
+
 
 
 /******************************************************************************
  * 
  * Astronomy (sunrise, sunset, moonrise, moonset, etc. ) : $astronomy
+ * 
+ * Currently grabbed from the United States Naval Observatory
+ * TimeZone conversion based on:
+ * https://stackoverflow.com/questions/36012378/convert-utc-to-est-by-taking-
+ * care-of-daylight-saving/36012664
  * 
  * ->sun_phase->sunrise->hour & ->sun_phase->sunrise->minute 
  * ->sun_phase->sunset->hour & ->sun_phase->sunset->minute 
@@ -301,29 +381,47 @@ else {
  * 
  ******************************************************************************/
 
-$sun = $weather->sun_phase; 
-$moon = $weather->moon_phase; 
+// $astronomy->error
+// $astronomy->apiversion
+
+// echo $datetime->format('Y-m-d H:i:s');
+
+$sun = $astronomy->sundata; 
+foreach ($sun as $value) {
+    if ($value->phen == "R") { 
+            $sunrise = $value->time; 
+    } elseif ($value->phen == "S") { 
+            $sunset = $value->time; 
+    };
+};
+
+$moon = $astronomy->moondata;
+if (!is_null(@$astronomy->prevmoondata)) {
+    $moon = array_merge($astronomy->prevmoondata, $moon);
+}; 
+if (!is_null(@$astronomy->nextmoondata)) {
+    $moon = array_merge($moon, $astronomy->nextmoondata);
+}; 
+
+foreach ($moon as $value) {
+    if ($value->phen == "R") { 
+            $moonrise = $value->time; 
+    } elseif ($value->phen == "S") { 
+            $moonset = $value->time; 
+    };
+};
 
 $file_astronomy = "& astronomy\n";
-$file_astronomy .= "Sunrise: " . 
-	$sun->sunrise->hour . ":" . 
-	$sun->sunrise->minute . "\n";
-$file_astronomy .= "Sunset: " . 
-	$sun->sunset->hour . ":" . 
-	$sun->sunset->minute . "\n";
-if( isset( $moon->moonrise->hour )) { 
-	$file_astronomy .= "Moonrise: " . 
-		$moon->moonrise->hour . ":" . 
-		$moon->moonrise->minute . "\n";
+$file_astronomy .= "Sunrise: " . $sunrise . "\n";
+$file_astronomy .= "Sunset: " . $sunset . "\n";
+if( isset( $moonrise )) { 
+    $file_astronomy .= "Moonrise: " . $moonrise . "\n";
 }
-if( isset( $moon->moonset->hour )) { 
-	$file_astronomy .= "Moonset: " . 
-		$moon->moonset->hour . ":" . 
-		$moon->moonset->minute . "\n";
+if( isset( $moonset )) { 
+    $file_astronomy .= "Moonset: " . $moonset . "\n";
 }
-$file_astronomy .= "Moon Phase: " . 
-	$moon->phaseofMoon . " (" . 
-	$moon->percentIlluminated . "\%)\n";
+$file_astronomy .= "Moon Phase: " . $astronomy->curphase . 
+    " (" . str_replace("%", "\%", $astronomy->fracillum) . ")\n";
 
 
 /******************************************************************************
@@ -333,30 +431,34 @@ $file_astronomy .= "Moon Phase: " .
  * & tides: timestamp|"High Tide" or "Low Tide"|height in feet
  * & tide heights : timestamp|height in feet
  * 
- ******************************************************************************/
+ * system turned off due to lack of ability to grab tides
+
 if( $has_tides == TRUE ) {
-	$tide = $weather->tide; 
-	$file_tides = "& tides\n"; 
+    $tide = $weather->tide; 
+    $file_tides = "& tides\n"; 
 
     foreach ( $tide->tideSummary as $index => $summary ) {
         if (in_array($summary->data->type, array( 'High Tide', 'Low Tide'))) {
-			$file_tides .= 
-				$summary->date->epoch . "|" .
-				$summary->data->type . "|" . 
-				$summary->data->height . "\n"; 
-			}
+            $file_tides .= 
+                $summary->date->epoch . "|" .
+                $summary->data->type . "|" . 
+                $summary->data->height . "\n"; 
+            }
     }; 
 
-	$raw_tide = $weather->rawtide; // giddyup raw tide!
-	$file_tide_heights = "& tide height\n";
+    $raw_tide = $weather->rawtide; // giddyup raw tide!
+    $file_tide_heights = "& tide height\n";
 
-	for ( $i = 0; $i <= 23; $i++ ) {
-    	$file_tide_heights .= 
-        	$raw_tide->rawTideObs[$i]->epoch . "|" . 
-        	$raw_tide->rawTideObs[$i]->height . "\n";
-	}; 
+    for ( $i = 0; $i <= 23; $i++ ) {
+        $file_tide_heights .= 
+            $raw_tide->rawTideObs[$i]->epoch . "|" . 
+            $raw_tide->rawTideObs[$i]->height . "\n";
+    }; 
 
 }
+
+ ******************************************************************************/
+
 
 /******************************************************************************
  * 
@@ -373,21 +475,30 @@ Tomorrow: Tomorrow's forecast.
 Astronomy: Sun & Moon facts.
 Alerts: Emergency weather service alerts.\n";
 
+/*
 if( $has_tides == TRUE ){
-	$file_help .= "Tides: High and Low Tides for the next 3 days\n";
-	$file_help .= "Tide Height: Estimates of tide height for the next 2 days\n";
-}; 
+    $file_help .= "Tides: High and Low Tides for the next 3 days\n";
+    $file_help .= "Tide Height: Estimates of tide height for the next 2 days\n";
+};
+*/ 
 
 $file_help .= "Credits: People and things to thank.
 
-" . $weather->current_observation->observation_time . "\n"; // Last Updated on
+Powered by Dark Sky (https://darksky.net/poweredby/)
+
+Last Updated on " . date( 'F d, h:i A T', $datetime->getTimestamp() ) . "\n";
+
+
+// credits
 
 $file_credits = "& credits
-Data provided by the Weather Underground under the following terms of service:
-    " . $weather->response->termsofService . "
+Weather powered by Dark Sky (https://darksky.net/poweredby/)
+
+Sun & moon information provided by the United States Naval Observatory's 
+amazing Astronomical Applications department (https://aa.usno.navy.mil/data/docs/api.php)
 
 PHP and TinyMUX code originally by Brus using the Yahoo Weather API.
-Rewritten by Thenomain using the Weather Underground API.\n";
+Rewritten by Thenomain using the Dark Sky API.\n";
 
 // write everything to the file
 
@@ -397,10 +508,12 @@ fputs( $fr, $file_conditions );
 fputs( $fr, $file_today );
 fputs( $fr, $file_tomorrow );
 fputs( $fr, $file_astronomy );
+/* tides reporting currently disabled *
 if( $has_tides == TRUE ){
-	fputs( $fr, $file_tides );
-	fputs( $fr, $file_tide_heights );
-}; 
+    fputs( $fr, $file_tides );
+    fputs( $fr, $file_tide_heights );
+};
+*/ 
 fputs( $fr, $file_alerts );
 fputs( $fr, $file_credits );
 fclose( $fr );
