@@ -1,3 +1,4 @@
+/*
 ################################################################################
 ## THE DATABASE ################################################################
 
@@ -43,6 +44,7 @@ INSERT INTO mush_poselogger_status VALUES (4, 'END OF SCENE');
 
 ================================================================================
 == CREATE & LINK ===============================================================
+*/
 
 @create Pose Logger=10
 @set Pose Logger=INHERIT SAFE
@@ -50,20 +52,24 @@ INSERT INTO mush_poselogger_status VALUES (4, 'END OF SCENE');
 @force me=&d.me Pose Logger=[num(Pose Logger)]
 
 
+/*
 --------------------------------------------------------------------------------
 -- Additional Usage of the CODP formatter --------------------------------------
+*/
 
 @parent Pose Logger=CODP
 &prefix.sql Pose Logger=sql.
 &prefix.display Pose Logger=display.
 
 
+/*
 ================================================================================
 == SQL Statements ==============================================================
 
 
 --------------------------------------------------------------------------------
 -- SQL: Transaction Start/Commit -----------------------------------------------
+*/
 
 &f.transaction.start Pose Logger=
 	strcat(
@@ -71,7 +77,7 @@ INSERT INTO mush_poselogger_status VALUES (4, 'END OF SCENE');
 		sql( SET autocommit = 0 )
 	)
 
---
+// --
 
 &f.tranaction.commit Pose Logger=
 	strcat(
@@ -80,6 +86,7 @@ INSERT INTO mush_poselogger_status VALUES (4, 'END OF SCENE');
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- SQL: Insert -----------------------------------------------------------------
 
@@ -88,7 +95,7 @@ INSERT INTO mush_poselogger_status VALUES (4, 'END OF SCENE');
 2: text
 3: status (optional)
 
---
+*/
 
 &sql.insert Pose Logger=
 	strcat(
@@ -104,6 +111,7 @@ INSERT INTO mush_poselogger_status VALUES (4, 'END OF SCENE');
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- SQL: List Primary Keys by Location ------------------------------------------
 
@@ -111,7 +119,7 @@ INSERT INTO mush_poselogger_status VALUES (4, 'END OF SCENE');
 
 returns: secs(, 6), location dbref without #
 
---
+*/
 
 &sql.primary-keys.location Pose Logger=
 	strcat(
@@ -125,10 +133,14 @@ returns: secs(, 6), location dbref without #
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- SQL: Triggered By & Quote by Primary Key ------------------------------------
 
-We're looking up by primary key, but just in case something goes pear-shaped, limit to 1 record.
+We're looking up by primary key, but just in case something goes pear-shaped, 
+limit to 1 record.
+
+*/
 
 &sql.quote.primary-key Pose Logger=
 	strcat(
@@ -145,10 +157,14 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- SQL: Status Description by Primary Key --------------------------------------
 
-We're looking up by primary key, but just in case something goes pear-shaped, limit to 1 record.
+We're looking up by primary key, but just in case something goes pear-shaped, 
+limit to 1 record.
+
+*/
 
 &sql.status.primary-key Pose Logger=
 	strcat(
@@ -166,13 +182,14 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- SQL: List Last 'x' Lines from a specific location ---------------------------
 
 0: dbref of location (here = loc(%#))
 1: 'last' value
 
---
+*/
 
 &sql.last-lines.location Pose Logger=
 	strcat(
@@ -190,12 +207,13 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 	)
 
 
+/*
 --------------------------------------------------------------------------------
 -- SQL: Count Lines from a specific location -----------------------------------
 
 0: dbref of location (here = loc(%#))
 
---
+*/
 
 &sql.count-lines.location Pose Logger=
 	strcat(
@@ -207,30 +225,35 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 	)
 
 
+/*
 ================================================================================
 == Cross-Platform Functions ====================================================
+*/
 
-&_header Pose Logger=wheader(%0)
-&_footer Pose Logger=wfooter(%0)
-&_divider Pose Logger=wdivider(%0)
+&.header Pose Logger=wheader(%0)
+&.footer Pose Logger=wfooter(%0)
+&.divider Pose Logger=wdivider(%0)
 
-&_notice Pose Logger=[ansi(xh, GAME:)] %0
-&_ooc Pose Logger=[ansi(b, <OOC>)] %0
-&_titlestr Pose Logger=titlestr(%0)
+&.notice Pose Logger=[ansi(xh, GAME:)] %0
+&.ooc Pose Logger=[ansi(b, <OOC>)] %0
+&.titlestr Pose Logger=titlestr(%0)
 
-&_lbuf Pose Logger=config(lbuf_size)
+&.lbuf Pose Logger=config(lbuf_size)
 
 
+/*
 ================================================================================
 == Functions ===================================================================
 
 
 --------------------------------------------------------------------------------
 -- Func: Escape SQL ------------------------------------------------------------
+*/
 
 &f.sqlescape Pose Logger=edit( edit( edit( edit( %0, \\, \\\\ ), ', \\' ), ", \\" ), \%, \\\\\% )
 
 
+/*
 --------------------------------------------------------------------------------
 -- Func: Log Passed Text -------------------------------------------------------
 
@@ -239,19 +262,21 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 2: text
 3: status
 
---
+*/
 
 &f.log-what-I-hear Pose Logger=
 	case(0, 
 		isdbref(%0), #-1 LOCATION INVALID, 
 		isdbref(%1), #-1 TRIGGERER INVALID, 
-@@		strmatch(loc(%1), %0), #-1 LOCATION MISMATCH, 
+//		strmatch(loc(%1), %0), #-1 LOCATION MISMATCH, 
 
 		sql(escape(ulocal(sql.insert, %1, %0, %2, %3)))
 	)
 
+/*
 --------------------------------------------------------------------------------
 -- Func: List Listeners --------------------------------------------------------
+*/
 
 &f.list.listeners Pose Logger=
 	iter(
@@ -263,6 +288,7 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 	)
 
 
+/*
 ================================================================================
 == Triggers ====================================================================
 
@@ -273,14 +299,21 @@ We're looking up by primary key, but just in case something goes pear-shaped, li
 0: target location
 q0: dbref of target location
 
+*/
+
 &tr.spawn-listener Pose Logger=
-	@if t(iter(lcon(setr(0, if(not(strlen(%0)), loc(%#), %0))), if(strmatch(parent(%i0), %!), %i0)))=
+	@if t( 
+		iter( 
+			lcon( setr( 0, if( not( strlen( %0 )), loc( %# ), %0 ))), 
+			if( strmatch( parent( %i0 ), %! ), %i0 )
+		)
+	)=
 	{
-		@pemit %#=[u(_notice, There is already a listener at that location.)]
+		@pemit %#=[u(.notice, There is already a listener at that location.)]
 	}, 
 	{
-		@pemit/contents %q0=u(_ooc, *** Pose Logging Active (see: +poses)); 
-		@eval setq(d, create(Elder God, 100)); 
+		@pemit/contents %q0=u( .ooc, *** Pose Logging Active %(see: +poses%) ); 
+		@eval setq( d, create( Elder God, 100 )); 
 		@set %qd=DARK INHERIT MONITOR; 
 		@lock %qd=#1; 
 		@desc %qd=This location's pose-listener.; 
@@ -291,67 +324,79 @@ q0: dbref of target location
 			@eval 
 				ulocal(f.log-what-I-hear, 
 					%q0, 
-					v(d.me), 
-					[name(%q0)] (%q0), 
+					v( d.me ), 
+					[name( %q0 )] %(%q0%), 
 					2
 				); 
-			@pemit %%#=%[u(_notice, This listener was slaved to its location. Deactivating.)%]; 
-			@pemit %q0=u(_ooc, *** Pose Logging Deactivated (see: +poses)); 
-			@destroy/instant %%!;
+			@pemit %%#=
+				%[u( .notice, 
+					This listener was slaved to its location. Deactivating. 
+				)%]; 
+			@pemit %q0=u( .ooc, *** Pose Logging Deactivated %(see: +poses%) ); 
+			@destroy/instant %%!; 
 		}; 
 
 		@ahear %qd=
 			@eval 
-				ulocal(f.log-what-I-hear, 
-					loc(%%!), 
+				ulocal( f.log-what-I-hear, 
+					loc( %%! ), 
 					%%#, 
-					strtrunc(%%0, mul(u(_lbuf), .95))
+					strtrunc( %%0, mul( u( .lbuf ), .95 ))
 				); 
 
 		@eval 
-			ulocal(f.log-what-I-hear, 
+			ulocal( f.log-what-I-hear, 
 				%q0, 
-				v(d.me), 
-				[name(%q0)] (%q0), 
-				1
+				v( d.me ), 
+				[name( %q0 )] %(%q0%), 
+				1 
 			); 
 
 		@tel/quiet %qd=HOME
 	}
 
 
+/*
 --------------------------------------------------------------------------------
 -- Trigger: Destroy Pose-Logger from Target Location ---------------------------
 
 0: target location
 
+*/
+
 &tr.destroy-listener Pose Logger=
-	@if t(iter(lcon(%0), if(strmatch(parent(%i0), %!), %i0)))=
+	@if t( iter( lcon( %0 ), if( strmatch( parent( %i0 ), %! ), %i0 )))=
 	{
-		@eval setq(d, iter(lcon(%0), if(strmatch(parent(%i0), %!), %i0))); 
+		@eval setq( d, 
+			iter( lcon( %0 ), 
+				if( strmatch( parent( %i0 ), %! ), %i0 )
+			)
+		); 
 
 		@dolist %qd={
 			@set ##=HALT; 
 
 			@eval 
-				ulocal(f.log-what-I-hear, 
-					loc(##), 
-					v(d.me), 
-					[name(%0)] (%0), 
+				ulocal( f.log-what-I-hear, 
+					loc( ## ), 
+					v( d.me ), 
+					[name( %0 )] ( %0 ), 
 					2
-				); 
+				 ); 
 
 			@tel/quiet ##=%!; 
 			@destroy/override/instant ##
 		}; 
 		
-		@pemit/contents %0=u(_ooc, *** Pose Logging Deactivated (see: +poses)); 
+		@pemit/contents %0=
+			u( .ooc, *** Pose Logging Deactivated %(see: +poses%) ); 
 	}, 
 	{
-		@pemit %#=[u(_notice, There are no listeners at that location.)]
+		@pemit %#=[u( .notice, There are no listeners at that location. )]
 	}
 	
 
+/*
 ================================================================================
 == Displays ====================================================================
 
@@ -361,38 +406,44 @@ q0: dbref of target location
 
 0: list of <primary>|<key> <primary>|<key> to display
 
---
+*/
 
 &display.last-poses Pose Logger=
-localize(
-	list(
-		%0, 
-		strcat(
-			setq(e, 
-				sql(u(sql.quote.primary-key, first(%i0, |), rest(%i0, |)), , |)
-			), 
-			setq(s, 
-				sql(u(sql.status.primary-key, first(%i0, |), rest(%i0, |)), , |)
-			), 
-			
-			ansi(xh, %[), 
-
-			ansi(xh, convsecs(first(%i0, |))), 
-
-			ansi(xh, %] %[), 
-
-			ansi(xh, name(first(#%qe, |))), 
-
-			ansi(xh, %]:%b), 
-
-			if(strlen(%qs), *** %qs:%b), 
-			
-			rest(%qe, |)
+	localize( 
+		list( %0, 
+			strcat( 
+				setq( e, 
+					sql( 
+						u( sql.quote.primary-key, 
+							first( %i0, | ), 
+							rest( %i0, | )
+						), 
+						, | 
+					)
+				), 
+				setq( s, 
+					sql( 
+						u( sql.status.primary-key, 
+							first( %i0, | ), 
+							rest( %i0, | )
+						), 
+						, | 
+					)
+				), 
+// pretty text, ugly code			
+				ansi( xh, %[ ), 
+				ansi( xh, convsecs( first( %i0, | ))), 
+				ansi( xh, %] %[ ), 
+				ansi( xh, name( first( #%qe, | ))), 
+				ansi( xh, %]:%b ), 
+				if( strlen( %qs ), *** %qs:%b ), 
+				rest( %qe, | )
+			)
 		)
 	)
-)
 
 
+/*
 ################################################################################
 ## THE FRONT-END ###############################################################
 
@@ -401,34 +452,38 @@ localize(
 
 ================================================================================
 == Setup =======================================================================
+*/
 
 @create Poselog Front-End=10
 @set Poselog Front-End=INHERIT SAFE
 
 @parent Poselog Front-End=codp
-&prefix.cross-platform Poselog Front-End=_
+&prefix.cross-platform Poselog Front-End=.
 
---
+// --
 
-@fo me=&d.sql Poselog Front-End=[num(Pose Logger)]
+@fo me=&d.sql Poselog Front-End=[num( Pose Logger )]
 @tel Pose Logger=Poselog Front-End
 
 
+/*
 ================================================================================
 == Cross-Platform Functions ====================================================
+*/
 
 
-&_header Poselog Front-End=wheader(%0)
-&_footer Poselog Front-End=wfooter(%0)
-&_divider Poselog Front-End=wdivider(%0)
+&.header Poselog Front-End=wheader( %0 )
+&.footer Poselog Front-End=wfooter( %0 )
+&.divider Poselog Front-End=wdivider( %0 )
 
-&_notice Poselog Front-End=[ansi(xh, GAME:)] %0
-&_alert Poselog Front-End=[ansi(r, >%b, nh, %0, nr, %b<)] %1
+&.notice Poselog Front-End=[ansi( xh, GAME: )] %0
+&.alert Poselog Front-End=[ansi( r, >%b, nh, %0, nr, %b< )] %1
 
-&_lbuf Poselog Front-End=config(lbuf_size)
-&_isstaff Poselog Front-End=isstaff(%0)
+&.lbuf Poselog Front-End=config( lbuf_size )
+&.isstaff Poselog Front-End=isstaff( %0 )
 
 
+/*
 ================================================================================
 == Mistress Commands ===========================================================
 
@@ -443,24 +498,26 @@ It is entirely function-based.  Use trigger() when necessary.
 1: /switches
 2: text
 
+*/
 
 &c.poses Poselog Front-End=$^\+pose[s]?(/[^ ]*)?( .*)?$:
 	@pemit %#=
-		switch(1, 
-			t(strlen(%1)), 
-			u(c.poses.switch, %1, trim(%2)), 
+		switch( 1, 
+			t( strlen( %1 )), 
+			u( c.poses.switch, %1, trim( %2 )), 
 			
-			t(strlen(trim(%2))), 
-			u(c.poses.specific, trim(%2), @@(pseudo-switches)), 
+			t( strlen( trim( %2 ))), 
+			u( c.poses.specific, trim( %2 ), @@( pseudo-switches )), 
 			
-			u(c.poses.default)
+			u( c.poses.default )
 		)
 
---
+// --
 
 @set Poselog Front-End/c.poses=regexp
 
 
+/*
 --------------------------------------------------------------------------------
 -- Mistress: Switches ----------------------------------------------------------
 
@@ -471,67 +528,72 @@ n: command name ('poses')
 s: switches found (c.poses/*)
 p: pseudo-switches (others)
 
---
+*/
 
 &c.poses.switch Poselog Front-End=
-	[setq(n, poses)]
-	[setq(s, )]
-	[setq(p, )]
-	[setq(a, lattr(%!/c.%qn/*))]
+	[setq( n, poses )]
+	[setq( s,  )]
+	[setq( p,  )]
+	[setq( a, lattr( %!/c.%qn/* ))]
 
-@@ filter real (%qs) and psudo-switches (%qp)
-	[iter(
-		rest(%0, /), 
-		if(
-			t(grab(%qa, c.%qn/%i0*)), 
-			setq(s, %qs/[rest(grab(%qa, c.%qn/%i0*), /)]), 
-			setq(p, %qp/%i0)
+// filter real ( %qs ) and psudo-switches ( %qp )
+	[iter( 
+		rest( %0, / ), 
+		if( 
+			t( grab( %qa, c.%qn/%i0* )), 
+			setq( s, %qs/[rest( grab( %qa, c.%qn/%i0* ), / )] ), 
+			setq( p, %qp/%i0 )
 		), 
 		/, 
 		@@
 	)]
 
-@@ process: 
-	[if(t(%qs), 
+// process: 
+	[if( t( %qs ), 
 
-@@ .. pass to first real-switch passed
-		ulocal(c.%qn/[extract(%qs, 2, 1, /)], %1, %qp), 
+// .. pass to first real-switch passed
+		ulocal( c.%qn/[extract( %qs, 2, 1, / )], %1, %qp ), 
 
-@@ .. else pass to '.specific' or '.default' with pseudo-switches
-		if(
-			t(%1), 
-				ulocal(c.%qn.specific, %1, %qp), 
-				ulocal(c.%qn.default, %qp)
+// .. else pass to '.specific' or '.default' with pseudo-switches
+		if( 
+			t( %1 ), 
+				ulocal( c.%qn.specific, %1, %qp ), 
+				ulocal( c.%qn.default, %qp )
 		)
 	)]
 
 
+/*
 --------------------------------------------------------------------------------
 -- Mistress: Default -----------------------------------------------------------
 
 0: psudo-switches, if passed (error'd, for +poses)
 
---
+*/
 
 &c.poses.default Poselog Front-End=u(c.poses.specific, , %0)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Mistress: Specific ----------------------------------------------------------
 
 0: text (<loc>[=<last>]|<last>)
 1: psudo-switches, if passed (error'd, for +poses)
 
---
+*/
 
 &c.poses.specific Poselog Front-End=
-if(strlen(%1), 
-	[u(_alert, poses, Use one of the following switches: [u(f.switchlist)])], 
+	if( strlen( %1 ), 
+		[u( .alert, poses, 
+			Use one of the following switches: [u( f.switchlist )] 
+		)], 
 
-	u(c.poses/last, %0)
-)
+		u( c.poses/last, %0 )
+	)
 
 
+/*
 ================================================================================
 == Switched Commands ===========================================================
 
@@ -552,49 +614,50 @@ Default for +poses.
 l: location (default: 'here')
 n: number of "last" entries (default: 10)
 
---
+*/
 
 &c.poses/last Poselog Front-End=
-@@ Make sure 'l' is 'location' and 'n' is 'number of entries'
-	[setq(n, first(%0, =))]
-	[if(isdbref(%qn), 
-		[setq(l, %qn)][setq(n, rest(%0, =))], 
-		setq(l, rest(%0, =))
+// Make sure 'l' is 'location' and 'n' is 'number of entries'
+	[setq( n, first( %0, = ))]
+	[if( isdbref( %qn ), 
+		[setq( l, %qn )][setq( n, rest( %0, = ))], 
+		setq( l, rest( %0, = ))
 	)]
-	[if(not(%ql), setq(l, loc(%#)))]
-	[if(not(%qn), setq(n, 10))]
+	[if( not( %ql ), setq( l, loc( %# )))]
+	[if( not( %qn ), setq( n, 10 ))]
 
-@@ >> Error-check:
-	[case(0, 
-		or(strmatch(%ql, loc(%#)), u(_isstaff, %#)), 
-		u(_alert, poses/last, Checking poses from afar is staff only.), 
+// Error-check:
+	[case( 0, 
+		or( strmatch( %ql, loc( %# )), u( .isstaff, %# )), 
+		u( .alert, poses/last, Checking poses from afar is staff only. ), 
 
-		and(isint(%qn), gte(%qn, 0)), 
-		u(_alert, poses/last, Check a coherent number of entries%, please.), 
+		and( isint( %qn ), gte( %qn, 0 )), 
+		u( .alert, poses/last, Check a coherent number of entries%, please. ), 
 
-		lt(%qn, 10000), 
-		u(_alert, poses/last, Don't be silly.), 
+		lt( %qn, 10000 ), 
+		u( .alert, poses/last, Don't be silly. ), 
 		
-@@ OK: let's show it!
-		strcat(
-			setq(q, 
-				sql( 
-					u([v(d.sql)]/sql.primary-keys.location, %ql, %qn), 
+// OK: let's show it!
+		strcat( 
+			setq( q, 
+				sql(  
+					u( [v( d.sql )]/sql.primary-keys.location, %ql, %qn ), 
 					, |
 				)
 			), 
 
-			list(1, u(_header, Last %qn for [name(%ql)] (%ql))), 
-			u([v(d.sql)]/display.last-poses, revwords(%qq)), 
-			list(1, 
-				u(_footer, 
-					if(u(f.listening.at-loc, %ql), Active at This Location)
+			list( 1, u( .header, Last %qn for [name( %ql )] ( %ql ))), 
+			u( [v( d.sql )]/display.last-poses, revwords( %qq )), 
+			list( 1, 
+				u( .footer, 
+					if( u( f.listening.at-loc, %ql ), Active at This Location )
 				)
 			)
 		)
 	)]
 
 
+/*
 --------------------------------------------------------------------------------
 -- Switch: /Where --------------------------------------------------------------
 
@@ -602,29 +665,29 @@ Report all the places I have records from, whether it's active, and the time sin
 
 This command is designed for transparency.  This should be usable by everyone, with the possible exception of guests/bots as reasonable limitations.
 
---
+*/
 
 &c.poses/where Poselog Front-End=
-	strcat(
-		setq(l, 
-			sql( 
+	strcat( 
+		setq( l, 
+			sql(  
 				SELECT DISTINCT location 
 				FROM mush_poselogger 
 				ORDER BY location ASC 
 			)
 		), 
 
-		list(1, u(_header, Logged Locations)), 
+		list( 1, u( .header, Logged Locations )), 
 
-		list(%ql, 
-			cat(
-				%b [name(#%i0)] (#%i0)%,, 
+		list( %ql, 
+			cat( 
+				%b [name( #%i0 )] ( #%i0 )%,, 
 				last activity:, 
 
-				exptime(
-					sub(
-						secs(local, 6), 
-						sql( 
+				exptime( 
+					sub( 
+						secs( local, 6 ), 
+						sql(  
 							SELECT time 
 							FROM mush_poselogger 
 							WHERE location = %i0 
@@ -635,32 +698,34 @@ This command is designed for transparency.  This should be usable by everyone, w
 				), 
 				ago, 
 
-				if(u(f.listening.at-loc, #%i0), ansi(xh, %[active%]))
+				if( u( f.listening.at-loc, #%i0 ), ansi( xh, %[active%] ))
 			)
 		), 
 
-		list(1, u(_footer, words(%ql)))
+		list( 1, u( .footer, words( %ql )))
 	)
 
 
+/*
 ================================================================================
 == Functions ===================================================================
 
 
 --------------------------------------------------------------------------------
 -- Function: Listening at Location? --------------------------------------------
+*/
 
 &f.listening.at-loc Poselog Front-End=
 	lor(iter(lcon(%0), strmatch(parent(%i0), v(d.sql))))
 
-@@ REACH SPECIFIC: Global Function: islogged(<loc>)
-	&fp_islogged #978=ulocal(#8201/f.listening.at-loc, %0)
+// REACH SPECIFIC: Global Function: islogged(<loc>)
+//	&fp_islogged #978=ulocal(#8201/f.listening.at-loc, %0)
 
 
+/*
 --------------------------------------------------------------------------------
 -- Switch List -----------------------------------------------------------------
+*/
 
-&f.switchlist Poselog Front-End=lcstr(itemize(edit(lattr(%!/c.poses/*), C.POSES/, ), , or))
-
-
-
+&f.switchlist Poselog Front-End=
+	lcstr( itemize( edit( lattr( %!/c.poses/* ), C.POSES/, ), , or ))
