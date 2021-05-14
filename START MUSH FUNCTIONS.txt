@@ -14,6 +14,7 @@ to work with your game.
 
 If you used the default SGP installation, the following will be true, 
 else fix it:
+	#2 is the Master Room
     #3 is the Storage Wizard
 
 */
