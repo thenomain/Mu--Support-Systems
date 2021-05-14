@@ -160,6 +160,8 @@ To each of these ( including the first ), the following are passed:
 
 In the case of the switches, the first valid switch has their command called, if all switches are invalid we call &c.<name>.default or &c.<name>.specific, depending on the above rules.
 
+(?s) in pcre: A mode modifier that enables dot-matching the newlines.
+
 */
 
 &c.places [v( d.pgo )]=$(?s)^\+?places?(.*)$:
