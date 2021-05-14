@@ -93,9 +93,10 @@ l: lock attr
 &display.detail [v( d.dah )]=
 	strcat( 
 		setq( w, objeval( %#, lwho( ))), 
+		setq( l, loc.%1.lock ), 
 
 		u( .header, %0 ), %r, 
-		u( format.location.summary, %1 ), 
+		ulocal( format.location.summary, %1 ), 
 		u( .divider ), %r, 
 
 // list rooms :: header
@@ -105,11 +106,11 @@ l: lock attr
 		ansi( u%vc, Pop ), %r, 
 
 // list rooms :: room name & population
-		iter( u( f.get.element, rooms, %1 ), 
+		iter( ulocal( f.get.element, rooms, %1 ), 
 
-			u( format.room.one-line, 
+			ulocal( format.room.one-line, 
 				%i0, 
-				u( f.get.population.room, %i0, %#, %qw ) 
+				ulocal( f.get.population.room, %i0, %#, %qw ) 
 			), 
 
 			, %r 

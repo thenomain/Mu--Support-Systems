@@ -125,12 +125,20 @@ q0: First match of sorted name~dbref
 
 	dir/all
 
-Just like 'default', but lists all hangouts.
+Just like 'default', but lists all hangouts, if enactor passes viewlock.
 
 */
 
 &c.directory/all [v( d.dah )]=
-	u( display.locations, u( f.population.rank, 1 ), 1, %# )
+	strcat( 
+		setq( 0, 
+			filter( filter.lock.pass, 
+				u( f.population.rank, 1 ), , , %# 
+			)
+		), 
+		u( display.locations, %q0, 1, %# )
+	)
+
 
 
 /* 
@@ -150,6 +158,7 @@ q2: <type>
 &c.directory/create [v( d.dah )]=
 	strcat( 
 		setq( 0, trim( first( %0, = ))), 
+		if( match( %q0, lit( %L )), setq( 0, loc( %# ))), 
 		setq( 1, trim( before( rest( %0, = ), / ))), 
 		setq( 2, trim( rest( rest( %0, = ), / ))), 
 
@@ -204,6 +213,7 @@ d: dbref
 &c.directory/set [v( d.dah )]=
 	strcat( 
 		setq( 0, trim( first( %0, / ))), 
+		if( match( %q0, lit( %L )), setq( 0, loc( %# ))), 
 		setq( 1, trim( before( rest( %0, / ), = ))), 
 		setq( 2, trim( rest( %0, = ))), 
 
@@ -228,8 +238,10 @@ d: dbref
 			not( strmatch( %q1, rooms )), 
 			u( c.directory/room, %qd=%2 ), 
 
-//			not( strmatch( %q1, lock )), 
-//			u( .msg, dir/set, The view locks aren't ready yet. ), 
+			not( strmatch( %q1, lock )), 
+			u( .msg, dir/set, For now%, to set that view lock%, type: 
+				[ansi( %vc, &loc.%qd.lock [v( d.data )]=%q2 )]
+			), 
 
 			strcat( 
 				u( f.set.element, %q1, %qd, %q2 ), 
@@ -311,6 +323,7 @@ Add a room dbref to an existing hangout, or removes it from same.
 				%q2
 			)
 		), 
+		if( match( %q2, lit( %L )), setq( 2, loc( %# ))), 
 
 		case( 0, 
 

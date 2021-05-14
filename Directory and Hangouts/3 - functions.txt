@@ -334,7 +334,7 @@ n: new room list
 // ok: change the room list
 // .. replace room list (element 2) with the old list plus new room
 			strcat( 
-				setq( n, ldelete( %qr, %q2 )), 
+				setq( n, ldelete( %qr, %ql )), 
 				u( f.set.element, rooms, %1, %qn ), 
 				u( .msg, dir/room, 
 					Room %2 removed from the location. 

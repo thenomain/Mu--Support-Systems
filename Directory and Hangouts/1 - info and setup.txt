@@ -31,7 +31,7 @@ We are shifting this to:
 @set Directory and Hangouts <dah>=inherit safe
 
 @create Locations Data=10
-@set Locations Data=safe
+@set Locations Data=inherit safe
 @fo me=&d.data [v( d.dah )]=[num( Locations Data )]
 @tel Locations Data=[v( d.dah )]
 
@@ -74,7 +74,40 @@ We are shifting this to:
 
 &.header [v( d.dah )]=header( %0 )
 &.footer [v( d.dah )]=footer( %0 )
+
+&.footer [v( d.dah )]=
+	localize( strcat( 
+		setq( w, 78 ), 
+		setq( c, m ), 
+		ansi( %qc, + ), 
+		if( gte( setr( t, strlen( %0 )), 1 ), 
+			strcat( 
+				setq( w, sub( %qw, add( %qt, 4 ))), 
+				ansi( 
+					%qc, repeat( -, %qw ), 
+					xh, %b%0%b, 
+					%qc, -- 
+				)
+			), 
+			ansi( %qc, repeat( -, %qw ))
+		), 
+		ansi( %qc, + )
+	))
+
 &.divider [v( d.dah )]=divider( %0 )
+
+&.divider [v( d.dah )]=
+	localize( strcat( 
+		setq( w, 78 ), 
+		setq( c, m ), 
+		%b, 
+		if( gte( strlen( %0 ), 1 ), 
+			center( ansi( xh, %b%0%b ), %qw, ansi( %qc, - )), 
+			ansi( %qc, repeat( -, %qw ))
+		), 
+		%b 
+	))
+
 
 &.wheader [v( d.dah )]=wheader( %0 )
 &.wfooter [v( d.dah )]=wfooter( %0 )
