@@ -1,5 +1,5 @@
 @create [v( d.eco )]=10
-@fo me=&d.eco me=[search( name=@create Events Command Object <ECO> )]
+@fo me=&d.eco me=[search( name=Events Command Object <ECO> )]
 @set [v( d.eco )]=inherit safe
 
 
