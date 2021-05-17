@@ -50,9 +50,9 @@
 
 @Desc Help/News System Object <HNSO>=These are the commands that drive the help & news system. The bulk of the code is on [parent( me )].
 
-&C.HELP-REGEXP Help/News System Object <HNSO>=$^\+(s?)help(?!/search)(.*):@pemit %#=[setq( 0, secure( %2 ))][setq( s, lcstr( %1 ))][if( and( t( %qs ), not( isstaff( %# ))), Error: Must be staff to use +shelp, switch( %q0, , u( f.help-default, %qs ), /*, Error: +%qshelp does not have switches., %b*, u( f.help-specific, trim( %q0 ), %qs ), Error: +%qshelp's format is +%qshelp or +%qshelp <topic> ))]
+&C.HELP-REGEXP Help/News System Object <HNSO>=$^\+(s?)help(?!/search)(.*)$:@pemit %#=[setq( 0, secure( %2 ))][setq( s, lcstr( %1 ))][if( and( t( %qs ), not( isstaff( %# ))), Error: Must be staff to use +shelp, switch( %q0, , u( f.help-default, %qs ), /*, Error: +%qshelp does not have switches., %b*, u( f.help-specific, trim( %q0 ), %qs ), Error: +%qshelp's format is +%qshelp or +%qshelp <topic> ))]
 
-@set HNSO/C.HELP-REGEXP = regexp
+@set HNSO/C.HELP-REGEXP = regexp command
 
 &C.HELP/SEARCH Help/News System Object <HNSO>=$+help/search *:@switch [null( iter( grepi( v( d.help_database ), HELP~*, %0 ), [setq( 0, get( [v( d.help_database )]/%i0 ))][iter( lnum( 1, words( rest( %q0, ~ ), ~ )), case( words( graball( extract( %q0, inc( %i0 ), 1, ~ ), *%0*, , | ), | ), 0, null( Do nothing. ), setq( r, update( %qr, [lcstr( last( %i1, ~ ))][ifelse( eq( %i0, 1 ), , %b%i0 )], #$ ))))] ))][gt( words( %qr, | ), 0 )]=0, {@pemit %#=No matches for your search.}, {@pemit %#=[u( f.header, +help search - %0 )];@pemit %#=[smartcol( iter( revwords( sort( iter( %qr, revwords( %i0, : ), |, | ), n, | ), | ), [edit( rest( %i0, : ), _, %b )] [ansi( hx, ( [first( %i0, : )] ))], |, | ), |, width( %# ), space( 2 ))];@pemit %#=[footer( [words( %qr, | )] file[if( gt( words( %qr, | ), 1 ), s )] match )]}
 
