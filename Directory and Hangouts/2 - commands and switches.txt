@@ -288,7 +288,7 @@ q0: Hangout~attribute
 			u( display.detail, u( f.get.element, name, %0 ), %0 ), %r, 
 			iter( lattr( v( d.data )/loc.%0.* ), 
 				set( v( d.data ), %i0: ), 
-				, @@
+				, @@ 
 			), 
 			ansi( r, >> LOCATION DELETED << )
 		)
