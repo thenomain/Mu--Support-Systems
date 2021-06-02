@@ -152,6 +152,6 @@ especially 'dir/all'. The elements to sort by are probably pulled from
 
 &sortby.element.desc [v( d.dah )]=
 	comp( 
-		u( f.get.element, %qe, rest( %1, : )), 
-		u( f.get.element, %qe, rest( %0, : ))
+		stripansi( u( f.get.element, %qe, rest( %1, : ))), 
+		stripansi( u( f.get.element, %qe, rest( %0, : )))
 	)
