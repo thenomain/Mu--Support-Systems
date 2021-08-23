@@ -47,7 +47,7 @@ change. Change them.
 In the same directory as weather.php, type the following, replacing 
 xxxxxxxxxxxxx with the secret key (aka a "token") for Dark Sky:
 
-cat > darksky_api_token.txt
+cat > weather_darksky_token.txt
 <?php 
 $token_DarkSky = "xxxxxxxxxxxxx";
 ?>

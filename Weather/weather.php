@@ -10,7 +10,7 @@
  *
  *****************************************************************************/
 
-require "darksky_api_token.txt";
+require "weather_darksky_token.txt";
 
 /******************************************************************************
  *
@@ -19,10 +19,10 @@ require "darksky_api_token.txt";
  *****************************************************************************/
 
 // the state and city are no longer used -- alas
-// The latitude and longitude of Upper Marlboro, MD is:
+// The latitude and longitude of Stowe, VT is (close enough to):
+$latitude = "44.4875532";
+$longitude = "-72.7223417";
 
-$latitude = "38.8159"; 
-$longitude = "-76.7497"; 
 
 // Dark Sky doesn't do tides. Maybe we can find something better
 $has_tides = FALSE; // set to TRUE if your area has  tides
@@ -35,7 +35,9 @@ $has_tides = FALSE; // set to TRUE if your area has  tides
        helpfile meteo /home/bitn/game/etc/text/weather
 */
 
-$file_dir = '/home/portlandia/game/etc/text/'; 
+// $file_dir = '/home/fateshar/tinymux/mux/game/text/'; 
+$file_dir = '/Users/jenkins/Documents/Projects/Mush Code/support systems/Weather/'; 
+
 
 /******************************************************************************
  *
@@ -63,11 +65,13 @@ date_timezone_set( $datetime, new DateTimeZone($tz));
 
 // astronomy from the USNO office.
 // Our token as "TinyMUX" to let them know who we are.
+/* -- Astronomy Not Pulling --
+
 $astronomy_string = 'https://api.usno.navy.mil/rstt/oneday?' . 
     'ID=TinyMUX&date=today&coords=' . $latitude . ',' . $longitude;
 $json_string = file_get_contents( $astronomy_string ); 
 $astronomy = json_decode( $json_string ); 
-
+*/
 
 /* we don't know how to error yet *
 
@@ -146,7 +150,9 @@ function cloudCoverDesc($cloudCover) {
 }
 
 function windSpeedDesc($speed) {
+	// speed in MPH -> Knots
     $knots = $speed * 0.868976;
+
     // beaufort scale
     switch (true) {
         case ( $knots >= 64 ):
@@ -220,7 +226,8 @@ $file_conditions .= "Temperature: " .
     fahrenheitToCelsius($conditions->temperature) ." C)\n"; 
 if ( $conditions->temperature != $conditions->apparentTemperature ) { 
     $file_conditions .= "Feels Like: " . 
-        round($conditions->apparentTemperature) . "\n";
+	    round($conditions->apparentTemperature) . " F (" . 
+    	fahrenheitToCelsius($conditions->apparentTemperature) ." C)\n"; 
 }
 $file_conditions .= "Humidity: " . 
     $conditions->humidity * 100 . "\% \n"; 
@@ -372,6 +379,8 @@ if (isset($alerts)) {
  * 
  ******************************************************************************/
 
+/* -- Astronomy Not Pulling --
+
 $sun = $astronomy->sundata; 
 foreach ($sun as $value) {
     if ($value->phen == "R") { 
@@ -383,6 +392,10 @@ foreach ($sun as $value) {
 
 $moon = $astronomy->moondata;
 
+*/
+
+$file_astronomy = "& astronomy\nIntentionally if sadly blank.\n";
+
 /* we ignore other days - it makes 'is the moon visible' calculation easier *
 if (!is_null(@$astronomy->prevmoondata)) {
     $moon = array_merge($astronomy->prevmoondata, $moon);
@@ -391,6 +404,7 @@ if (!is_null(@$astronomy->nextmoondata)) {
     $moon = array_merge($moon, $astronomy->nextmoondata);
 }; 
 */
+/* -- Astronomy Not Pulling --
 
 foreach ($moon as $value) {
     if ($value->phen == "R") { 
@@ -412,6 +426,7 @@ if( isset( $moonset )) {
 $file_astronomy .= "Moon Phase: " . $astronomy->curphase . 
     " (" . str_replace("%", "\%", $astronomy->fracillum) . ")\n";
 
+*/
 
 /******************************************************************************
  * 
@@ -461,7 +476,7 @@ Raw weather data for weather code.
 Conditions: Current conditions as of the Last Updated time.
 Today: Today's forecast.
 Tomorrow: Tomorrow's forecast.
-Astronomy: Sun & Moon facts.
+Astronomy: Sun & Moon facts. (under construction)
 Alerts: Emergency weather service alerts.\n";
 
 /*
@@ -497,7 +512,7 @@ fputs( $fr, $file_conditions );
 fputs( $fr, $file_today );
 fputs( $fr, $file_tomorrow );
 fputs( $fr, $file_astronomy );
-/* tides reporting currently disabled *
+/* tides reporting currently disabled until we can find a good source *
 if( $has_tides == TRUE ){
     fputs( $fr, $file_tides );
     fputs( $fr, $file_tide_heights );
