@@ -4,44 +4,41 @@ Raw weather data for weather code.
 Conditions: Current conditions as of the Last Updated time.
 Today: Today's forecast.
 Tomorrow: Tomorrow's forecast.
-Astronomy: Sun & Moon facts.
+Astronomy: Sun & Moon facts. (under construction)
 Alerts: Emergency weather service alerts.
 Credits: People and things to thank.
 
 Powered by Dark Sky (https://darksky.net/poweredby/)
 
-Last Updated on March 17, 02:40 PM EDT
+Last Updated on August 23, 05:42 PM EDT
 & conditions
-Summary: Clear
-Temperature: 50.24 F
-Humidity: 26\% 
-Wind: 8.22 mph 288 (13 kph)
-Wind String: <description>
-Wind Gusts: 14.37 mph (23 kph)
-Pressure: 30.22 in
-Cloud Cover: 
+Summary: Light Rain
+Temperature: 77 F (25 C)
+Feels Like: 78 F (26 C)
+Humidity: 79\% 
+Wind: 5 mph S (7 kph)
+Wind Description: Light Air
+Wind Gusts: 8 mph (12 kph)
+Pressure: 29.84 in
+Cloud Cover: Overcast
 & today
-High: 52.15 F (11 C)
-Low: 36.86 F (3 C)
-Conditions: Partly cloudy overnight.
-Wind: 3.38 mph 311 (5 kph)
-Wind Gusts: 15.44 mph (25 kph)
-Humidity: 41\% 
-Chance of Rain: 5\% 
+High: 81 F (27 C)
+Low: 66 F (19 C)
+Conditions: Mostly cloudy throughout the day.
+Wind: 5 mph SE (8 kph)
+Wind Gusts: 16 mph (25 kph)
+Humidity: 86\% 
+Chance of Rain: 32\% 
 & tomorrow
-High: 45.85 F (8 C)
-Low: 32.83 F (0 C)
-Conditions: Mostly cloudy until evening.
-Wind: 3.85 mph 80 (6 kph)
-Wind Gusts: 11.76 mph (19 kph)
-Humidity: 65\% 
-Chance of Rain: 39\% 
+High: 85 F (30 C)
+Low: 65 F (18 C)
+Conditions: Humid and partly cloudy throughout the day.
+Wind: 4 mph W (6 kph)
+Wind Gusts: 12 mph (20 kph)
+Humidity: 85\% 
+Chance of Rain: 17\% 
 & astronomy
-Sunrise: 11:16
-Sunset: 23:16
-Moonrise: 19:20
-Moonset: 09:05
-Moon Phase: First Quarter (82%)
+Intentionally if sadly blank.
 & alerts
 No alerts in your area.
 & credits
