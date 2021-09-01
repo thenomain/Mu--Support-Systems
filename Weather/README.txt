@@ -9,6 +9,9 @@ You will need to have access to edit files and to cron on the server account.
 Go to this site:
     https://darksky.net/dev/register
 
+NOTE: DARK SKY API TOKENS ARE NO LONGER AVAILABLE. ANOTHER SYSTEM WILL BE 
+PROVIDED. EVENTUALLY.
+
 Sign up. The base account is free up to a thousand calls per day, so unless 
 you're going to install your API code on 42 games--or 42 times per hour on one 
 game--you should be fine.
