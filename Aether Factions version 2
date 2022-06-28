@@ -1,0 +1,58 @@
+/*
+FACTIONS
+For Mux and Rhost
+Based on Aether Factions
+
+1 faction per object
+per member - dbref, rank (numeric, a sortby), note/position
+
+view lock - it's possible that someone can be in a faction and not know it
+add/edit lock - if someone can add/edit, they must pass view lock
+
+appearance - an 'ansiname' for factions
+
+Sensible Command Structure
+    fac
+    fac <faction>
+    fac/who <faction> - aka fwho
+
+    fac/add <player>=<faction>
+    fac/rank <player>/<faction>=<rank>
+    fac/type <player>/<faction>=<type>
+    fac/group <player>/<faction>=<group> - subcategorize by groups, inc. 'unsorted'
+    fac/position <player>/<faction>=<position>
+
+    fac/create <faction>=<desc>
+    fac/ansiname <faction>=<ansiname>
+    fac/desc <faction>=<description>
+    fac/lock <faction>[/view]=<lock>
+
+    fac/clean [<faction>]
+
+    fac/admin <player>=<faction>
+
+0000000001111111111222222222233333333334444444444555555555566666666667777777777
+1234567890123456789012345678901234567890123456789012345678901234567890123456789
+
+Name ------- Position ----------------------------------------------- Typ - Rnk
+Thenomain    Coder                                                    STA    9
+Bob          Leader of the Inquisition                                VMP    5
+
+
+storage - no need to store on individuals anymore, only store on faction object.
+
+&name: formal name
+&ansiname: pretty name for display
+&lock/view - who can or cannot see this faction
+    player:member
+    player:staff:wizard
+    !player:name:bob
+
+&member_<objid>: <'member' or 'admin'>|<rank>|<type>|<group>|<position>
+
+&rank: code to calculate 'rank' if not set - pulling 'group' might be important
+&type: code to calculate 'type' if not set
+&group: code to calculate 'group' if not set
+
+That one's gonna be harder.
+*/
