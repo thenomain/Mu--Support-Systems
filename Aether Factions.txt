@@ -564,7 +564,7 @@ a: faction head/staff?
 // 	[setq( f, num( trim( rest( %0, = ))))]
 // 	[setq( c, pmatch( trim( first( first( %0, / ), = ))))]
 // 	[setq( t, extract( %qc, 2, 1, / ))]
-// 	[setq( r, extract( %qc, 3, 1, / ))]
+ 	[setq( r, )]
 
 	[case( 0, 
 		t( %qf ), 
