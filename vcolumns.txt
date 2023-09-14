@@ -188,3 +188,95 @@ Since this is probably what you came here for.
 --
 
 &f_vcolumns @@functions object@@=[iter( lnum( 9 ), if( and( isint( before( v( %i0 ), : )), strmatch( v( %i0 ), *:* )), setq( c, inc( %i0 )) ), , @@ )][setq( d, if( t( comp( v( %qc ), )), v( %qc ), %b ))][setq( v, v( inc( %qc )))][setq( l, v( add( %qc, 2 )))][setq( r, v( add( %qc, 3 )))][iter( lnum( %qc ), setq( %i0, [setr( w, first( v( %i0 ), : ))]:[iter( rest( v( %i0 ), : ), wrap( %i0, %qw, left, , , , %qd ), %qd, %qd )] ), , @@ )][iter( lnum( %qc ), setq( h, max( %qh, words( rest( r( %i0 ), : ), %qd ))), , @@ )][iter( lnum( 1, %qh ), %ql[iter( lnum( %qc ), if( t( setr( z, extract( rest( r( %i0 ), : ), inum( 1 ), 1, %qd ))), %qz, space( first( r( %i0 ), : )) ), , %qv )]%qr, , %r )]
+
+
+
+================================================================================
+== Rhost Version (By Darc) =====================================================
+FAQ: Why do we need this when Rhost has both columns() and wrapcolumns()?  Because both of those require the column widths to match.  Vcolumns allows each column to be its own width.  This code entirely ignores line widths, so be mindful.
+
+Usage:
+vcolumns(<column1Width>:<column1Items>,...<columnNWidth>:<columnNItems>,[<inDelim>],[<outDelim>],[<leftBorder>],[<rightBorder>])
+
+  <column1Width> - Width, in characters, for column1
+  <column1Items> - Items in column1
+  ...
+  <inDelim> - Delimiter between Items in columns
+  <outDelim> - Delimiter between Items in columns (if you think of this as a 'table', it is the cell separator)
+  <leftBorder> - Left Border
+  <rightBorder> - Right Border
+
+
+================================================================================
+== Code ========================================================================
+
+@@ Init Height (max entries)
+[setq(h,0)]
+
+@@ Column Count
+[null(columns)][iter(lnum(9),if(and(isint(before(v(%i0),:)),strmatch(v(%i0),*:*)),setq(c,inc(%i0))),,)]
+
+@@ Input Delimiter
+[null(delim)][setq(d,if(words(v(%qc)),v(%qc),%b))]
+
+@@ Output Delimiter (between columns)
+[null(out)][setq(o,v(inc(%qc)))]
+
+@@ left border
+[null(left)][setq(l,v(add(%qc,2)))]
+
+@@ Right border
+[null(right)][setq(r,v(add(%qc,3)))]
+
+@@ Set Height (max entries
+[null(height)][iter(lnum(%qc),setq(h,max(%qh,words(rest(v(%i0),:),%qd))),,)]
+
+@@ iterate through possible entries and construct a printf()
+@@ - We have to use the if() here because 'lnum(1,0)' will actually spit out '1 0', which would be bad.
+[if(%qh,iter(lnum(1,%qh),
+
+  printf(
+    @@ format string: Left border, (column count, separated by output delimiter), right border 
+	$.[strlen(%ql)]:%ql:&s[iter(lnum(%qc),$-[first(v(%i0),:)]|"s,,$.[strlen(%qo)]:%qo:&s)]$.[strlen(%qr)]:%qr:&s,
+	
+	@@ Left Border
+	if(strlen(%ql),%r),
+    
+	@@ If column 1 exists, print the value
+	if(lte(0,%qc),extract(rest(%0,:),%i0,1,%qd)),
+    
+	@@ If there are remaining columns, print output delim, otherwise right border
+	if(strlen(if(lt(1,%qc),%qo,%qr)),%r),
+    
+	@@ Repeat this process for columns 2-8
+	@@ - printf() ignores any arguments that it doesn't have fields for in the format string,
+	@@ - so we can just go crazy here and slam in all 9 columns.
+	if(lte(1,%qc),extract(rest(%1,:),%i0,1,%qd)),
+	if(strlen(if(lt(2,%qc),%qo,%qr)),%r),
+	if(lte(2,%qc),extract(rest(%2,:),%i0,1,%qd)),
+	if(strlen(if(lt(3,%qc),%qo,%qr)),%r),
+	if(lte(3,%qc),extract(rest(%3,:),%i0,1,%qd)),
+	if(strlen(if(lt(4,%qc),%qo,%qr)),%r),
+	if(lte(4,%qc),extract(rest(%4,:),%i0,1,%qd)),
+	if(strlen(if(lt(5,%qc),%qo,%qr)),%r),
+	if(lte(5,%qc),extract(rest(%5,:),%i0,1,%qd)),
+	if(strlen(if(lt(6,%qc),%qo,%qr)),%r),
+	if(lte(6,%qc),extract(rest(%6,:),%i0,1,%qd)),
+	if(strlen(if(lt(7,%qc),%qo,%qr)),%r),
+	if(lte(7,%qc),extract(rest(%7,:),%i0,1,%qd)),
+	if(strlen(if(lt(8,%qc),%qo,%qr)),%r),
+	if(lte(8,%qc),extract(rest(%8,:),%i0,1,%qd)),
+	if(strlen(if(lt(9,%qc),%qo,%qr)),%r),
+
+	@@ If column 9 exists, print the value
+	if(lte(9,%qc),extract(rest(%9,:),%i0,1,%qd)),
+
+	@@ Right Border
+	if(strlen(%qr),%r))
+,,%r))]
+
+================================================================================
+== COMPILED VERSION (Rhost) ====================================================
+Note, #33 is the default function object built into rhost, so apply accordingly.
+
+&funpr_vcolumns #33=[setq(h,0)][null(columns)][iter(lnum(9),if(and(isint(before(v(%i0),:)),strmatch(v(%i0),*:*)),setq(c,inc(%i0))),,)][null(delim)][setq(d,if(words(v(%qc)),v(%qc),%b))][null(out)][setq(o,v(inc(%qc)))][null(left)][setq(l,v(add(%qc,2)))][null(right)][setq(r,v(add(%qc,3)))][null(height/entries)][iter(lnum(%qc),setq(h,max(%qh,words(rest(v(%i0),:),%qd))),,)][if(%qh,iter(lnum(1,%qh),printf($.[strlen(%ql)]:%ql:&s[iter(lnum(%qc),$-[first(v(%i0),:)]|"s,,$.[strlen(%qo)]:%qo:&s)]$.[strlen(%qr)]:%qr:&s,if(strlen(%ql),%r),if(lte(0,%qc),extract(rest(%0,:),%i0,1,%qd)),if(strlen(if(lt(1,%qc),%qo,%qr)),%r),if(lte(1,%qc),extract(rest(%1,:),%i0,1,%qd)),if(strlen(if(lt(2,%qc),%qo,%qr)),%r),if(lte(2,%qc),extract(rest(%2,:),%i0,1,%qd)),if(strlen(if(lt(3,%qc),%qo,%qr)),%r),if(lte(3,%qc),extract(rest(%3,:),%i0,1,%qd)),if(strlen(if(lt(4,%qc),%qo,%qr)),%r),if(lte(4,%qc),extract(rest(%4,:),%i0,1,%qd)),if(strlen(if(lt(5,%qc),%qo,%qr)),%r),if(lte(5,%qc),extract(rest(%5,:),%i0,1,%qd)),if(strlen(if(lt(6,%qc),%qo,%qr)),%r),if(lte(6,%qc),extract(rest(%6,:),%i0,1,%qd)),if(strlen(if(lt(7,%qc),%qo,%qr)),%r),if(lte(7,%qc),extract(rest(%7,:),%i0,1,%qd)),if(strlen(if(lt(8,%qc),%qo,%qr)),%r),if(lte(8,%qc),extract(rest(%8,:),%i0,1,%qd)),if(strlen(if(lt(9,%qc),%qo,%qr)),%r),if(lte(9,%qc),extract(rest(%9,:),%i0,1,%qd)),if(strlen(%qr),%r)),,%r))]
